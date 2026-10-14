@@ -1,0 +1,13 @@
+name: Onboarding progress system CI (caller)
+
+on:
+  push:
+    paths:
+      - 'onboarding-progress-system/**'
+  workflow_dispatch:
+
+jobs:
+  call-reusable:
+    uses: ./.github/workflows/reusable-docker-smoke.yml
+    with:
+      project_dir: onboarding-progress-system
