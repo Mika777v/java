@@ -1,0 +1,84 @@
+name: Reusable Docker Compose smoke test
+
+on:
+  workflow_call:
+    inputs:
+      project_dir:
+        required: true
+        type: string
+      compose_file:
+        required: false
+        type: string
+        default: docker-compose.yml
+
+jobs:
+  run-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and start services
+        run: |
+          set -e
+          cd "${{ inputs.project_dir }}"
+          docker compose up -d --build
+          docker compose ps
+
+      - name: Wait for database to be ready (if present)
+        run: |
+          set -e
+          cd "${{ inputs.project_dir }}"
+          if docker compose ps --services | grep -q '^db$'; then
+            for i in {1..30}; do
+              if docker compose exec -T db pg_isready -U user -d onboarding_db; then
+                echo "Database is ready"
+                break
+              fi
+              echo "Waiting for database... ($i/30)"
+              sleep 5
+            done
+          else
+            echo "No 'db' service found in docker-compose, skipping DB wait"
+          fi
+
+      - name: Smoke test API (HTTP checks)
+        run: |
+          set -e
+          cd "${{ inputs.project_dir }}"
+
+          echo "GET /api/tasks"
+          curl -sS -w "\nHTTP status: %{http_code}\n" http://localhost:8080/api/tasks || true
+
+          echo "POST /api/tasks"
+          POST_RESPONSE=$(curl -sS -w "\nHTTP status: %{http_code}\n" -X POST -H "Content-Type: application/json" -d '{"title":"Set up laptop","description":"Install tools","active":true}' http://localhost:8080/api/tasks)
+          echo "$POST_RESPONSE"
+          CREATED_ID=$(echo "$POST_RESPONSE" | grep -o '"id":[0-9]*' | head -n 1 | cut -d: -f2 || true)
+
+          if [ -z "$CREATED_ID" ]; then
+            echo "No ID returned from POST request; attempting to show app logs and failing the run"
+            docker compose logs || true
+            exit 1
+          fi
+
+          echo "GET created task"
+          curl -sS -w "\nHTTP status: %{http_code}\n" http://localhost:8080/api/tasks/$CREATED_ID
+
+          echo "DELETE created task"
+          curl -sS -w "\nHTTP status: %{http_code}\n" -X DELETE http://localhost:8080/api/tasks/$CREATED_ID
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          cd "${{ inputs.project_dir }}"
+          echo "--- Docker compose logs ---"
+          docker compose logs || true
+
+      - name: Cleanup containers
+        if: always()
+        run: |
+          cd "${{ inputs.project_dir }}"
+          docker compose down -v || true
