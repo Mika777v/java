@@ -19,3 +19,7 @@ spring:
 
 server:
   port: 8080
+
+app:
+  # Time zone used for "today" (overdue check) and for showing completion times
+  time-zone: ${APP_TIME_ZONE:Asia/Tokyo}

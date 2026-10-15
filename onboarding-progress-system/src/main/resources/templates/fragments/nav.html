@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Menu shown at the top of every page. current: "tasks" or "users" -->
+<nav class="nav" th:fragment="nav(current)">
+    <span class="nav-title">オンボーディング進捗管理</span>
+    <a th:href="@{/tasks}" th:classappend="${current == 'tasks'} ? 'nav-current'">タスク</a>
+    <a th:href="@{/users}" th:classappend="${current == 'users'} ? 'nav-current'">ユーザー</a>
+</nav>
+
+<!-- Result message after an action (set as a flash attribute) -->
+<div th:fragment="messages">
+    <p class="message" th:if="${message}" th:text="${message}">登録しました。</p>
+    <p class="message message-error" th:if="${error}" th:text="${error}">エラー</p>
+</div>
+</body>
+</html>

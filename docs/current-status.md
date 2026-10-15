@@ -1,88 +1,97 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-15(第4版)
-- 対象: PR #7 マージ後の `main` に、自動テストを加えた状態
+- 調査日: 2026-10-15(第5版)
+- 対象: PR #8 マージ後の `main` に、ユーザー管理とタスクの割り当て・進捗管理を加えた状態
 - 対象プロジェクト: `onboarding-progress-system`(新入社員・中途入社者のオンボーディング進捗管理)
-- 調査方法: ソースコードの確認に加え、アプリを実際に起動し、各 URL をブラウザ(Chromium)で開いて表示を確認
+- 調査方法: ソースコードの確認、自動テストの実行、アプリを実際に起動してブラウザで操作
 
-### 前回(第1版、PR #3 時点)からの主な変更
+### これまでの主な変更
 
 | PR | 内容 |
 |---|---|
-| #4 | タスク一覧画面 `GET /tasks` を追加(`TaskPageController`、`tasks.html`)、サンプルデータ 5 件を追加 |
-| #5 | GitHub Codespaces 用の Docker Compose 設定 `docker-compose.codespaces.yml` を追加 |
+| #2 | GitHub Actions の Docker 起動エラーを修正、動作確認ワークフローを整備 |
+| #4 | タスク一覧画面 `GET /tasks` とサンプルタスク 5 件を追加 |
+| #5 | GitHub Codespaces 用の Docker Compose 設定を追加 |
 | #7 | `/` を `/tasks` へ転送、画面からのタスク登録・編集・削除を追加 |
-| (第4版) | 自動テスト(27 件)を追加し、GitHub Actions で毎回実行 |
+| #8 | 自動テストを追加し、GitHub Actions で毎回実行 |
+| (第5版) | **ユーザー管理、タスクの割り当て、進捗管理(未着手 / 対応中 / 完了)を追加** |
 
 ---
 
-## 0. README の記載と実装の照合(再調査結果)
+## 0. README の MVP と実装の照合
 
-README には「`http://localhost:8080/tasks` でタスク一覧画面が見られる」と書かれています。実装と照合した結果、**記載どおり存在し、実際に表示できる**ことを確認しました。
+| README の機能 | 状態 | 実装 |
+|---|---|---|
+| Manage onboarding tasks | ✅ | タスクの一覧・登録・編集・削除(画面と REST API) |
+| Assign tasks to users | ✅ | ユーザー詳細画面からタスクを 1 件ずつ、またはまとめて割り当て |
+| Track progress and status | ✅ | 割り当てごとに 未着手 / 対応中 / 完了 を変更。完了日時を自動記録 |
+| View task completion status | ✅ | ユーザー一覧に完了数・完了率(進捗バー)、詳細画面に期限切れ表示 |
 
-| # | 確認項目 | 結果 | 根拠 |
-|---|---|---|---|
-| 1 | `templates/tasks.html` は存在するか | ✅ 存在する | `onboarding-progress-system/src/main/resources/templates/tasks.html` |
-| 2 | `@Controller` は存在するか | ✅ 存在する | `controller/TaskPageController.java` の 9 行目 `@Controller` |
-| 3 | `GET /tasks` は実装されているか | ✅ 実装済み | `TaskPageController.java` の 18 行目 `@GetMapping("/tasks")`。起動して HTTP 200(`text/html`)が返ることを確認 |
-| 4 | ブラウザで確認できる画面一覧 | 画面は 3 つ(一覧・登録・編集) | 10 章を参照 |
-| 5 | スクリーンショット相当の説明 | 10 章に記載 | 実際に撮影した画面をもとに記述 |
-
-補足として、GitHub Actions も毎回 `/tasks` が 200 を返し、表にサンプル 5 件が並ぶことを自動で確認しています(9 章)。
+README に書かれた MVP の 4 機能はすべて画面から使えるようになりました。
 
 ---
 
 ## 1. ディレクトリ構成
 
 ```
-java/                                   … リポジトリのルート(Java 学習用プロジェクト置き場)
+java/
 ├── README.md
-├── LICENSE
-├── .gitignore
-├── .github/
-│   └── workflows/
-│       ├── onboarding-progress-system-ci.yml   … CI の呼び出し元(push / 手動実行で起動)
-│       └── reusable-docker-smoke.yml           … Docker で起動して API・画面を確認する本体
-├── docs/
-│   └── current-status.md                       … このレポート
-└── onboarding-progress-system/         … アプリ本体
+├── .github/workflows/
+│   ├── onboarding-progress-system-ci.yml   … CI の呼び出し元(test ジョブ + 動作確認の呼び出し)
+│   └── reusable-docker-smoke.yml           … Docker で起動して API・画面を確認する本体
+├── docs/current-status.md                  … このレポート
+└── onboarding-progress-system/
     ├── README.md
-    ├── .gitignore
-    ├── Dockerfile                      … アプリのコンテナイメージ定義
-    ├── docker-compose.yml              … アプリ(app)と DB(db)の 2 コンテナ構成
-    ├── docker-compose.codespaces.yml   … Codespaces 用の上書き設定(PR #5)
-    ├── pom.xml                         … Maven のビルド設定
-    ├── .github/workflows/ci-docker-smoke.yml   … ※この場所では GitHub に実行されない(9 章)
+    ├── Dockerfile
+    ├── docker-compose.yml                  … アプリ(app)と DB(db)
+    ├── docker-compose.codespaces.yml       … Codespaces 用の上書き設定
+    ├── pom.xml
+    ├── .github/workflows/ci-docker-smoke.yml   … ※この場所では実行されない(9 章)
     └── src/
         ├── main/
         │   ├── java/com/example/onboarding/
-        │   │   ├── OnboardingProgressSystemApplication.java   … 起動クラス
+        │   │   ├── OnboardingProgressSystemApplication.java
+        │   │   ├── config/TimeConfig.java            … 「今日」「現在時刻」のタイムゾーン設定
         │   │   ├── controller/
-        │   │   │   ├── TaskController.java       … REST API(JSON)
-        │   │   │   └── TaskPageController.java   … 画面(HTML)
-        │   │   ├── entity/Task.java
-        │   │   ├── form/TaskForm.java            … 登録・編集フォームの入力値
-        │   │   └── repository/TaskRepository.java
+        │   │   │   ├── TaskController.java           … タスクの REST API(JSON)
+        │   │   │   ├── TaskPageController.java       … タスクの画面
+        │   │   │   └── UserPageController.java       … ユーザー・割り当ての画面
+        │   │   ├── entity/
+        │   │   │   ├── Task.java
+        │   │   │   ├── User.java
+        │   │   │   ├── TaskAssignment.java           … 割り当て・進捗
+        │   │   │   └── AssignmentStatus.java         … 進捗の種類(未着手 / 対応中 / 完了)
+        │   │   ├── form/
+        │   │   │   ├── TaskForm.java
+        │   │   │   └── UserForm.java
+        │   │   ├── repository/
+        │   │   │   ├── TaskRepository.java
+        │   │   │   ├── UserRepository.java
+        │   │   │   └── TaskAssignmentRepository.java
+        │   │   ├── service/
+        │   │   │   ├── AssignmentService.java        … 割り当てのルール
+        │   │   │   ├── AssignmentException.java      … 割り当てできないときのエラー
+        │   │   │   └── UserProgress.java             … 完了数・完了率
+        │   │   └── web/DateTimeDisplay.java          … 画面用の日時表示・期限切れ判定
         │   └── resources/
         │       ├── application.yml
         │       ├── db/migration/
         │       │   ├── V1__create_tasks_table.sql
-        │       │   └── V2__insert_sample_tasks.sql   … サンプルデータ 5 件
-        │       ├── static/css/app.css            … 画面共通のデザイン
+        │       │   ├── V2__insert_sample_tasks.sql
+        │       │   ├── V3__create_users_and_task_assignments.sql
+        │       │   └── V4__insert_sample_users_and_assignments.sql
+        │       ├── static/css/app.css
         │       └── templates/
-        │           ├── tasks.html                    … タスク一覧画面
-        │           └── task-form.html                … タスク登録・編集画面(共通)
-        └── test/java/com/example/onboarding/     … 自動テスト(第4版)
-            ├── TestcontainersConfiguration.java  … テスト用 PostgreSQL の起動設定
-            ├── controller/
-            │   ├── TaskControllerTest.java       … REST API のテスト(9 件)
-            │   └── TaskPageControllerTest.java   … 画面のテスト(14 件)
-            └── form/TaskFormTest.java            … TaskForm の単体テスト(4 件)
+        │           ├── fragments/nav.html            … 共通メニュー・メッセージ表示
+        │           ├── tasks.html / task-form.html
+        │           └── users.html / user-form.html / user-detail.html
+        └── test/java/com/example/onboarding/          … 自動テスト(62 件)
 ```
 
 まだ存在しないもの:
 
-- `service/` 層(Controller が Repository を直接呼んでいる)
+- ユーザー・割り当て用の REST API(画面のみ)
+- ログイン・権限管理
 
 ---
 
@@ -90,70 +99,89 @@ java/                                   … リポジトリのルート(Java 学
 
 | 機能 | 内容 |
 |---|---|
-| タスク管理 API(CRUD) | タスクの一覧・1 件取得・登録・更新・削除 |
-| タスク一覧画面 | `/tasks` で全タスクを ID 順に表で表示。`/` を開いても一覧に移動 |
-| タスク登録・編集・削除画面 | 一覧の「新規登録」「編集」「削除」ボタンから操作。完了後は一覧に戻り、メッセージを表示 |
-| サンプルデータ | 初回起動時に 5 件のタスクを自動登録 |
-| 入力チェック | API: `title` が空なら 400 エラー。画面: タイトル未入力・200 文字超でフォームにエラーメッセージを表示 |
-| 作成日時・更新日時の自動設定 | 保存時に `createdAt` / `updatedAt` を自動で入れる |
-| DB テーブルの自動作成 | 起動時に Flyway が `tasks` テーブルを作る |
-| Docker での起動 | `docker compose up --build` でアプリと PostgreSQL が起動する |
-| Codespaces での起動 | `docker-compose.codespaces.yml` を重ねて指定すると起動できる |
-| 自動テスト | 27 件(API・画面・フォーム)。`mvn test` で実行。テスト用の PostgreSQL は Testcontainers が自動で起動 |
-| CI(GitHub Actions) | push のたびに自動テストを実行し、さらに Docker で起動して API と画面を実際に呼んで確認する |
+| タスク管理 | 一覧・登録・編集・削除(画面と REST API)。`/` を開くとタスク一覧へ |
+| ユーザー管理 | 一覧・登録・編集・削除。メールアドレスの形式・重複チェック(大文字小文字を区別しない) |
+| タスクの割り当て | ユーザー詳細画面から、有効なタスクを 1 件ずつ(期限付き)、またはまとめて割り当て。割り当て解除も可能 |
+| 進捗管理 | 割り当てごとに 未着手 / 対応中 / 完了 を変更。完了にすると完了日時を記録、戻すと消去 |
+| 進捗の確認 | ユーザー一覧に「完了数 / 割り当て数」と完了率のバー。詳細画面で期限切れを赤いラベルで表示 |
+| 共通メニュー | 全画面の上部に「タスク | ユーザー」のメニュー |
+| サンプルデータ | タスク 5 件、ユーザー 3 人、割り当て 10 件(進み具合がばらばら) |
+| 自動テスト | 62 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動) |
+| CI | push のたびに自動テストと、Docker で起動しての動作確認を実行 |
+
+### 割り当てのルール
+
+- 割り当てられるのは **有効(Active: Yes)なタスク** だけ
+- 同じユーザーに同じタスクは 1 回だけ(DB の一意制約と画面のチェックの両方)
+- ユーザーやタスクを削除すると、関係する割り当ても削除される(DB の `ON DELETE CASCADE`)
+- 「期限切れ」= 期限が今日より前で、まだ完了していないもの。「今日」は `app.time-zone`(初期値 `Asia/Tokyo`)で判断
 
 ---
 
 ## 3. 未実装機能
 
-`onboarding-progress-system/README.md` の「Features (MVP)」と比較した結果です。
-
-| README に書かれた機能 | 状態 | 不足している内容 |
-|---|---|---|
-| Manage onboarding tasks(タスク管理) | ✅ 実装済み | API・画面ともに一覧・登録・編集・削除ができる |
-| Assign tasks to users(ユーザーへの割り当て) | ✕ 未実装 | ユーザーのテーブル・Entity・API・画面がない |
-| Track progress and status(進捗・状態の管理) | ✕ 未実装 | 「未着手/対応中/完了」のような状態を持つ項目がない |
-| View task completion status(完了状況の表示) | ✕ 未実装 | 完了率などの集計・画面がない |
-
-その他、まだないもの:
-
-- タスク詳細画面(`/tasks/{id}` は 404)
-- ログイン・権限管理
-- エラーレスポンス・エラー画面の共通化(現在は Spring Boot 標準のもの)
-- ヘルスチェック用エンドポイント(Spring Boot Actuator は未導入)
+| 機能 | 補足 |
+|---|---|
+| ユーザー・割り当ての REST API | 今回は画面のみ |
+| ログイン・権限管理 | 管理者と新入社員で見られる画面を分ける場合に必要 |
+| 検索・絞り込み | 部署・期限切れ・未完了などでの絞り込み |
+| エラー画面の共通化 | 404 などは Spring Boot 標準の「Whitelabel Error Page」 |
+| ヘルスチェック | Spring Boot Actuator は未導入 |
 
 ---
 
 ## 4. テーブル定義
 
-### `tasks`(オンボーディングのタスク)
-
-作成: `db/migration/V1__create_tasks_table.sql`
+### `tasks`(タスク。全員共通のひな形)— V1
 
 | カラム | 型 | NULL | 初期値 | 説明 |
 |---|---|---|---|---|
 | `id` | `BIGSERIAL` | 不可 | 自動採番 | 主キー |
-| `title` | `VARCHAR(200)` | 不可 | なし | タスク名 |
-| `description` | `TEXT` | 可 | なし | 説明 |
-| `active` | `BOOLEAN` | 不可 | `true` | 有効フラグ |
-| `created_at` | `TIMESTAMPTZ` | 不可 | `now()` | 作成日時 |
-| `updated_at` | `TIMESTAMPTZ` | 不可 | `now()` | 更新日時 |
+| `title` | `VARCHAR(200)` | 不可 | | タスク名 |
+| `description` | `TEXT` | 可 | | 説明 |
+| `active` | `BOOLEAN` | 不可 | `true` | 有効フラグ(無効なタスクは割り当てられない) |
+| `created_at` / `updated_at` | `TIMESTAMPTZ` | 不可 | `now()` | 作成・更新日時 |
 
-テーブルは `tasks` の 1 つだけです。インデックス・外部キーはありません。
+### `users`(ユーザー)— V3
 
-### 初期データ
+| カラム | 型 | NULL | 初期値 | 説明 |
+|---|---|---|---|---|
+| `id` | `BIGSERIAL` | 不可 | 自動採番 | 主キー |
+| `name` | `VARCHAR(100)` | 不可 | | 氏名 |
+| `email` | `VARCHAR(255)` | 不可 | | メールアドレス(`UNIQUE`) |
+| `department` | `VARCHAR(100)` | 可 | | 部署 |
+| `joined_on` | `DATE` | 可 | | 入社日 |
+| `created_at` / `updated_at` | `TIMESTAMPTZ` | 不可 | `now()` | 作成・更新日時 |
 
-投入: `db/migration/V2__insert_sample_tasks.sql`(Flyway により DB が空の状態での初回起動時に 1 回だけ実行)
+### `task_assignments`(割り当て・進捗)— V3
 
-| id | title | description | active |
-|---|---|---|---|
-| 1 | PCのセットアップ | 支給PCに開発ツールをインストールする | true |
-| 2 | 社内アカウントの登録 | メール・チャット・勤怠システムのアカウントを作成する | true |
-| 3 | 就業規則の確認 | 就業規則とセキュリティポリシーを読む | true |
-| 4 | チームメンバーとの顔合わせ | 配属チームのメンバーと1on1を行う | true |
-| 5 | 旧オリエンテーション資料の確認 | 現在は使われていない旧資料(参考用) | false |
+| カラム | 型 | NULL | 初期値 | 説明 |
+|---|---|---|---|---|
+| `id` | `BIGSERIAL` | 不可 | 自動採番 | 主キー |
+| `user_id` | `BIGINT` | 不可 | | `users.id` への外部キー(`ON DELETE CASCADE`) |
+| `task_id` | `BIGINT` | 不可 | | `tasks.id` への外部キー(`ON DELETE CASCADE`) |
+| `status` | `VARCHAR(20)` | 不可 | `'NOT_STARTED'` | `NOT_STARTED` / `IN_PROGRESS` / `DONE`(`CHECK` 制約) |
+| `due_date` | `DATE` | 可 | | 期限 |
+| `completed_at` | `TIMESTAMPTZ` | 可 | | 完了日時(完了にしたとき自動で記録) |
+| `created_at` / `updated_at` | `TIMESTAMPTZ` | 不可 | `now()` | 作成・更新日時 |
 
-データを初期状態に戻したいときは `docker compose down -v` で DB のデータ(ボリューム)を削除してから起動し直します。
+- 一意制約: `(user_id, task_id)` … 同じ人に同じタスクは 1 回だけ
+- インデックス: `task_id`(タスク削除時の連鎖削除を速くするため)
+
+```
+users 1 ──── * task_assignments * ──── 1 tasks
+```
+
+### 初期データ(V2・V4。DB が空の状態での初回起動時に 1 回だけ投入)
+
+| ユーザー | 部署 | 入社日 | 割り当て | 進捗 |
+|---|---|---|---|---|
+| 山田 太郎 | 開発部 | 2026-04-01 | タスク 1〜4 | 4 / 4 完了(100%) |
+| 佐藤 花子 | 営業部 | 2026-04-01 | タスク 1〜4 | 2 / 4 完了(50%)。残り 2 件は期限切れ |
+| 鈴木 一郎 | 開発部 | 2026-10-01 | タスク 1・2 | 0 / 2 完了(0%)。タスク 3・4 は未割り当て |
+
+タスク 5「旧オリエンテーション資料の確認」は無効なので、誰にも割り当てられていません。
+データを初期状態に戻すには `docker compose down -v` で DB のデータを削除してから起動し直します。
 
 ---
 
@@ -165,321 +193,199 @@ java/                                   … リポジトリのルート(Java 学
 |---|---|
 | Java | 21 |
 | Spring Boot | 3.3.4 |
-| ビルドツール | Maven(Docker 内で `maven:3.9.6-eclipse-temurin-21` を使用) |
-| 実行環境 | `eclipse-temurin:21-jre-jammy` |
 | DB | PostgreSQL 15 |
-| Flyway | 10.10.0(Spring Boot 管理のバージョン) |
-
-### 依存ライブラリ(`pom.xml`)
-
-| ライブラリ | 用途 | 使用状況 |
-|---|---|---|
-| `spring-boot-starter-web` | REST API・Web サーバー | 使用中 |
-| `spring-boot-starter-data-jpa` | DB アクセス | 使用中 |
-| `spring-boot-starter-validation` | 入力チェック | 使用中(`@NotBlank`) |
-| `spring-boot-starter-thymeleaf` | HTML 画面 | **使用中**(`tasks.html`)※第1版では未使用 |
-| `flyway-core` / `flyway-database-postgresql` | テーブル作成・初期データ投入 | 使用中 |
-| `postgresql` | DB ドライバ | 使用中 |
-| `spring-boot-starter-test` | テスト(JUnit 5・MockMvc・AssertJ) | 使用中 |
-| `spring-boot-testcontainers` / `testcontainers`(`junit-jupiter`・`postgresql`) | テスト用 PostgreSQL の自動起動 | 使用中。Docker 29 に対応するため、バージョンを 1.21.4 に指定(`pom.xml` の `testcontainers.version`) |
+| Flyway | 10.10.0 |
+| Testcontainers | 1.21.4(Docker 29 対応のため明示指定) |
 
 ### 設定(`application.yml`)
 
 | 設定 | 値 | 補足 |
 |---|---|---|
 | ポート | `8080` | |
-| DB 接続先 | 環境変数 `SPRING_DATASOURCE_URL`(なければ `localhost:5432/onboarding_db`) | Docker では `db:5432`、Codespaces では `localhost:5432` |
-| DB ユーザー | 環境変数 `SPRING_DATASOURCE_USERNAME`(なければ `user`) | |
-| DB パスワード | 環境変数 `SPRING_DATASOURCE_PASSWORD`(なければ `pass`) | Docker では `POSTGRES_PASSWORD` から渡す |
-| `ddl-auto` | `none` | テーブルは Hibernate ではなく Flyway が作る |
-| `show-sql` | `true` | 実行した SQL をログに出す |
-| Flyway | 有効、`baseline-on-migrate: true` | |
-| Thymeleaf | 設定なし(Spring Boot の初期値) | テンプレートは `classpath:/templates/*.html` |
+| DB 接続 | 環境変数 `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | Docker では `db:5432`、Codespaces では `localhost:5432` |
+| `ddl-auto` | `none` | テーブルは Flyway が作る |
+| `app.time-zone` | 環境変数 `APP_TIME_ZONE`(初期値 `Asia/Tokyo`) | 完了日時の表示と「今日」(期限切れ判定)に使用 |
 
 ### レイヤー構成
 
 ```
-画面:  ブラウザ → TaskPageController(@Controller)     → TaskRepository → DB
-                                    ↓
-                               templates/tasks.html(Thymeleaf)
-
-API:   クライアント → TaskController(@RestController) → TaskRepository → DB
+画面:  ブラウザ → TaskPageController ─────────────→ TaskRepository → DB
+       ブラウザ → UserPageController → AssignmentService → TaskAssignmentRepository / TaskRepository → DB
+                                    └→ UserRepository → DB
+API:   クライアント → TaskController → TaskRepository → DB
 ```
 
-Service 層はなく、どちらの Controller も Repository を直接呼んでいます。
+- 割り当てのルール(重複・無効タスクの禁止、完了日時の記録)は `AssignmentService` と `TaskAssignment` にまとめています。
+- フォームの値は `TaskForm` / `UserForm` で受け取り、`id` や作成日時を画面から書き換えられないようにしています。
 
 ---
 
 ## 6. Entity 一覧
 
-| Entity | テーブル | ファイル |
+| Entity | テーブル | 主な項目・メソッド |
 |---|---|---|
-| `Task` | `tasks` | `entity/Task.java` |
-
-`Task` のフィールド:
-
-| フィールド | 型 | 補足 |
-|---|---|---|
-| `id` | `Long` | 自動採番(`IDENTITY`) |
-| `title` | `String` | 必須(`@NotBlank`)、最大 200 文字 |
-| `description` | `String` | 任意 |
-| `active` | `Boolean` | 初期値 `true` |
-| `createdAt` | `Instant` | 登録時に自動設定(`@PrePersist`)、更新不可 |
-| `updatedAt` | `Instant` | 登録・更新時に自動設定(`@PreUpdate`) |
-
-Repository は `TaskRepository extends JpaRepository<Task, Long>` の 1 つだけです(独自の検索メソッドはありません)。
+| `Task` | `tasks` | `title`, `description`, `active` |
+| `User` | `users` | `name`, `email`, `department`, `joinedOn` |
+| `TaskAssignment` | `task_assignments` | `user`(多対一), `task`(多対一), `status`, `dueDate`, `completedAt` / `changeStatus()`(完了日時の記録・消去), `isOverdue()`(期限切れ判定) |
+| `AssignmentStatus`(enum) | — | `NOT_STARTED`(未着手), `IN_PROGRESS`(対応中), `DONE`(完了) |
 
 ---
 
 ## 7. Controller 一覧
 
-| Controller | 種類 | 担当パス | 返すもの | ファイル |
-|---|---|---|---|---|
-| `TaskController` | `@RestController` | `/api/tasks` 配下 | JSON | `controller/TaskController.java` |
-| `TaskPageController` | `@Controller` | `/`、`/tasks` 配下 | HTML(`tasks.html`、`task-form.html`) | `controller/TaskPageController.java` |
-
-`TaskPageController` のメソッド:
-
-| メソッド | URL | 処理 |
+| Controller | 種類 | 担当パス |
 |---|---|---|
-| `home` | `GET /` | `/tasks` へ転送 |
-| `listTasks` | `GET /tasks` | 全タスクを ID 順で取得し、`tasks.html` を表示 |
-| `newTask` | `GET /tasks/new` | 空のフォームで `task-form.html` を表示 |
-| `createTask` | `POST /tasks` | 入力チェック → 保存 → 一覧へ転送(エラー時はフォームを再表示) |
-| `editTask` | `GET /tasks/{id}/edit` | 既存の値を入れたフォームを表示 |
-| `updateTask` | `POST /tasks/{id}` | 入力チェック → 更新 → 一覧へ転送(エラー時はフォームを再表示) |
-| `deleteTask` | `POST /tasks/{id}/delete` | 削除 → 一覧へ転送 |
-
-フォームの値は Entity(`Task`)に直接入れず、`form/TaskForm.java` で受け取ります。こうすると、画面から `id` や作成日時などを書き換えられないようにできます。
+| `TaskController` | `@RestController` | `/api/tasks` 配下(JSON) |
+| `TaskPageController` | `@Controller` | `/`, `/tasks` 配下(画面) |
+| `UserPageController` | `@Controller` | `/users` 配下(画面) |
 
 ---
 
-## 8. API・URL 一覧
+## 8. URL 一覧
 
 ### 画面(HTML)
 
-| メソッド | パス | 内容 | 応答 |
-|---|---|---|---|
-| `GET` | `/` | `/tasks` へ転送 | 302 |
-| `GET` | `/tasks` | タスク一覧画面 | 200 |
-| `GET` | `/tasks/new` | タスク登録画面 | 200 |
-| `POST` | `/tasks` | 登録を実行 | 302(一覧へ)/ 200(入力エラー時はフォーム再表示) |
-| `GET` | `/tasks/{id}/edit` | タスク編集画面 | 200 / 404(存在しない) |
-| `POST` | `/tasks/{id}` | 更新を実行 | 302(一覧へ)/ 200(入力エラー時)/ 404 |
-| `POST` | `/tasks/{id}/delete` | 削除を実行 | 302(一覧へ)/ 404 |
+| メソッド | パス | 内容 |
+|---|---|---|
+| `GET` | `/` | `/tasks` へ転送 |
+| `GET` | `/tasks` | タスク一覧 |
+| `GET` / `POST` | `/tasks/new` / `/tasks` | タスク登録 |
+| `GET` / `POST` | `/tasks/{id}/edit` / `/tasks/{id}` | タスク編集 |
+| `POST` | `/tasks/{id}/delete` | タスク削除(割り当ても削除) |
+| `GET` | `/users` | ユーザー一覧(進捗付き) |
+| `GET` / `POST` | `/users/new` / `/users` | ユーザー登録 → 詳細画面へ |
+| `GET` | `/users/{id}` | ユーザー詳細(割り当て・進捗) |
+| `GET` / `POST` | `/users/{id}/edit` / `/users/{id}` | ユーザー編集 |
+| `POST` | `/users/{id}/delete` | ユーザー削除(割り当ても削除) |
+| `POST` | `/users/{id}/assignments` | タスクを 1 件割り当て(`taskId`, `dueDate`) |
+| `POST` | `/users/{id}/assignments/all` | 有効なタスクをまとめて割り当て(`dueDate`) |
+| `POST` | `/users/{id}/assignments/{aid}/status` | 進捗の変更(`status`) |
+| `POST` | `/users/{id}/assignments/{aid}/delete` | 割り当て解除 |
+
+- 存在しないユーザー・タスク・割り当て、または別のユーザーの割り当てを指定した場合は 404
+- 割り当てできない場合(未選択・重複・無効なタスク)は詳細画面に戻り、赤い枠でエラーを表示
 
 ### REST API(JSON)
 
-| メソッド | パス | 内容 | 成功時 | 失敗時 |
-|---|---|---|---|---|
-| `GET` | `/api/tasks` | タスク一覧を取得 | 200 + 配列 | — |
-| `GET` | `/api/tasks/{id}` | タスクを 1 件取得 | 200 + オブジェクト | 404(存在しない) |
-| `POST` | `/api/tasks` | タスクを登録 | 201 + 登録内容 | 400(`title` が空) |
-| `PUT` | `/api/tasks/{id}` | タスクを更新 | 200 + 更新内容 | 400(`title` が空) / 404 |
-| `DELETE` | `/api/tasks/{id}` | タスクを削除 | 204(本文なし) | 404(存在しない) |
+| メソッド | パス | 内容 |
+|---|---|---|
+| `GET` | `/api/tasks` | タスク一覧 |
+| `GET` | `/api/tasks/{id}` | タスク 1 件 |
+| `POST` | `/api/tasks` | 登録(201) |
+| `PUT` | `/api/tasks/{id}` | 更新 |
+| `DELETE` | `/api/tasks/{id}` | 削除(204。割り当ても削除) |
 
-リクエスト例(`POST` / `PUT`):
-
-```json
-{ "title": "Set up laptop", "description": "Install tools", "active": true }
-```
-
-注意点:
-
-- サンプルデータが 5 件あるため、API で新しく登録したタスクの ID は 6 から始まります。
-- `PUT` で `active` を省略すると `true` に戻ります。
-- `POST` で `"active": null` を明示的に送ると、DB の NOT NULL 制約に違反して 500 エラーになる見込みです(コードからの推測で、未確認)。
+注意: `POST /api/tasks` で `"active": null` を明示的に送ると 500 エラーになる見込みです(未修正)。
 
 ---
 
 ## 9. GitHub Actions の内容
 
-### 実行されるワークフロー(`.github/workflows/`)
+**`onboarding-progress-system-ci.yml`**(`onboarding-progress-system/` 配下が変わった push と手動実行で起動)
 
-**`onboarding-progress-system-ci.yml`(呼び出し元)**
+| ジョブ | 内容 |
+|---|---|
+| `test` | Java 21 で `mvn -B test`(62 件)。失敗時はテスト結果を成果物として保存 |
+| `call-reusable` | 下の `reusable-docker-smoke.yml` を呼ぶ |
 
-- 起動条件
-  - `onboarding-progress-system/` 配下のファイルが変わった push(ブランチは問わない)
-  - Actions 画面からの手動実行(`workflow_dispatch`)
-- 処理(2 つのジョブが並行して動く)
-  - `test` ジョブ: Java 21 を準備し、`mvn -B test` で自動テストを実行。失敗したときはテスト結果(`surefire-reports`)を成果物として保存
-  - `call-reusable` ジョブ: 下の `reusable-docker-smoke.yml` を `project_dir: onboarding-progress-system` で呼ぶ
-
-**`reusable-docker-smoke.yml`(本体)**
+**`reusable-docker-smoke.yml`**
 
 | # | ステップ | 内容 |
 |---|---|---|
-| 1 | Checkout repository | ソースを取得 |
-| 2 | Set up Docker Buildx | Docker のビルド環境を準備 |
-| 3 | Generate temporary DB password | 実行ごとにランダムなパスワードを作る(ログでは `***` と表示) |
-| 4 | Build and start services | `docker compose up -d --build`(標準の `docker-compose.yml` のみ使用) |
-| 5 | Wait for database to be ready | `pg_isready` で DB の起動を待つ(最大 150 秒) |
-| 6 | Wait for app to be ready | `/api/tasks` が応答するまで待つ(最大 180 秒) |
-| 7 | Smoke test API (HTTP checks) | 一覧取得 200 → 登録 201 → 1 件取得 200 → 削除 204 → `/tasks` 画面 200 と表の行数(見出し + 5 件)→ `/` が `/tasks` へ転送されること |
-| 8 | Smoke test screens | 登録画面 200 → 空タイトルでエラーメッセージ表示 → フォームで登録 → 編集画面 200 → フォームで更新(Active を外す)→ フォームで削除、の順に確認 |
-| 9 | Show logs on failure | 失敗したときだけ `docker compose logs` を表示 |
-| 10 | Cleanup containers | 成否に関係なく `docker compose down -v` で後片付け |
+| 1〜4 | 準備・起動 | チェックアウト、ランダムな DB パスワード生成(ログでは `***`)、`docker compose up -d --build` |
+| 5〜6 | 起動待ち | DB(`pg_isready`)とアプリ(`/api/tasks`)の応答を待つ |
+| 7 | Smoke test API | API の登録・取得・削除、`/tasks` 画面、`/` の転送 |
+| 8 | Smoke test screens | 画面からのタスク登録・入力エラー・編集・削除 |
+| 9 | Smoke test user screens | ユーザー一覧の進捗表示、詳細画面、タスクの割り当てと進捗への反映 |
+| 10〜11 | 後片付け | 失敗時のみ `docker compose logs`、最後に `docker compose down -v` |
 
-### 実行されないワークフロー
-
-- `onboarding-progress-system/.github/workflows/ci-docker-smoke.yml`
-  - GitHub はリポジトリ直下の `.github/workflows/` しか読まないため、実行されません。
-  - 上のワークフローの古い版なので、削除して問題ありません。
-
-### 出ている警告(動作には影響なし)
-
-- `docker-compose.yml` の `version: "3.8"` は古い書き方だという警告
-- `actions/checkout@v4`・`docker/setup-buildx-action@v3` が Node.js 20 向けだという警告
+実行されないワークフロー `onboarding-progress-system/.github/workflows/ci-docker-smoke.yml` は古い版なので削除して問題ありません。
 
 ---
 
-## 10. docker compose 起動後にブラウザで確認できる画面
+## 10. ブラウザで確認できる画面
 
-### 起動方法
+起動方法: `export POSTGRES_PASSWORD=<任意>` → `docker compose up -d --build`
+(Codespaces では `docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up -d --build`)
 
-| 環境 | コマンド |
-|---|---|
-| 通常(PC・CI) | `export POSTGRES_PASSWORD=<任意>` → `docker compose up -d --build` |
-| GitHub Codespaces | `export POSTGRES_PASSWORD=<任意>` → `docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up -d --build` |
+全画面の上部に濃い紺色のメニューバー「オンボーディング進捗管理 | タスク | ユーザー」があり、今いる方に下線が付きます。
+登録・更新・削除などの直後は、緑の枠でメッセージ(エラーは赤い枠)が表示されます。
 
-Codespaces では、コンテナ同士の通信(アプリ → `db:5432`)が届かないため、専用の上書き設定が必要です。ブラウザで開くときは「ポート」タブの 8080 を開きます(自動で一覧画面に移動します)。
+| 画面 | URL | 主な内容 |
+|---|---|---|
+| タスク一覧 | `/tasks`(`/` からも) | タスクの表、「新規登録」、各行の「編集」「削除」 |
+| タスク登録・編集 | `/tasks/new`, `/tasks/{id}/edit` | タイトル(必須)・説明・有効 |
+| ユーザー一覧 | `/users` | 下記 |
+| ユーザー登録・編集 | `/users/new`, `/users/{id}/edit` | 氏名(必須)・メールアドレス(必須)・部署・入社日(カレンダー入力) |
+| ユーザー詳細 | `/users/{id}` | 下記 |
 
-### URL ごとの表示(2026-10-15 に実際に起動して確認)
-
-| URL | HTTP | ブラウザでの表示 | 種類 |
-|---|---|---|---|
-| `/` | 302 → 200 | `/tasks` に自動で移動し、タスク一覧画面を表示 | ✅ 画面(転送) |
-| `/tasks` | 200 | **タスク一覧画面**(下記) | ✅ 画面 |
-| `/tasks/new` | 200 | **タスク登録画面**(下記) | ✅ 画面 |
-| `/tasks/1/edit` | 200 | **タスク編集画面**(下記) | ✅ 画面 |
-| `/api/tasks` | 200 | タスク一覧の JSON(文字の羅列) | API |
-| `/api/tasks/1` | 200 | ID 1 のタスクの JSON | API |
-| `/tasks/1` | 404 | Whitelabel Error Page | エラー |
-| `/tasks/999/edit` | 404 | Whitelabel Error Page | エラー |
-| `/api/tasks/999` | 404 | Whitelabel Error Page | エラー |
-
-**画面は「一覧」「登録」「編集」の 3 つです。** `/` を開くと自動で一覧に移動し、そこからボタンで各画面に進めます。
-
-### スクリーンショット相当の説明
-
-#### `/tasks` — タスク一覧画面
+### ユーザー一覧(`/users`)
 
 ```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                                                                          │
-│  タスク一覧                                                              │
-│                                                                          │
-│  ┌──────────────────────────────────────────────────────────────────┐    │
-│  │ タスクを登録しました。            ← 登録・更新・削除の直後だけ表示│    │
-│  └──────────────────────────────────────────────────────────────────┘    │
-│  [新規登録]                                                              │
-│  ┌────┬────────────────────┬──────────────────────┬──────┬───────────┐   │
-│  │ ID │ タイトル           │ 説明                 │Active│ 操作      │   │
-│  ├────┼────────────────────┼──────────────────────┼──────┼───────────┤   │
-│  │ 1  │ PCのセットアップ   │ 支給PCに開発ツール…  │ Yes  │[編集][削除]│  │
-│  │ 2  │ 社内アカウントの…  │ メール・チャット…    │ Yes  │[編集][削除]│  │
-│  │ 3  │ 就業規則の確認     │ 就業規則とセキュ…    │ Yes  │[編集][削除]│  │
-│  │ 4  │ チームメンバーと…  │ 配属チームのメン…    │ Yes  │[編集][削除]│  │
-│  │ 5  │ 旧オリエンテー…    │ 現在は使われてい…    │ No   │[編集][削除]│  │
-│  └────┴────────────────────┴──────────────────────┴──────┴───────────┘   │
-│                                                                          │
-└──────────────────────────────────────────────────────────────────────────┘
+ユーザー一覧
+[新規登録]
+┌──┬──────────┬──────┬──────────┬────────────────────┬──────────────────┐
+│ID│ 氏名     │ 部署 │ 入社日   │ 進捗               │ 操作             │
+├──┼──────────┼──────┼──────────┼────────────────────┼──────────────────┤
+│1 │ 山田 太郎│開発部│2026-04-01│ ██████████         │[詳細][編集][削除]│
+│  │          │      │          │ 4 / 4 完了(100%)  │                  │
+│2 │ 佐藤 花子│営業部│2026-04-01│ █████░░░░░         │[詳細][編集][削除]│
+│  │          │      │          │ 2 / 4 完了(50%)   │                  │
+│3 │ 鈴木 一郎│開発部│2026-10-01│ ░░░░░░░░░░         │[詳細][編集][削除]│
+│  │          │      │          │ 0 / 2 完了(0%)    │                  │
+└──┴──────────┴──────┴──────────┴────────────────────┴──────────────────┘
 ```
 
-- 白い背景に、左上に大きな見出し「タスク一覧」が表示されます。
-- その下に、画面の横幅いっぱいの表があります。
-  - 見出し行(ID・タイトル・説明・Active)は薄いグレーの背景です。
-  - 各セルは薄いグレーの線で区切られています。
-  - 文字はゴシック体(sans-serif)で表示されます。
-- 行は ID の小さい順に並びます。サンプルデータのみの状態では 5 行です。
-- Active 列は `true` が「Yes」、`false` が「No」と表示されます(5 行目のみ No)。
-- 表の上に青い「新規登録」ボタンがあります。押すと登録画面に移動します。
-- 各行の右端に、白い「編集」ボタンと赤い「削除」ボタンがあります。
-  - 「削除」を押すと「このタスクを削除しますか?」という確認が出て、OK で削除されます。
-- 登録・更新・削除の直後は、表の上に薄い緑の枠で「タスクを登録しました。」などのメッセージが表示されます(再読み込みすると消えます)。
-- タスクが 0 件のときは、表の代わりに「タスクはまだありません。」と表示されます。
-- API で追加・削除したタスクは、ページを再読み込みすると反映されます。
+- 進捗は緑のバーと「完了数 / 割り当て数 完了(完了率)」で表示。割り当てがない人は「未割り当て」
+- 氏名をクリックすると詳細画面へ
 
-#### `/tasks/new` — タスク登録画面 / `/tasks/{id}/edit` — タスク編集画面
+### ユーザー詳細(`/users/{id}`)
 
 ```
-┌──────────────────────────────────────────────┐
-│  タスク登録            (編集時は「タスク編集」)│
-│                                              │
-│  タイトル *                                  │
-│  ┌────────────────────────────────────┐      │
-│  │                                    │      │
-│  └────────────────────────────────────┘      │
-│  タイトルを入力してください  ← 未入力で送信した時だけ赤字で表示 │
-│                                              │
-│  説明                                        │
-│  ┌────────────────────────────────────┐      │
-│  │                                    │      │
-│  │                                    │      │
-│  └────────────────────────────────────┘      │
-│                                              │
-│  ☑ 有効(Active)                             │
-│                                              │
-│  [登録する] [一覧に戻る]  (編集時は「更新する」)│
-└──────────────────────────────────────────────┘
+佐藤 花子 さんの進捗
+メールアドレス  sato@example.com
+部署            営業部
+入社日          2026-04-01
+進捗            █████░░░░░ 2 / 4 完了(50%)
+[ユーザー情報を編集] [一覧に戻る]
+
+割り当てられたタスク
+┌────────────────────┬──────────────┬─────────────────────┬────────────────┬────────────┐
+│ タスク             │ 状態         │ 期限                │ 完了日時       │ 操作       │
+├────────────────────┼──────────────┼─────────────────────┼────────────────┼────────────┤
+│ PCのセットアップ   │[完了 ▼][変更]│ 2026-04-03          │2026-04-03 09:30│[割り当て解除]│
+│ 就業規則の確認     │[対応中▼][変更]│ 2026-04-10 期限切れ │                │[割り当て解除]│
+│ チームメンバー…    │[未着手▼][変更]│ 2026-04-10 期限切れ │                │[割り当て解除]│
+└────────────────────┴──────────────┴─────────────────────┴────────────────┴────────────┘
+
+タスクを割り当てる
+タスク [選択してください ▼]  期限 [年/月/日]  [割り当てる]
+期限 [年/月/日]  [有効なタスクをすべて割り当てる(2件)]
 ```
 
-- 登録と編集は同じ画面(`task-form.html`)を使い、見出しとボタンの文字だけが変わります。
-- 登録画面では入力欄が空で、「有効(Active)」にはチェックが入っています。
-- 編集画面では、今の値があらかじめ入っています。
-- 「タイトル」の横の赤い `*` は必須項目の印です。
-- タイトルを空のまま送信すると、同じ画面のまま、入力欄の下に赤字で「タイトルを入力してください」と表示されます。
-- 「一覧に戻る」を押すと、保存せずに一覧に戻ります。
-
-#### `/api/tasks` — JSON 表示
-
-- 画面上部に「Pretty-print」のチェックボックス(Chrome の機能)があり、その下に JSON がそのまま 1 行で表示されます。
-- 例: `[{"id":1,"title":"PCのセットアップ","description":"支給PCに開発ツールをインストールする","active":true,"createdAt":"…","updatedAt":"…"}, …]`
-- 「Pretty-print」にチェックを入れると、改行と字下げで読みやすくなります。
-
-#### `/tasks/1` など存在しない URL — エラーページ
-
-```
-Whitelabel Error Page
-This application has no explicit mapping for /error, so you are seeing this as a fallback.
-
-Thu Oct 15 03:13:59 UTC 2026
-There was an unexpected error (type=Not Found, status=404).
-```
-
-- 白い背景に、大きな見出し「Whitelabel Error Page」と英語の説明文が表示されます。
-- アプリの故障ではなく、「その URL に対応する画面がない」という意味です。
+- 状態はプルダウンで選んで「変更」。プルダウンの色は 未着手=白、対応中=黄、完了=緑
+- 期限切れは赤いラベル「期限切れ」
+- 割り当てられるタスクがないときは「割り当てられる有効なタスクはありません」と表示
 
 ---
 
 ## 11. 次に実装すべき内容
 
-README の MVP を実現する順番で並べています。上から順に進めるのがおすすめです。
+### 優先度 高
 
-### 優先度 高(MVP に必要)
+1. **検索・絞り込み**: ユーザー一覧を部署・未完了ありで絞り込む、期限切れのある人を上に表示する
+2. **エラー画面の整備**: 404 などを日本語の画面にする(`templates/error/404.html`)
+3. **`active: null` の 500 エラー修正**(8 章の注意点)
 
-1. ~~**テストの追加**~~ → 対応済み(27 件。機能を追加するときは、あわせてテストも追加します)
-2. ~~**トップページ(`/`)**~~ → 対応済み(`/` は `/tasks` へ自動で移動)
-3. ~~**画面からのタスク登録・編集・削除**~~ → 対応済み
-4. **ユーザー(社員)の管理**
-   - `users` テーブル(`V3__create_users_table.sql`)、`User` Entity、一覧画面を作ります。
-5. **タスクの割り当てと進捗状態**
-   - 「誰に・どのタスクを・どの状態で」を持つテーブルを追加します(例: `task_assignments`。`user_id`、`task_id`、`status`(未着手 / 対応中 / 完了)、`due_date`、`completed_at`)。
-   - `tasks` はタスクのテンプレート(マスタ)、`task_assignments` は各人の進捗、という役割分担にすると README の要件に合います。
-6. **進捗の確認画面**
-   - ユーザーごとの完了率、未完了タスクの一覧を表示します。
+### 優先度 中
 
-### 優先度 中(品質・保守性)
+4. **ユーザー・割り当ての REST API**: 他のシステムと連携する場合に追加
+5. **ログイン・権限管理**(Spring Security): 新入社員本人は自分の進捗だけ更新できる、など
+6. **タスクの並び順**: オンボーディングの順番(表示順)をタスクに持たせる
 
-7. **Service 層の追加**: Controller から業務ロジックを分けます。割り当て機能を作るタイミングで導入すると自然です。
-8. **エラーレスポンス・エラー画面の統一**: `@RestControllerAdvice` で API のエラーを同じ形の JSON にし、画面用には `templates/error/404.html` などを用意します。
-9. ~~**CI でテストを実行する**~~ → 対応済み(`test` ジョブ)
-10. **`active: null` の扱いを修正**: 8 章の注意点のとおり、500 エラーにならないようにします。
+### 優先度 低(整理)
 
-### 優先度 低(整理・後回しでよいもの)
-
-11. 実行されないワークフロー `onboarding-progress-system/.github/workflows/ci-docker-smoke.yml` を削除する
-12. `docker-compose.yml` から `version: "3.8"` を削除して警告を消す
-13. Actions のバージョンを上げて Node.js 20 の警告を消す
-14. `application.yml` の予備パスワード `pass` を見直す(ローカル開発用の初期値)
-15. ログイン機能(Spring Security)。管理者と新入社員で見られる画面を分ける場合に必要になります
+7. 実行されないワークフロー `onboarding-progress-system/.github/workflows/ci-docker-smoke.yml` を削除する
+8. `docker-compose.yml` から `version: "3.8"` を削除して警告を消す
+9. Actions のバージョンを上げて Node.js 20 の警告を消す
+10. `application.yml` の予備パスワード `pass` を見直す
