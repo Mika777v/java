@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>マイページ</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<nav th:replace="~{fragments/nav :: nav('me')}"></nav>
+
+<h1 th:text="${user.name} + ' さんのタスク'">鈴木 一郎 さんのタスク</h1>
+
+<div th:replace="~{fragments/nav :: messages}"></div>
+
+<dl class="profile">
+    <dt>進捗</dt>
+    <dd>
+        <span th:if="${progress.total() == 0}" class="muted">まだタスクが割り当てられていません</span>
+        <th:block th:unless="${progress.total() == 0}">
+            <div class="progress">
+                <div class="progress-bar" th:style="'width:' + ${progress.percent()} + '%'"></div>
+            </div>
+            <span th:text="${progress.done() + ' / ' + progress.total() + ' 完了(' + progress.percent() + '%)'}">0 / 2 完了(0%)</span>
+            <span class="badge-overdue" th:if="${progress.hasOverdue()}"
+                  th:text="'期限切れ ' + ${progress.overdue()} + '件'">期限切れ 1件</span>
+        </th:block>
+    </dd>
+</dl>
+
+<table th:unless="${#lists.isEmpty(assignments)}">
+    <thead>
+    <tr>
+        <th>タスク</th>
+        <th>状態</th>
+        <th>期限</th>
+        <th>完了日時</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="a : ${assignments}">
+        <td>
+            <div th:text="${a.task.title}">PCのセットアップ</div>
+            <div class="muted small" th:text="${a.task.description}">説明</div>
+        </td>
+        <td>
+            <form class="inline-form" th:action="@{/me/assignments/{aid}/status(aid=${a.id})}" method="post">
+                <select name="status" th:attr="aria-label=${a.task.title} + ' の状態'"
+                        th:classappend="'status-' + ${a.status.name().toLowerCase()}">
+                    <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.label}"
+                            th:selected="${s == a.status}">未着手</option>
+                </select>
+                <button type="submit" class="button button-secondary button-small">変更</button>
+            </form>
+        </td>
+        <td>
+            <span th:text="${a.dueDate} ?: '-'">2026-10-20</span>
+            <span class="badge-overdue" th:if="${@dates.isOverdue(a)}">期限切れ</span>
+        </td>
+        <td th:text="${@dates.format(a.completedAt)}"></td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>

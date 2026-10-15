@@ -33,6 +33,28 @@
     </div>
 
     <div class="form-row">
+        <label for="role">役割 <span class="required">*</span></label>
+        <select id="role" th:field="*{role}">
+            <option th:each="r : ${roles}" th:value="${r}" th:text="${r.label}">新入社員</option>
+        </select>
+        <div class="error" th:if="${#fields.hasErrors('role')}" th:errors="*{role}">役割を選択してください</div>
+    </div>
+
+    <div class="form-row">
+        <label for="password" th:text="${userId == null} ? '初期パスワード' : '新しいパスワード'">初期パスワード</label>
+        <input type="password" id="password" th:field="*{password}" autocomplete="new-password" maxlength="72">
+        <div class="muted small" th:if="${userId == null}">
+            8文字以上。空欄のままにすると、このユーザーはログインできません(あとから設定できます)。
+        </div>
+        <div class="muted small" th:if="${userId != null}"
+             th:text="${loginEnabled} ? '変更する場合だけ入力してください(8文字以上)。空欄なら今のパスワードのままです。'
+                                      : 'まだパスワードがありません。設定するとログインできるようになります(8文字以上)。'">
+            変更する場合だけ入力してください。
+        </div>
+        <div class="error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">パスワードは8文字以上で入力してください</div>
+    </div>
+
+    <div class="form-row">
         <label for="joinedOn">入社日</label>
         <input type="date" id="joinedOn" th:field="*{joinedOn}">
         <div class="error" th:if="${#fields.hasErrors('joinedOn')}">日付の形式が正しくありません</div>

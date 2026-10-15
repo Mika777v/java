@@ -1,7 +1,7 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-15(第10版)
-- 対象: PR #13 の内容に、Codespaces の自動起動・タスクの並び順・ダッシュボードを加えた状態
+- 調査日: 2026-10-15(第11版)
+- 対象: PR #14 の内容に、ログイン機能(管理者 / 新入社員)を加えた状態
 - デフォルトブランチは `main` から `master` に変更されています
 - 対象プロジェクト: `onboarding-progress-system`(新入社員・中途入社者のオンボーディング進捗管理)
 - 調査方法: ソースコードの確認、自動テストの実行、アプリを実際に起動してブラウザで操作
@@ -20,7 +20,9 @@
 | #11 | 404・400・500 などのエラー画面を日本語化、PR の作成・更新時に CI を自動実行 |
 | #12 | タスク API の入力値の不具合を修正(`active: null` の 500 など) |
 | #13 | 後片付け: 古いワークフロー削除、compose の `version` 削除、Actions を Node.js 24 対応版へ更新、初期パスワード削除 |
-| (第10版) | Codespaces の自動起動、タスクの並び順(↑ / ↓)、ダッシュボード(トップページ) |
+| #13 | 後片付け、Codespaces の自動起動、タスクの並び順(↑ / ↓)、ダッシュボード(トップページ) |
+| #14 | Codespaces でアプリの準備ができてからブラウザを開く |
+| (第11版) | **ログイン機能**: 管理者 / 新入社員の役割、マイページ、権限のない画面は 403 |
 
 ---
 
@@ -61,7 +63,9 @@ java/
         │   │   ├── OnboardingProgressSystemApplication.java
         │   │   ├── config/TimeConfig.java            … 「今日」「現在時刻」のタイムゾーン設定
         │   │   ├── controller/
-        │   │   │   ├── DashboardController.java      … ダッシュボード(トップページ)
+        │   │   │   ├── DashboardController.java      … ダッシュボード(トップページ。新入社員は /me へ)
+        │   │   │   ├── LoginController.java          … ログイン画面
+        │   │   │   ├── MyPageController.java         … マイページ(自分のタスク)
         │   │   │   ├── TaskController.java           … タスクの REST API(JSON)
         │   │   │   ├── TaskPageController.java       … タスクの画面
         │   │   │   └── UserPageController.java       … ユーザー・割り当ての画面
@@ -84,7 +88,13 @@ java/
         │   │   │   ├── TaskOrderService.java         … タスクの並び順(↑ / ↓)
         │   │   │   ├── ProgressFilter.java           … 一覧の絞り込み条件
         │   │   │   └── UserProgress.java             … 完了数・完了率・期限切れ件数
-        │   │   └── web/DateTimeDisplay.java          … 画面用の日時表示・期限切れ判定
+        │   │   ├── security/
+        │   │   │   ├── SecurityConfig.java           … ログイン・権限の設定(どの画面を誰が開けるか)
+        │   │   │   ├── AppUserDetails.java / AppUserDetailsService.java   … ログイン中のユーザー
+        │   │   │   └── AdminAccountInitializer.java  … 最初の管理者を起動時に作成
+        │   │   └── web/
+        │   │       ├── DateTimeDisplay.java          … 画面用の日時表示・期限切れ判定
+        │   │       └── CurrentUserAdvice.java        … メニューに出すログイン中の名前
         │   └── resources/
         │       ├── application.yml
         │       ├── db/migration/
@@ -92,22 +102,23 @@ java/
         │       │   ├── V2__insert_sample_tasks.sql
         │       │   ├── V3__create_users_and_task_assignments.sql
         │       │   ├── V4__insert_sample_users_and_assignments.sql
-        │       │   └── V5__add_sort_order_to_tasks.sql
+        │       │   ├── V5__add_sort_order_to_tasks.sql
+        │       │   └── V6__add_login_to_users.sql
         │       ├── static/css/app.css
         │       └── templates/
         │           ├── fragments/nav.html            … 共通メニュー・メッセージ表示
         │           ├── fragments/error.html          … エラー画面の共通部分
-        │           ├── error/404.html / 4xx.html / 5xx.html   … エラー画面
+        │           ├── error/403.html / 404.html / 4xx.html / 5xx.html   … エラー画面
         │           ├── dashboard.html
+        │           ├── login.html / my-page.html
         │           ├── tasks.html / task-form.html
         │           └── users.html / user-form.html / user-detail.html
-        └── test/java/com/example/onboarding/          … 自動テスト(95 件)
+        └── test/java/com/example/onboarding/          … 自動テスト(117 件)
 ```
 
 まだ存在しないもの:
 
 - ユーザー・割り当て用の REST API(画面のみ)
-- ログイン・権限管理
 
 ---
 
@@ -122,7 +133,9 @@ java/
 | 進捗管理 | 割り当てごとに 未着手 / 対応中 / 完了 を変更。完了にすると完了日時を記録、戻すと消去 |
 | 進捗の確認 | ユーザー一覧に「完了数 / 割り当て数」と完了率のバー、期限切れ件数(赤いラベル)。詳細画面でも期限切れを表示 |
 | 絞り込み | ユーザー一覧を部署と進捗(未完了あり / 期限切れあり / すべて完了 / 未割り当て)で絞り込み。条件は URL に入るのでブックマーク可能 |
-| 共通メニュー | 全画面の上部に「ダッシュボード | タスク | ユーザー」のメニュー |
+| ログイン | メールアドレスとパスワードでログイン。管理者はすべての画面、新入社員はマイページだけ(12 章) |
+| マイページ | 新入社員が自分のタスクの進捗を確認し、状態を変更する(`/me`) |
+| 共通メニュー | 全画面の上部にメニューとログイン中の名前・「ログアウト」。管理者は「ダッシュボード | タスク | ユーザー」、新入社員は「マイページ」 |
 | Codespaces | Codespace を開くと DB とアプリが自動で起動し、8080 番ポートが転送される |
 | サンプルデータ | タスク 5 件、ユーザー 3 人、割り当て 10 件(進み具合がばらばら) |
 | エラー画面 | 404・その他 4xx・5xx を日本語の画面で表示。API は JSON のまま |
@@ -143,7 +156,7 @@ java/
 | 機能 | 補足 |
 |---|---|
 | ユーザー・割り当ての REST API | 今回は画面のみ |
-| ログイン・権限管理 | 管理者と新入社員で見られる画面を分ける場合に必要 |
+| 新入社員による自分のパスワード変更 | 今は管理者だけが設定・変更できる |
 | ヘルスチェック | Spring Boot Actuator は未導入 |
 
 ---
@@ -170,6 +183,8 @@ java/
 | `email` | `VARCHAR(255)` | 不可 | | メールアドレス(`UNIQUE`) |
 | `department` | `VARCHAR(100)` | 可 | | 部署 |
 | `joined_on` | `DATE` | 可 | | 入社日 |
+| `password_hash` | `VARCHAR(100)` | 可 | | パスワード(BCrypt でハッシュ化。NULL ならログイン不可。V6) |
+| `role` | `VARCHAR(20)` | 不可 | `'MEMBER'` | `ADMIN`(管理者)/ `MEMBER`(新入社員)(`CHECK` 制約。V6) |
 | `created_at` / `updated_at` | `TIMESTAMPTZ` | 不可 | `now()` | 作成・更新日時 |
 
 ### `task_assignments`(割り当て・進捗)— V3
@@ -224,10 +239,12 @@ users 1 ──── * task_assignments * ──── 1 tasks
 | DB 接続 | 環境変数 `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | Docker では `db:5432`、Codespaces では `localhost:5432`。パスワードに初期値はなく、必ず環境変数で渡す |
 | `ddl-auto` | `none` | テーブルは Flyway が作る |
 | `app.time-zone` | 環境変数 `APP_TIME_ZONE`(初期値 `Asia/Tokyo`) | 完了日時の表示と「今日」(期限切れ判定)に使用 |
+| `app.admin.*` | 環境変数 `APP_ADMIN_EMAIL`(初期値 `admin@example.com`)/ `APP_ADMIN_PASSWORD`(必須)/ `APP_ADMIN_NAME` | 最初の管理者。管理者が 1 人もいないときだけ起動時に作成 |
 
 ### レイヤー構成
 
 ```
+全体:  すべてのリクエストは Spring Security(SecurityConfig)でログイン・権限を確認してから各 Controller へ
 画面:  ブラウザ → DashboardController → DashboardService → TaskAssignmentRepository / UserRepository → DB
        ブラウザ → TaskPageController → TaskOrderService → TaskRepository → DB
        ブラウザ → UserPageController → AssignmentService → TaskAssignmentRepository / TaskRepository → DB
@@ -245,7 +262,8 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 | Entity | テーブル | 主な項目・メソッド |
 |---|---|---|
 | `Task` | `tasks` | `title`, `description`, `active`, `sortOrder` |
-| `User` | `users` | `name`, `email`, `department`, `joinedOn` |
+| `User` | `users` | `name`, `email`, `department`, `joinedOn`, `passwordHash`, `role` / `isLoginEnabled()`, `isAdmin()` |
+| `Role`(enum) | — | `ADMIN`(管理者), `MEMBER`(新入社員) |
 | `TaskAssignment` | `task_assignments` | `user`(多対一), `task`(多対一), `status`, `dueDate`, `completedAt` / `changeStatus()`(完了日時の記録・消去), `isOverdue()`(期限切れ判定) |
 | `AssignmentStatus`(enum) | — | `NOT_STARTED`(未着手), `IN_PROGRESS`(対応中), `DONE`(完了) |
 
@@ -255,7 +273,9 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 
 | Controller | 種類 | 担当パス |
 |---|---|---|
-| `DashboardController` | `@Controller` | `/`(ダッシュボード) |
+| `DashboardController` | `@Controller` | `/`(ダッシュボード。新入社員は `/me` へ転送) |
+| `LoginController` | `@Controller` | `/login` |
+| `MyPageController` | `@Controller` | `/me` 配下(自分のタスク) |
 | `TaskController` | `@RestController` | `/api/tasks` 配下(JSON) |
 | `TaskPageController` | `@Controller` | `/tasks` 配下(画面) |
 | `UserPageController` | `@Controller` | `/users` 配下(画面) |
@@ -268,7 +288,11 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 
 | メソッド | パス | 内容 |
 |---|---|---|
-| `GET` | `/` | ダッシュボード |
+| `GET` | `/login` | ログイン画面(誰でも開ける) |
+| `POST` | `/login` / `/logout` | ログイン / ログアウト(Spring Security が処理) |
+| `GET` | `/` | ダッシュボード(新入社員は `/me` へ転送) |
+| `GET` | `/me` | マイページ(自分のタスク) |
+| `POST` | `/me/assignments/{aid}/status` | 自分のタスクの状態を変更(他人の割り当ては 404) |
 | `GET` | `/tasks` | タスク一覧(表示順) |
 | `GET` / `POST` | `/tasks/new` / `/tasks` | タスク登録 |
 | `GET` / `POST` | `/tasks/{id}/edit` / `/tasks/{id}` | タスク編集 |
@@ -312,19 +336,22 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 
 | ジョブ | 内容 |
 |---|---|
-| `test` | Java 21 で `mvn -B test`(95 件)。失敗時はテスト結果を成果物として保存 |
+| `test` | Java 21 で `mvn -B test`(117 件)。失敗時はテスト結果を成果物として保存 |
 | `call-reusable` | 下の `reusable-docker-smoke.yml` を呼ぶ |
 
 **`reusable-docker-smoke.yml`**
 
 | # | ステップ | 内容 |
 |---|---|---|
-| 1〜4 | 準備・起動 | チェックアウト、ランダムな DB パスワード生成(ログでは `***`)、`docker compose up -d --build` |
-| 5〜6 | 起動待ち | DB(`pg_isready`)とアプリ(`/api/tasks`)の応答を待つ |
-| 7 | Smoke test API | API の登録・取得・削除、`/tasks` 画面、`/` のダッシュボード |
-| 8 | Smoke test screens | 画面からのタスク登録・入力エラー・編集・削除 |
-| 9 | Smoke test user screens | ユーザー一覧の進捗表示、詳細画面、タスクの割り当てと進捗への反映、期限切れでの絞り込み、日本語の 404 画面 |
-| 10〜11 | 後片付け | 失敗時のみ `docker compose logs`、最後に `docker compose down -v` |
+| 1〜4 | 準備・起動 | チェックアウト、ランダムな DB パスワードと管理者パスワードの生成(ログでは `***`)、`docker compose up -d --build` |
+| 5〜6 | 起動待ち | DB(`pg_isready`)とアプリ(`/login`)の応答を待つ |
+| 7 | Write test helpers | ログイン(Cookie 保存・CSRF トークン取得)用の共通関数を用意 |
+| 8 | Smoke test login | 未ログインはログイン画面へ転送、API は認証なしで 401、誤ったパスワードは失敗、管理者でログイン |
+| 9 | Smoke test API | API(管理者の HTTP Basic)の登録・取得・削除、`/tasks` 画面、`/` のダッシュボード |
+| 10 | Smoke test screens | 画面からのタスク登録・入力エラー・編集・削除 |
+| 11 | Smoke test user screens | ユーザー一覧の進捗表示、詳細画面、タスクの割り当てと進捗への反映、期限切れでの絞り込み、日本語の 404 画面 |
+| 12 | Smoke test new employee login | 鈴木にパスワードを設定 → 鈴木でログイン → `/` から `/me` へ、`/tasks` は日本語の 403 画面 |
+| 13〜14 | 後片付け | 失敗時のみ `docker compose logs`、最後に `docker compose down -v` |
 
 使用しているアクション(すべて Node.js 24 で動作するバージョン):
 `actions/checkout@v5`、`actions/setup-java@v5`、`actions/upload-artifact@v6`、`docker/setup-buildx-action@v4`
@@ -333,19 +360,23 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 
 ## 10. ブラウザで確認できる画面
 
-起動方法: `export POSTGRES_PASSWORD=<任意>` → `docker compose up -d --build`
-(Codespaces では自動で起動します。手動なら `bash .devcontainer/start-app.sh`)
+起動方法: `export POSTGRES_PASSWORD=<任意>` と `export APP_ADMIN_PASSWORD=<任意>` → `docker compose up -d --build`
+(Codespaces では自動で起動し、管理者のパスワードはターミナルと `onboarding-progress-system/.env` に表示・保存されます)
 
-全画面の上部に濃い紺色のメニューバー「オンボーディング進捗管理 | ダッシュボード | タスク | ユーザー」があり、今いる画面に下線が付きます。
+どの画面もログインが必要です。ログインしていないと `/login` に移動します。
+
+全画面の上部に濃い紺色のメニューバーがあり、今いる画面に下線が付きます。管理者には「ダッシュボード | タスク | ユーザー」、新入社員には「マイページ」が表示され、右端にログイン中の名前と「ログアウト」ボタンがあります。
 登録・更新・削除などの直後は、緑の枠でメッセージ(エラーは赤い枠)が表示されます。
 
 | 画面 | URL | 主な内容 |
 |---|---|---|
-| ダッシュボード | `/` | 下記 |
+| ログイン | `/login` | メールアドレス・パスワード。誤りがあると赤い枠で「メールアドレスまたはパスワードが正しくありません。」 |
+| マイページ(新入社員) | `/me` | 自分の進捗(バー・期限切れ件数)と、割り当てられたタスクの表。状態をプルダウンで変更 |
+| ダッシュボード(管理者) | `/` | 下記 |
 | タスク一覧 | `/tasks` | タスクの表(表示順)、「新規登録」、各行の「↑」「↓」「編集」「削除」 |
 | タスク登録・編集 | `/tasks/new`, `/tasks/{id}/edit` | タイトル(必須)・説明・有効 |
 | ユーザー一覧 | `/users` | 下記 |
-| ユーザー登録・編集 | `/users/new`, `/users/{id}/edit` | 氏名(必須)・メールアドレス(必須)・部署・入社日(カレンダー入力) |
+| ユーザー登録・編集 | `/users/new`, `/users/{id}/edit` | 氏名(必須)・メールアドレス(必須)・部署・役割(管理者 / 新入社員)・パスワード(8 文字以上。編集時は空欄なら変更なし)・入社日 |
 | ユーザー詳細 | `/users/{id}` | 下記 |
 
 ### ダッシュボード(`/`)
@@ -457,7 +488,9 @@ URL: /users/999
 ### 優先度 中
 
 4. **ユーザー・割り当ての REST API**: 他のシステムと連携する場合に追加
-5. **ログイン・権限管理**(Spring Security): 新入社員本人は自分の進捗だけ更新できる、など
+5. ~~**ログイン・権限管理**~~ → 対応済み(第11版)
+6. **新入社員によるパスワード変更**: 初期パスワードを本人が変えられるようにする
+7. **パスワードを忘れたときの再設定**: 今は管理者が編集画面で設定し直す
 6. ~~**タスクの並び順**~~ → 対応済み(↑ / ↓ ボタン)
 - ~~**Codespaces の自動起動**~~ → 対応済み(`.devcontainer/`)
 - ~~**ダッシュボード**~~ → 対応済み(トップページ)
@@ -468,3 +501,32 @@ URL: /users/999
 8. ~~`docker-compose.yml` から `version: "3.8"` を削除して警告を消す~~
 9. ~~Actions のバージョンを上げて Node.js 20 の警告を消す~~
 10. ~~`application.yml` の初期パスワード `pass` を削除する~~(DB パスワードは必ず環境変数で渡す)
+
+---
+
+## 12. ログインと権限(第11版で追加)
+
+| 役割 | 開ける画面 | ログイン後の行き先 |
+|---|---|---|
+| 管理者(`ADMIN`) | すべて(ダッシュボード、タスク、ユーザー、割り当て、REST API) | `/`(ダッシュボード) |
+| 新入社員(`MEMBER`) | マイページ(`/me`)だけ。自分のタスクの状態を変更できる | `/me` |
+| ログインしていない | ログイン画面と CSS だけ | — |
+
+- 権限のない画面を開くと、日本語の 403 画面「このページを表示する権限がありません」(新入社員には「マイページへ」ボタン)
+- パスワードは BCrypt でハッシュ化して保存。パスワードが未設定のユーザーはログインできない
+- 最初の管理者は、管理者が 1 人もいないときに起動時に作成(`APP_ADMIN_EMAIL` / `APP_ADMIN_PASSWORD`)。コードにパスワードは書かない
+- 新入社員のパスワードは、管理者がユーザー登録・編集画面で設定(8 文字以上)
+- 管理者は自分の役割を新入社員に変えたり、自分を削除したりできない(締め出し防止)
+- 画面のフォームは CSRF トークンで保護。REST API は HTTP Basic(管理者のみ)
+- ユーザー一覧には「役割」列と「(ログイン不可)」の表示。進捗の絞り込みとダッシュボードの人数は新入社員だけが対象
+
+```
+ログイン                       マイページ(佐藤 花子 でログイン)
+┌──────────────────┐           オンボーディング進捗管理  マイページ        佐藤 花子 [ログアウト]
+│ メールアドレス   │           佐藤 花子 さんのタスク
+│ [              ] │           進捗 █████░░░░░ 2 / 4 完了(50%) 期限切れ 2件
+│ パスワード       │           │ タスク │ 状態 [対応中▼][変更] │ 期限 │ 完了日時 │
+│ [              ] │
+│ [ログイン]       │
+└──────────────────┘
+```

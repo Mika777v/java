@@ -1,12 +1,22 @@
 <!DOCTYPE html>
-<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
-<!-- Menu shown at the top of every page. current: "dashboard", "tasks" or "users" -->
+<!-- Menu shown at the top of every page. current: "dashboard", "tasks", "users" or "me" -->
 <nav class="nav" th:fragment="nav(current)">
     <span class="nav-title">オンボーディング進捗管理</span>
-    <a th:href="@{/}" th:classappend="${current == 'dashboard'} ? 'nav-current'">ダッシュボード</a>
-    <a th:href="@{/tasks}" th:classappend="${current == 'tasks'} ? 'nav-current'">タスク</a>
-    <a th:href="@{/users}" th:classappend="${current == 'users'} ? 'nav-current'">ユーザー</a>
+    <th:block sec:authorize="hasRole('ADMIN')">
+        <a th:href="@{/}" th:classappend="${current == 'dashboard'} ? 'nav-current'">ダッシュボード</a>
+        <a th:href="@{/tasks}" th:classappend="${current == 'tasks'} ? 'nav-current'">タスク</a>
+        <a th:href="@{/users}" th:classappend="${current == 'users'} ? 'nav-current'">ユーザー</a>
+    </th:block>
+    <a sec:authorize="isAuthenticated() and !hasRole('ADMIN')" th:href="@{/me}"
+       th:classappend="${current == 'me'} ? 'nav-current'">マイページ</a>
+    <span class="nav-user" sec:authorize="isAuthenticated()">
+        <span th:text="${currentUserName}">山田 太郎</span>
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="nav-logout">ログアウト</button>
+        </form>
+    </span>
 </nav>
 
 <!-- Result message after an action (set as a flash attribute) -->

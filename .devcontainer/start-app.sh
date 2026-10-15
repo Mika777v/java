@@ -12,12 +12,18 @@ for _ in $(seq 1 60); do
   sleep 2
 done
 
-# The DB password is generated once and kept in .env (not committed).
+# Passwords are generated once and kept in .env (not committed).
 # Docker Compose reads .env automatically, so no export is needed.
 # It must stay the same while the DB data exists, so it is not regenerated.
-if [ ! -f .env ]; then
-  echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)" > .env
-  echo "Created onboarding-progress-system/.env with a random DB password"
+touch .env
+if ! grep -q '^POSTGRES_PASSWORD=' .env; then
+  echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)" >> .env
+  echo "Created a random DB password in onboarding-progress-system/.env"
+fi
+# Password of the first administrator (admin@example.com), also kept in .env
+if ! grep -q '^APP_ADMIN_PASSWORD=' .env; then
+  echo "APP_ADMIN_PASSWORD=$(openssl rand -hex 8)" >> .env
+  echo "Created a random administrator password in onboarding-progress-system/.env"
 fi
 
 docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up -d --build
@@ -29,6 +35,12 @@ for i in $(seq 1 60); do
     echo
     echo "Ready: the app is running on port 8080."
     echo "The browser opens automatically; otherwise open port 8080 from the Ports tab."
+    echo
+    admin_email=$(grep '^APP_ADMIN_EMAIL=' .env | cut -d= -f2- || true)
+    echo "Log in as administrator:"
+    echo "  email:    ${admin_email:-admin@example.com}"
+    echo "  password: $(grep '^APP_ADMIN_PASSWORD=' .env | cut -d= -f2-)"
+    echo "(shown again with: cat onboarding-progress-system/.env)"
     exit 0
   fi
   sleep 5

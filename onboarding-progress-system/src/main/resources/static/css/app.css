@@ -343,3 +343,42 @@ h2 {
     color: #fff;
     font-size: 0.8rem;
 }
+
+.nav-user {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    margin-left: auto;
+    color: #dfe6ee;
+}
+
+.nav-user form {
+    display: inline;
+}
+
+.nav-logout {
+    padding: 0.2rem 0.6rem;
+    border: 1px solid #8a97a6;
+    border-radius: 4px;
+    background: transparent;
+    color: #fff;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.form-row select,
+.form-row input[type="password"] {
+    padding: 0.4rem;
+    font-size: 1rem;
+}
+
+.form-row input[type="password"] {
+    width: 100%;
+    max-width: 40rem;
+    box-sizing: border-box;
+}
+
+.login-box {
+    max-width: 24rem;
+    margin: 3rem auto;
+}

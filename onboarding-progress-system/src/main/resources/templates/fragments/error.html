@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 <!--
   Body of the error pages (templates/error/*.html).
@@ -14,9 +14,17 @@
         <p th:text="${explanation}">説明</p>
         <p class="muted small" th:if="${path}" th:text="'URL: ' + ${path}">URL: /tasks/999</p>
 
-        <div class="toolbar">
-            <a class="button" th:href="@{/tasks}">タスク一覧へ</a>
+        <!-- Links that the viewer can actually open -->
+        <div class="toolbar" sec:authorize="hasRole('ADMIN')">
+            <a class="button" th:href="@{/}">ダッシュボードへ</a>
+            <a class="button button-secondary" th:href="@{/tasks}">タスク一覧へ</a>
             <a class="button button-secondary" th:href="@{/users}">ユーザー一覧へ</a>
+        </div>
+        <div class="toolbar" sec:authorize="isAuthenticated() and !hasRole('ADMIN')">
+            <a class="button" th:href="@{/me}">マイページへ</a>
+        </div>
+        <div class="toolbar" sec:authorize="!isAuthenticated()">
+            <a class="button" th:href="@{/login}">ログイン画面へ</a>
         </div>
     </div>
 </th:block>
