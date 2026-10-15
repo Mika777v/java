@@ -7,6 +7,34 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: onboarding-progress-system
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: onboarding-progress-system/pom.xml
+
+      # Integration tests start PostgreSQL with Testcontainers (Docker is available on the runner)
+      - name: Run tests
+        run: mvn -B test
+
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: onboarding-progress-system/target/surefire-reports
+
   call-reusable:
     uses: ./.github/workflows/reusable-docker-smoke.yml
     with:
