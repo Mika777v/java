@@ -44,6 +44,19 @@ Then access:
 - API: http://localhost:8080/api/tasks
 - PostgreSQL: localhost:5432
 
+### Run on GitHub Codespaces
+
+In Codespaces, the app container cannot reach the `db` container over the
+compose network, so use the Codespaces override file:
+
+```bash
+cd onboarding-progress-system
+export POSTGRES_PASSWORD=<any password you like>
+docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up -d --build
+```
+
+Then open port 8080 from the **Ports** tab and add `/tasks` to the URL.
+
 ## Database
 
 The database schema is managed by Flyway. The initial migration creates the `tasks` table.

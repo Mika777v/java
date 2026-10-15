@@ -1,0 +1,14 @@
+# Override for GitHub Codespaces.
+# In Codespaces, containers on the compose network cannot reach each other
+# (app -> db:5432 times out), but the published DB port on localhost works.
+# Run the app on the host network and connect to the DB via localhost.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up -d --build
+
+services:
+  app:
+    network_mode: host
+    ports: !reset []
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/onboarding_db
