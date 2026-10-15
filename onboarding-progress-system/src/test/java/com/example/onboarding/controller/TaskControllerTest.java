@@ -16,7 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -88,6 +90,50 @@ class TaskControllerTest {
                 .andExpect(status().isBadRequest());
 
         assertThat(taskRepository.count()).isEqualTo(5);
+    }
+
+    @Test
+    void createTreatsNullActiveAsActive() throws Exception {
+        mockMvc.perform(post("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title": "Null active", "active": null}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.active").value(true));
+    }
+
+    @Test
+    void createIgnoresIdAndTimestampsInBody() throws Exception {
+        mockMvc.perform(post("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"id": 1, "title": "Should be new", "createdAt": "2000-01-01T00:00:00Z"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(not(1)))
+                .andExpect(jsonPath("$.createdAt").value(not(startsWith("2000"))));
+
+        assertThat(taskRepository.count()).isEqualTo(6);
+        assertThat(taskRepository.findById(1L).orElseThrow().getTitle()).isEqualTo("PCのセットアップ");
+    }
+
+    @Test
+    void createReturns400WhenTitleIsTooLong() throws Exception {
+        mockMvc.perform(post("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\": \"" + "a".repeat(201) + "\"}"))
+                .andExpect(status().isBadRequest());
+
+        assertThat(taskRepository.count()).isEqualTo(5);
+    }
+
+    @Test
+    void updateReturns400WhenTitleIsTooLong() throws Exception {
+        mockMvc.perform(put("/api/tasks/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\": \"" + "a".repeat(201) + "\"}"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

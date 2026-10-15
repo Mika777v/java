@@ -33,6 +33,11 @@ public class TaskController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Task createTask(@Valid @RequestBody Task task) {
+        // Always create a new task: an id in the body must not overwrite an existing task
+        task.setId(null);
+        if (task.getActive() == null) {
+            task.setActive(true);
+        }
         return taskRepository.save(task);
     }
 

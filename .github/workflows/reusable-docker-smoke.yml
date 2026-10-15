@@ -102,6 +102,15 @@ jobs:
           echo; echo "HTTP status: $STATUS"
           check_status 200 "$STATUS"
 
+          echo "POST /api/tasks with \"active\": null (treated as active)"
+          NULL_BODY=$(curl -sS -w "\n%{http_code}" -X POST -H "Content-Type: application/json" -d '{"title":"CI null active","active":null}' http://localhost:8080/api/tasks)
+          STATUS=$(echo "$NULL_BODY" | tail -n 1)
+          echo "HTTP status: $STATUS"
+          check_status 201 "$STATUS"
+          NULL_ID=$(echo "$NULL_BODY" | grep -o '"id":[0-9]*' | head -n 1 | cut -d: -f2)
+          echo "$NULL_BODY" | grep -q '"active":true' || { echo "active was not defaulted to true"; exit 1; }
+          curl -sS -o /dev/null -X DELETE http://localhost:8080/api/tasks/$NULL_ID
+
           echo "DELETE created task"
           STATUS=$(curl -sS -o /dev/null -w "%{http_code}" -X DELETE http://localhost:8080/api/tasks/$CREATED_ID)
           echo "HTTP status: $STATUS"
