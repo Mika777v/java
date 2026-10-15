@@ -1,8 +1,32 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-15
-- 対象: `main` ブランチ(コミット `b1f14f2`、PR #2 マージ後)
+- 調査日: 2026-10-15(第2版)
+- 対象: `main` ブランチ(コミット `d283498`、PR #5 マージ後)
 - 対象プロジェクト: `onboarding-progress-system`(新入社員・中途入社者のオンボーディング進捗管理)
+- 調査方法: ソースコードの確認に加え、アプリを実際に起動し、各 URL をブラウザ(Chromium)で開いて表示を確認
+
+### 前回(第1版、PR #3 時点)からの主な変更
+
+| PR | 内容 |
+|---|---|
+| #4 | タスク一覧画面 `GET /tasks` を追加(`TaskPageController`、`tasks.html`)、サンプルデータ 5 件を追加 |
+| #5 | GitHub Codespaces 用の Docker Compose 設定 `docker-compose.codespaces.yml` を追加 |
+
+---
+
+## 0. README の記載と実装の照合(再調査結果)
+
+README には「`http://localhost:8080/tasks` でタスク一覧画面が見られる」と書かれています。実装と照合した結果、**記載どおり存在し、実際に表示できる**ことを確認しました。
+
+| # | 確認項目 | 結果 | 根拠 |
+|---|---|---|---|
+| 1 | `templates/tasks.html` は存在するか | ✅ 存在する | `onboarding-progress-system/src/main/resources/templates/tasks.html` |
+| 2 | `@Controller` は存在するか | ✅ 存在する | `controller/TaskPageController.java` の 9 行目 `@Controller` |
+| 3 | `GET /tasks` は実装されているか | ✅ 実装済み | `TaskPageController.java` の 18 行目 `@GetMapping("/tasks")`。起動して HTTP 200(`text/html`)が返ることを確認 |
+| 4 | ブラウザで確認できる画面一覧 | 画面は 1 つ(`/tasks`) | 10 章を参照 |
+| 5 | スクリーンショット相当の説明 | 10 章に記載 | 実際に撮影した画面をもとに記述 |
+
+補足として、GitHub Actions も毎回 `/tasks` が 200 を返し、表にサンプル 5 件が並ぶことを自動で確認しています(9 章)。
 
 ---
 
@@ -16,7 +40,7 @@ java/                                   … リポジトリのルート(Java 学
 ├── .github/
 │   └── workflows/
 │       ├── onboarding-progress-system-ci.yml   … CI の呼び出し元(push / 手動実行で起動)
-│       └── reusable-docker-smoke.yml           … Docker で起動して API を確認する本体
+│       └── reusable-docker-smoke.yml           … Docker で起動して API・画面を確認する本体
 ├── docs/
 │   └── current-status.md                       … このレポート
 └── onboarding-progress-system/         … アプリ本体
@@ -24,25 +48,31 @@ java/                                   … リポジトリのルート(Java 学
     ├── .gitignore
     ├── Dockerfile                      … アプリのコンテナイメージ定義
     ├── docker-compose.yml              … アプリ(app)と DB(db)の 2 コンテナ構成
+    ├── docker-compose.codespaces.yml   … Codespaces 用の上書き設定(PR #5)
     ├── pom.xml                         … Maven のビルド設定
-    ├── .github/workflows/ci-docker-smoke.yml   … ※この場所では GitHub に実行されない(後述)
+    ├── .github/workflows/ci-docker-smoke.yml   … ※この場所では GitHub に実行されない(9 章)
     └── src/
         └── main/
             ├── java/com/example/onboarding/
             │   ├── OnboardingProgressSystemApplication.java   … 起動クラス
-            │   ├── controller/TaskController.java
+            │   ├── controller/
+            │   │   ├── TaskController.java       … REST API(JSON)
+            │   │   └── TaskPageController.java   … 画面(HTML)(PR #4)
             │   ├── entity/Task.java
             │   └── repository/TaskRepository.java
             └── resources/
                 ├── application.yml
-                └── db/migration/V1__create_tasks_table.sql
+                ├── db/migration/
+                │   ├── V1__create_tasks_table.sql
+                │   └── V2__insert_sample_tasks.sql   … サンプルデータ 5 件(PR #4)
+                └── templates/
+                    └── tasks.html                    … タスク一覧画面(PR #4)
 ```
 
-存在しないもの:
+まだ存在しないもの:
 
 - `src/test/`(テストコードなし)
-- `src/main/resources/templates/`(画面テンプレートなし)
-- `src/main/resources/static/`(CSS・JS などの静的ファイルなし)
+- `src/main/resources/static/`(CSS・JS などの静的ファイルなし。`tasks.html` の見た目は HTML 内の `<style>` で指定)
 - `service/` 層(Controller が Repository を直接呼んでいる)
 
 ---
@@ -52,11 +82,14 @@ java/                                   … リポジトリのルート(Java 学
 | 機能 | 内容 |
 |---|---|
 | タスク管理 API(CRUD) | タスクの一覧・1 件取得・登録・更新・削除 |
-| 入力チェック | `title` が空なら 400 エラー(`@NotBlank`) |
+| タスク一覧画面 | `/tasks` で全タスクを ID 順に表で表示(閲覧のみ) |
+| サンプルデータ | 初回起動時に 5 件のタスクを自動登録 |
+| 入力チェック | API で `title` が空なら 400 エラー(`@NotBlank`) |
 | 作成日時・更新日時の自動設定 | 保存時に `createdAt` / `updatedAt` を自動で入れる |
 | DB テーブルの自動作成 | 起動時に Flyway が `tasks` テーブルを作る |
 | Docker での起動 | `docker compose up --build` でアプリと PostgreSQL が起動する |
-| CI(GitHub Actions) | Docker で起動し、API を実際に呼んで動作を確認する |
+| Codespaces での起動 | `docker-compose.codespaces.yml` を重ねて指定すると起動できる |
+| CI(GitHub Actions) | Docker で起動し、API と `/tasks` 画面を実際に呼んで確認する |
 
 ---
 
@@ -66,26 +99,28 @@ java/                                   … リポジトリのルート(Java 学
 
 | README に書かれた機能 | 状態 | 不足している内容 |
 |---|---|---|
-| Manage onboarding tasks(タスク管理) | △ 一部実装 | API のみ。画面はない |
-| Assign tasks to users(ユーザーへの割り当て) | ✕ 未実装 | ユーザーのテーブル・Entity・API がない |
+| Manage onboarding tasks(タスク管理) | △ 一部実装 | API は CRUD すべてあり。画面は一覧表示のみで、登録・編集・削除の画面はない |
+| Assign tasks to users(ユーザーへの割り当て) | ✕ 未実装 | ユーザーのテーブル・Entity・API・画面がない |
 | Track progress and status(進捗・状態の管理) | ✕ 未実装 | 「未着手/対応中/完了」のような状態を持つ項目がない |
-| View task completion status(完了状況の表示) | ✕ 未実装 | 一覧画面・集計がない |
+| View task completion status(完了状況の表示) | ✕ 未実装 | 完了率などの集計・画面がない |
 
 その他、まだないもの:
 
-- 画面(Thymeleaf は依存関係に入っているが、テンプレートが 1 つもない)
+- トップページ(`/`)。開くとエラーページになる(10 章)
+- タスク詳細画面(`/tasks/{id}` は 404)
+- 画面からの登録・編集・削除
 - テストコード
 - ログイン・権限管理
-- エラーレスポンスの共通化(現在は Spring Boot 標準のエラー JSON)
+- エラーレスポンス・エラー画面の共通化(現在は Spring Boot 標準のもの)
 - ヘルスチェック用エンドポイント(Spring Boot Actuator は未導入)
 
 ---
 
 ## 4. テーブル定義
 
-マイグレーションファイル: `src/main/resources/db/migration/V1__create_tasks_table.sql`
-
 ### `tasks`(オンボーディングのタスク)
+
+作成: `db/migration/V1__create_tasks_table.sql`
 
 | カラム | 型 | NULL | 初期値 | 説明 |
 |---|---|---|---|---|
@@ -97,6 +132,20 @@ java/                                   … リポジトリのルート(Java 学
 | `updated_at` | `TIMESTAMPTZ` | 不可 | `now()` | 更新日時 |
 
 テーブルは `tasks` の 1 つだけです。インデックス・外部キーはありません。
+
+### 初期データ
+
+投入: `db/migration/V2__insert_sample_tasks.sql`(Flyway により DB が空の状態での初回起動時に 1 回だけ実行)
+
+| id | title | description | active |
+|---|---|---|---|
+| 1 | PCのセットアップ | 支給PCに開発ツールをインストールする | true |
+| 2 | 社内アカウントの登録 | メール・チャット・勤怠システムのアカウントを作成する | true |
+| 3 | 就業規則の確認 | 就業規則とセキュリティポリシーを読む | true |
+| 4 | チームメンバーとの顔合わせ | 配属チームのメンバーと1on1を行う | true |
+| 5 | 旧オリエンテーション資料の確認 | 現在は使われていない旧資料(参考用) | false |
+
+データを初期状態に戻したいときは `docker compose down -v` で DB のデータ(ボリューム)を削除してから起動し直します。
 
 ---
 
@@ -117,11 +166,11 @@ java/                                   … リポジトリのルート(Java 学
 
 | ライブラリ | 用途 | 使用状況 |
 |---|---|---|
-| `spring-boot-starter-web` | REST API | 使用中 |
+| `spring-boot-starter-web` | REST API・Web サーバー | 使用中 |
 | `spring-boot-starter-data-jpa` | DB アクセス | 使用中 |
 | `spring-boot-starter-validation` | 入力チェック | 使用中(`@NotBlank`) |
-| `spring-boot-starter-thymeleaf` | HTML 画面 | **未使用**(テンプレートなし) |
-| `flyway-core` / `flyway-database-postgresql` | テーブルの自動作成 | 使用中 |
+| `spring-boot-starter-thymeleaf` | HTML 画面 | **使用中**(`tasks.html`)※第1版では未使用 |
+| `flyway-core` / `flyway-database-postgresql` | テーブル作成・初期データ投入 | 使用中 |
 | `postgresql` | DB ドライバ | 使用中 |
 | `spring-boot-starter-test` | テスト | **未使用**(テストなし) |
 
@@ -130,20 +179,25 @@ java/                                   … リポジトリのルート(Java 学
 | 設定 | 値 | 補足 |
 |---|---|---|
 | ポート | `8080` | |
-| DB 接続先 | 環境変数 `SPRING_DATASOURCE_URL`(なければ `localhost:5432/onboarding_db`) | Docker では `db:5432` |
+| DB 接続先 | 環境変数 `SPRING_DATASOURCE_URL`(なければ `localhost:5432/onboarding_db`) | Docker では `db:5432`、Codespaces では `localhost:5432` |
 | DB ユーザー | 環境変数 `SPRING_DATASOURCE_USERNAME`(なければ `user`) | |
 | DB パスワード | 環境変数 `SPRING_DATASOURCE_PASSWORD`(なければ `pass`) | Docker では `POSTGRES_PASSWORD` から渡す |
 | `ddl-auto` | `none` | テーブルは Hibernate ではなく Flyway が作る |
 | `show-sql` | `true` | 実行した SQL をログに出す |
 | Flyway | 有効、`baseline-on-migrate: true` | |
+| Thymeleaf | 設定なし(Spring Boot の初期値) | テンプレートは `classpath:/templates/*.html` |
 
 ### レイヤー構成
 
 ```
-Controller(TaskController) → Repository(TaskRepository) → DB
+画面:  ブラウザ → TaskPageController(@Controller)     → TaskRepository → DB
+                                    ↓
+                               templates/tasks.html(Thymeleaf)
+
+API:   クライアント → TaskController(@RestController) → TaskRepository → DB
 ```
 
-Service 層はなく、Controller から Repository を直接呼んでいます。
+Service 層はなく、どちらの Controller も Repository を直接呼んでいます。
 
 ---
 
@@ -170,15 +224,32 @@ Repository は `TaskRepository extends JpaRepository<Task, Long>` の 1 つだ�
 
 ## 7. Controller 一覧
 
-| Controller | 種類 | ベースパス | ファイル |
-|---|---|---|---|
-| `TaskController` | `@RestController`(JSON を返す) | `/api/tasks` | `controller/TaskController.java` |
+| Controller | 種類 | 担当パス | 返すもの | ファイル |
+|---|---|---|---|---|
+| `TaskController` | `@RestController` | `/api/tasks` 配下 | JSON | `controller/TaskController.java` |
+| `TaskPageController` | `@Controller` | `/tasks` | HTML(`tasks.html`) | `controller/TaskPageController.java` |
 
-画面(HTML)を返す `@Controller` はありません。
+`TaskPageController` の処理内容:
+
+```java
+@GetMapping("/tasks")
+public String listTasks(Model model) {
+    model.addAttribute("tasks", taskRepository.findAll(Sort.by("id")));  // 全タスクを ID 順で取得
+    return "tasks";                                                      // templates/tasks.html を表示
+}
+```
 
 ---
 
-## 8. API 一覧
+## 8. API・URL 一覧
+
+### 画面(HTML)
+
+| メソッド | パス | 内容 | 応答 |
+|---|---|---|---|
+| `GET` | `/tasks` | タスク一覧画面 | 200(`text/html`) |
+
+### REST API(JSON)
 
 | メソッド | パス | 内容 | 成功時 | 失敗時 |
 |---|---|---|---|---|
@@ -194,23 +265,11 @@ Repository は `TaskRepository extends JpaRepository<Task, Long>` の 1 つだ�
 { "title": "Set up laptop", "description": "Install tools", "active": true }
 ```
 
-レスポンス例:
-
-```json
-{
-  "id": 1,
-  "title": "Set up laptop",
-  "description": "Install tools",
-  "active": true,
-  "createdAt": "2026-10-15T01:24:53.365710188Z",
-  "updatedAt": "2026-10-15T01:24:53.365710188Z"
-}
-```
-
 注意点:
 
+- サンプルデータが 5 件あるため、API で新しく登録したタスクの ID は 6 から始まります。
 - `PUT` で `active` を省略すると `true` に戻ります。
-- `POST` で `"active": null` を明示的に送ると、DB の NOT NULL 制約に違反して 500 エラーになります(コードからの推測で、未確認)。
+- `POST` で `"active": null` を明示的に送ると、DB の NOT NULL 制約に違反して 500 エラーになる見込みです(コードからの推測で、未確認)。
 
 ---
 
@@ -232,21 +291,18 @@ Repository は `TaskRepository extends JpaRepository<Task, Long>` の 1 つだ�
 | 1 | Checkout repository | ソースを取得 |
 | 2 | Set up Docker Buildx | Docker のビルド環境を準備 |
 | 3 | Generate temporary DB password | 実行ごとにランダムなパスワードを作る(ログでは `***` と表示) |
-| 4 | Build and start services | `docker compose up -d --build` |
+| 4 | Build and start services | `docker compose up -d --build`(標準の `docker-compose.yml` のみ使用) |
 | 5 | Wait for database to be ready | `pg_isready` で DB の起動を待つ(最大 150 秒) |
 | 6 | Wait for app to be ready | `/api/tasks` が応答するまで待つ(最大 180 秒) |
-| 7 | Smoke test API | 一覧取得 200 → 登録 201 → 1 件取得 200 → 削除 204 を確認 |
+| 7 | Smoke test API (HTTP checks) | 一覧取得 200 → 登録 201 → 1 件取得 200 → 削除 204 → **`/tasks` 画面 200 と表の行数(見出し + 5 件)** を確認 |
 | 8 | Show logs on failure | 失敗したときだけ `docker compose logs` を表示 |
 | 9 | Cleanup containers | 成否に関係なく `docker compose down -v` で後片付け |
-
-直近の結果: 修正後の実行([run 38665372787](https://github.com/Mika777v/java/actions/runs/38665372787))は成功しています。
 
 ### 実行されないワークフロー
 
 - `onboarding-progress-system/.github/workflows/ci-docker-smoke.yml`
-  - GitHub はリポジトリ直下の `.github/workflows/` しか読まないため、このファイルは実行されません。
-  - コミット `d7ba65e` で一度削除されていますが、main 側でも別に追加されていたため、マージ後も残っています。
-  - 内容は上のワークフローの古い版なので、削除して問題ありません。
+  - GitHub はリポジトリ直下の `.github/workflows/` しか読まないため、実行されません。
+  - 上のワークフローの古い版なので、削除して問題ありません。
 
 ### 出ている警告(動作には影響なし)
 
@@ -255,19 +311,82 @@ Repository は `TaskRepository extends JpaRepository<Task, Long>` の 1 つだ�
 
 ---
 
-## 10. 現在ブラウザで確認できる画面
+## 10. docker compose 起動後にブラウザで確認できる画面
 
-**HTML の画面はまだ 1 つもありません。**
+### 起動方法
 
-`docker compose up --build` で起動したあと、ブラウザで開くと次のようになります。
-
-| URL | 表示内容 |
+| 環境 | コマンド |
 |---|---|
-| `http://localhost:8080/` | Spring Boot 標準のエラーページ「Whitelabel Error Page」(404) |
-| `http://localhost:8080/api/tasks` | タスク一覧の JSON(最初は `[]`) |
-| `http://localhost:8080/api/tasks/1` | ID 1 のタスクの JSON(なければ 404 のエラー JSON) |
+| 通常(PC・CI) | `export POSTGRES_PASSWORD=<任意>` → `docker compose up -d --build` |
+| GitHub Codespaces | `export POSTGRES_PASSWORD=<任意>` → `docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up -d --build` |
 
-ブラウザのアドレスバーからは `GET` しか送れません。登録・更新・削除を試すには `curl` などのツールが必要です。
+Codespaces では、コンテナ同士の通信(アプリ → `db:5432`)が届かないため、専用の上書き設定が必要です。ブラウザで開くときは「ポート」タブの 8080 を開き、URL の最後に `/tasks` を付けます。
+
+### URL ごとの表示(2026-10-15 に実際に起動して確認)
+
+| URL | HTTP | ブラウザでの表示 | 種類 |
+|---|---|---|---|
+| `/tasks` | 200 | **タスク一覧画面**(下記) | ✅ 画面 |
+| `/api/tasks` | 200 | タスク一覧の JSON(文字の羅列) | API |
+| `/api/tasks/1` | 200 | ID 1 のタスクの JSON | API |
+| `/` | 404 | Whitelabel Error Page | エラー |
+| `/tasks/1` | 404 | Whitelabel Error Page | エラー |
+| `/api/tasks/999` | 404 | Whitelabel Error Page | エラー |
+
+**画面として用意されているのは `/tasks` の 1 つだけです。**
+
+### スクリーンショット相当の説明
+
+#### `/tasks` — タスク一覧画面
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                                                                          │
+│  タスク一覧                                                              │
+│                                                                          │
+│  ┌────┬──────────────────────────┬──────────────────────────────┬──────┐ │
+│  │ ID │ タイトル                 │ 説明                         │Active│ │
+│  ├────┼──────────────────────────┼──────────────────────────────┼──────┤ │
+│  │ 1  │ PCのセットアップ         │ 支給PCに開発ツールを…        │ Yes  │ │
+│  │ 2  │ 社内アカウントの登録     │ メール・チャット・勤怠…      │ Yes  │ │
+│  │ 3  │ 就業規則の確認           │ 就業規則とセキュリティ…      │ Yes  │ │
+│  │ 4  │ チームメンバーとの顔合わせ│ 配属チームのメンバーと…      │ Yes  │ │
+│  │ 5  │ 旧オリエンテーション資料…│ 現在は使われていない旧資料…  │ No   │ │
+│  └────┴──────────────────────────┴──────────────────────────────┴──────┘ │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+- 白い背景に、左上に大きな見出し「タスク一覧」が表示されます。
+- その下に、画面の横幅いっぱいの表があります。
+  - 見出し行(ID・タイトル・説明・Active)は薄いグレーの背景です。
+  - 各セルは薄いグレーの線で区切られています。
+  - 文字はゴシック体(sans-serif)で表示されます。
+- 行は ID の小さい順に並びます。サンプルデータのみの状態では 5 行です。
+- Active 列は `true` が「Yes」、`false` が「No」と表示されます(5 行目のみ No)。
+- ボタン・リンク・入力欄はありません(閲覧専用)。
+- タスクが 0 件のときは、表の代わりに「タスクはまだありません。」と表示されます。
+- API で追加・削除したタスクは、ページを再読み込みすると反映されます。
+
+#### `/api/tasks` — JSON 表示
+
+- 画面上部に「Pretty-print」のチェックボックス(Chrome の機能)があり、その下に JSON がそのまま 1 行で表示されます。
+- 例: `[{"id":1,"title":"PCのセットアップ","description":"支給PCに開発ツールをインストールする","active":true,"createdAt":"…","updatedAt":"…"}, …]`
+- 「Pretty-print」にチェックを入れると、改行と字下げで読みやすくなります。
+
+#### `/` など存在しない URL — エラーページ
+
+```
+Whitelabel Error Page
+This application has no explicit mapping for /error, so you are seeing this as a fallback.
+
+Thu Oct 15 03:13:59 UTC 2026
+There was an unexpected error (type=Not Found, status=404).
+```
+
+- 白い背景に、大きな見出し「Whitelabel Error Page」と英語の説明文が表示されます。
+- アプリの故障ではなく、「その URL に対応する画面がない」という意味です。
+- トップページ(`/`)はまだ作っていないため、ここに来ます。
 
 ---
 
@@ -278,30 +397,32 @@ README の MVP を実現する順番で並べています。上から順に進�
 ### 優先度 高(MVP に必要)
 
 1. **テストの追加**
-   - 今ある Task API のテストを書きます(`@SpringBootTest` + `MockMvc` など)。
+   - 今ある Task API と `/tasks` 画面のテストを書きます(`@SpringBootTest` + `MockMvc` など)。
    - このあと機能を増やしたときに、既存の機能が壊れていないかを確認できるようになります。
-2. **タスク一覧画面(Thymeleaf)**
-   - `/tasks` で一覧を表示し、登録・編集・削除のフォームを付けます。
-   - ブラウザだけで動作を確認できるようになります。
-3. **ユーザー(社員)の管理**
-   - `users` テーブル(`V2__create_users_table.sql`)、`User` Entity、API または画面を作ります。
-4. **タスクの割り当てと進捗状態**
+2. **トップページ(`/`)**
+   - `/` を開いたら `/tasks` へ移動する(リダイレクト)だけでも、初めて触る人が迷わなくなります。
+3. **画面からのタスク登録・編集・削除**
+   - `/tasks/new`(登録フォーム)、`/tasks/{id}/edit`(編集フォーム)、削除ボタンを追加します。
+   - 一覧画面に「新規登録」ボタンと各行の「編集」「削除」を付けます。
+4. **ユーザー(社員)の管理**
+   - `users` テーブル(`V3__create_users_table.sql`)、`User` Entity、一覧画面を作ります。
+5. **タスクの割り当てと進捗状態**
    - 「誰に・どのタスクを・どの状態で」を持つテーブルを追加します(例: `task_assignments`。`user_id`、`task_id`、`status`(未着手 / 対応中 / 完了)、`due_date`、`completed_at`)。
    - `tasks` はタスクのテンプレート(マスタ)、`task_assignments` は各人の進捗、という役割分担にすると README の要件に合います。
-5. **進捗の確認画面**
+6. **進捗の確認画面**
    - ユーザーごとの完了率、未完了タスクの一覧を表示します。
 
 ### 優先度 中(品質・保守性)
 
-6. **Service 層の追加**: Controller から業務ロジックを分けます。割り当て機能を作るタイミングで導入すると自然です。
-7. **エラーレスポンスの統一**: `@RestControllerAdvice` で、400・404 などを同じ形の JSON で返すようにします。
-8. **CI でテストを実行する**: 1 を作ったら、ワークフローに `mvn test` を追加します。
-9. **`active: null` の扱いを修正**: 8 章の注意点のとおり、500 エラーにならないようにします。
+7. **Service 層の追加**: Controller から業務ロジックを分けます。割り当て機能を作るタイミングで導入すると自然です。
+8. **エラーレスポンス・エラー画面の統一**: `@RestControllerAdvice` で API のエラーを同じ形の JSON にし、画面用には `templates/error/404.html` などを用意します。
+9. **CI でテストを実行する**: 1 を作ったら、ワークフローに `mvn test` を追加します。
+10. **`active: null` の扱いを修正**: 8 章の注意点のとおり、500 エラーにならないようにします。
 
 ### 優先度 低(整理・後回しでよいもの)
 
-10. 実行されないワークフロー `onboarding-progress-system/.github/workflows/ci-docker-smoke.yml` を削除する
-11. `docker-compose.yml` から `version: "3.8"` を削除して警告を消す
-12. Actions のバージョンを上げて Node.js 20 の警告を消す
-13. `application.yml` の予備パスワード `pass` を見直す(ローカル開発用の初期値)
-14. ログイン機能(Spring Security)。管理者と新入社員で見られる画面を分ける場合に必要になります
+11. 実行されないワークフロー `onboarding-progress-system/.github/workflows/ci-docker-smoke.yml` を削除する
+12. `docker-compose.yml` から `version: "3.8"` を削除して警告を消す
+13. Actions のバージョンを上げて Node.js 20 の警告を消す
+14. `application.yml` の予備パスワード `pass` を見直す(ローカル開発用の初期値)
+15. ログイン機能(Spring Security)。管理者と新入社員で見られる画面を分ける場合に必要になります
