@@ -1,7 +1,7 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-15(第2版)
-- 対象: `main` ブランチ(コミット `d283498`、PR #5 マージ後)
+- 調査日: 2026-10-15(第3版)
+- 対象: PR #6 マージ後の `main` に、ルート転送と画面からの登録・編集・削除を加えた状態
 - 対象プロジェクト: `onboarding-progress-system`(新入社員・中途入社者のオンボーディング進捗管理)
 - 調査方法: ソースコードの確認に加え、アプリを実際に起動し、各 URL をブラウザ(Chromium)で開いて表示を確認
 
@@ -11,6 +11,7 @@
 |---|---|
 | #4 | タスク一覧画面 `GET /tasks` を追加(`TaskPageController`、`tasks.html`)、サンプルデータ 5 件を追加 |
 | #5 | GitHub Codespaces 用の Docker Compose 設定 `docker-compose.codespaces.yml` を追加 |
+| (第3版) | `/` を `/tasks` へ転送、画面からのタスク登録・編集・削除を追加 |
 
 ---
 
@@ -23,7 +24,7 @@ README には「`http://localhost:8080/tasks` でタスク一覧画面が見ら�
 | 1 | `templates/tasks.html` は存在するか | ✅ 存在する | `onboarding-progress-system/src/main/resources/templates/tasks.html` |
 | 2 | `@Controller` は存在するか | ✅ 存在する | `controller/TaskPageController.java` の 9 行目 `@Controller` |
 | 3 | `GET /tasks` は実装されているか | ✅ 実装済み | `TaskPageController.java` の 18 行目 `@GetMapping("/tasks")`。起動して HTTP 200(`text/html`)が返ることを確認 |
-| 4 | ブラウザで確認できる画面一覧 | 画面は 1 つ(`/tasks`) | 10 章を参照 |
+| 4 | ブラウザで確認できる画面一覧 | 画面は 3 つ(一覧・登録・編集) | 10 章を参照 |
 | 5 | スクリーンショット相当の説明 | 10 章に記載 | 実際に撮影した画面をもとに記述 |
 
 補足として、GitHub Actions も毎回 `/tasks` が 200 を返し、表にサンプル 5 件が並ぶことを自動で確認しています(9 章)。
@@ -57,22 +58,24 @@ java/                                   … リポジトリのルート(Java 学
             │   ├── OnboardingProgressSystemApplication.java   … 起動クラス
             │   ├── controller/
             │   │   ├── TaskController.java       … REST API(JSON)
-            │   │   └── TaskPageController.java   … 画面(HTML)(PR #4)
+            │   │   └── TaskPageController.java   … 画面(HTML)
             │   ├── entity/Task.java
+            │   ├── form/TaskForm.java            … 登録・編集フォームの入力値
             │   └── repository/TaskRepository.java
             └── resources/
                 ├── application.yml
                 ├── db/migration/
                 │   ├── V1__create_tasks_table.sql
                 │   └── V2__insert_sample_tasks.sql   … サンプルデータ 5 件(PR #4)
+                ├── static/css/app.css            … 画面共通のデザイン
                 └── templates/
-                    └── tasks.html                    … タスク一覧画面(PR #4)
+                    ├── tasks.html                    … タスク一覧画面
+                    └── task-form.html                … タスク登録・編集画面(共通)
 ```
 
 まだ存在しないもの:
 
 - `src/test/`(テストコードなし)
-- `src/main/resources/static/`(CSS・JS などの静的ファイルなし。`tasks.html` の見た目は HTML 内の `<style>` で指定)
 - `service/` 層(Controller が Repository を直接呼んでいる)
 
 ---
@@ -82,14 +85,15 @@ java/                                   … リポジトリのルート(Java 学
 | 機能 | 内容 |
 |---|---|
 | タスク管理 API(CRUD) | タスクの一覧・1 件取得・登録・更新・削除 |
-| タスク一覧画面 | `/tasks` で全タスクを ID 順に表で表示(閲覧のみ) |
+| タスク一覧画面 | `/tasks` で全タスクを ID 順に表で表示。`/` を開いても一覧に移動 |
+| タスク登録・編集・削除画面 | 一覧の「新規登録」「編集」「削除」ボタンから操作。完了後は一覧に戻り、メッセージを表示 |
 | サンプルデータ | 初回起動時に 5 件のタスクを自動登録 |
-| 入力チェック | API で `title` が空なら 400 エラー(`@NotBlank`) |
+| 入力チェック | API: `title` が空なら 400 エラー。画面: タイトル未入力・200 文字超でフォームにエラーメッセージを表示 |
 | 作成日時・更新日時の自動設定 | 保存時に `createdAt` / `updatedAt` を自動で入れる |
 | DB テーブルの自動作成 | 起動時に Flyway が `tasks` テーブルを作る |
 | Docker での起動 | `docker compose up --build` でアプリと PostgreSQL が起動する |
 | Codespaces での起動 | `docker-compose.codespaces.yml` を重ねて指定すると起動できる |
-| CI(GitHub Actions) | Docker で起動し、API と `/tasks` 画面を実際に呼んで確認する |
+| CI(GitHub Actions) | Docker で起動し、API と画面(一覧・登録・編集・削除・入力チェック)を実際に呼んで確認する |
 
 ---
 
@@ -99,16 +103,14 @@ java/                                   … リポジトリのルート(Java 学
 
 | README に書かれた機能 | 状態 | 不足している内容 |
 |---|---|---|
-| Manage onboarding tasks(タスク管理) | △ 一部実装 | API は CRUD すべてあり。画面は一覧表示のみで、登録・編集・削除の画面はない |
+| Manage onboarding tasks(タスク管理) | ✅ 実装済み | API・画面ともに一覧・登録・編集・削除ができる |
 | Assign tasks to users(ユーザーへの割り当て) | ✕ 未実装 | ユーザーのテーブル・Entity・API・画面がない |
 | Track progress and status(進捗・状態の管理) | ✕ 未実装 | 「未着手/対応中/完了」のような状態を持つ項目がない |
 | View task completion status(完了状況の表示) | ✕ 未実装 | 完了率などの集計・画面がない |
 
 その他、まだないもの:
 
-- トップページ(`/`)。開くとエラーページになる(10 章)
 - タスク詳細画面(`/tasks/{id}` は 404)
-- 画面からの登録・編集・削除
 - テストコード
 - ログイン・権限管理
 - エラーレスポンス・エラー画面の共通化(現在は Spring Boot 標準のもの)
@@ -227,17 +229,21 @@ Repository は `TaskRepository extends JpaRepository<Task, Long>` の 1 つだ�
 | Controller | 種類 | 担当パス | 返すもの | ファイル |
 |---|---|---|---|---|
 | `TaskController` | `@RestController` | `/api/tasks` 配下 | JSON | `controller/TaskController.java` |
-| `TaskPageController` | `@Controller` | `/tasks` | HTML(`tasks.html`) | `controller/TaskPageController.java` |
+| `TaskPageController` | `@Controller` | `/`、`/tasks` 配下 | HTML(`tasks.html`、`task-form.html`) | `controller/TaskPageController.java` |
 
-`TaskPageController` の処理内容:
+`TaskPageController` のメソッド:
 
-```java
-@GetMapping("/tasks")
-public String listTasks(Model model) {
-    model.addAttribute("tasks", taskRepository.findAll(Sort.by("id")));  // 全タスクを ID 順で取得
-    return "tasks";                                                      // templates/tasks.html を表示
-}
-```
+| メソッド | URL | 処理 |
+|---|---|---|
+| `home` | `GET /` | `/tasks` へ転送 |
+| `listTasks` | `GET /tasks` | 全タスクを ID 順で取得し、`tasks.html` を表示 |
+| `newTask` | `GET /tasks/new` | 空のフォームで `task-form.html` を表示 |
+| `createTask` | `POST /tasks` | 入力チェック → 保存 → 一覧へ転送(エラー時はフォームを再表示) |
+| `editTask` | `GET /tasks/{id}/edit` | 既存の値を入れたフォームを表示 |
+| `updateTask` | `POST /tasks/{id}` | 入力チェック → 更新 → 一覧へ転送(エラー時はフォームを再表示) |
+| `deleteTask` | `POST /tasks/{id}/delete` | 削除 → 一覧へ転送 |
+
+フォームの値は Entity(`Task`)に直接入れず、`form/TaskForm.java` で受け取ります。こうすると、画面から `id` や作成日時などを書き換えられないようにできます。
 
 ---
 
@@ -247,7 +253,13 @@ public String listTasks(Model model) {
 
 | メソッド | パス | 内容 | 応答 |
 |---|---|---|---|
-| `GET` | `/tasks` | タスク一覧画面 | 200(`text/html`) |
+| `GET` | `/` | `/tasks` へ転送 | 302 |
+| `GET` | `/tasks` | タスク一覧画面 | 200 |
+| `GET` | `/tasks/new` | タスク登録画面 | 200 |
+| `POST` | `/tasks` | 登録を実行 | 302(一覧へ)/ 200(入力エラー時はフォーム再表示) |
+| `GET` | `/tasks/{id}/edit` | タスク編集画面 | 200 / 404(存在しない) |
+| `POST` | `/tasks/{id}` | 更新を実行 | 302(一覧へ)/ 200(入力エラー時)/ 404 |
+| `POST` | `/tasks/{id}/delete` | 削除を実行 | 302(一覧へ)/ 404 |
 
 ### REST API(JSON)
 
@@ -294,9 +306,10 @@ public String listTasks(Model model) {
 | 4 | Build and start services | `docker compose up -d --build`(標準の `docker-compose.yml` のみ使用) |
 | 5 | Wait for database to be ready | `pg_isready` で DB の起動を待つ(最大 150 秒) |
 | 6 | Wait for app to be ready | `/api/tasks` が応答するまで待つ(最大 180 秒) |
-| 7 | Smoke test API (HTTP checks) | 一覧取得 200 → 登録 201 → 1 件取得 200 → 削除 204 → **`/tasks` 画面 200 と表の行数(見出し + 5 件)** を確認 |
-| 8 | Show logs on failure | 失敗したときだけ `docker compose logs` を表示 |
-| 9 | Cleanup containers | 成否に関係なく `docker compose down -v` で後片付け |
+| 7 | Smoke test API (HTTP checks) | 一覧取得 200 → 登録 201 → 1 件取得 200 → 削除 204 → `/tasks` 画面 200 と表の行数(見出し + 5 件)→ `/` が `/tasks` へ転送されること |
+| 8 | Smoke test screens | 登録画面 200 → 空タイトルでエラーメッセージ表示 → フォームで登録 → 編集画面 200 → フォームで更新(Active を外す)→ フォームで削除、の順に確認 |
+| 9 | Show logs on failure | 失敗したときだけ `docker compose logs` を表示 |
+| 10 | Cleanup containers | 成否に関係なく `docker compose down -v` で後片付け |
 
 ### 実行されないワークフロー
 
@@ -320,20 +333,23 @@ public String listTasks(Model model) {
 | 通常(PC・CI) | `export POSTGRES_PASSWORD=<任意>` → `docker compose up -d --build` |
 | GitHub Codespaces | `export POSTGRES_PASSWORD=<任意>` → `docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up -d --build` |
 
-Codespaces では、コンテナ同士の通信(アプリ → `db:5432`)が届かないため、専用の上書き設定が必要です。ブラウザで開くときは「ポート」タブの 8080 を開き、URL の最後に `/tasks` を付けます。
+Codespaces では、コンテナ同士の通信(アプリ → `db:5432`)が届かないため、専用の上書き設定が必要です。ブラウザで開くときは「ポート」タブの 8080 を開きます(自動で一覧画面に移動します)。
 
 ### URL ごとの表示(2026-10-15 に実際に起動して確認)
 
 | URL | HTTP | ブラウザでの表示 | 種類 |
 |---|---|---|---|
+| `/` | 302 → 200 | `/tasks` に自動で移動し、タスク一覧画面を表示 | ✅ 画面(転送) |
 | `/tasks` | 200 | **タスク一覧画面**(下記) | ✅ 画面 |
+| `/tasks/new` | 200 | **タスク登録画面**(下記) | ✅ 画面 |
+| `/tasks/1/edit` | 200 | **タスク編集画面**(下記) | ✅ 画面 |
 | `/api/tasks` | 200 | タスク一覧の JSON(文字の羅列) | API |
 | `/api/tasks/1` | 200 | ID 1 のタスクの JSON | API |
-| `/` | 404 | Whitelabel Error Page | エラー |
 | `/tasks/1` | 404 | Whitelabel Error Page | エラー |
+| `/tasks/999/edit` | 404 | Whitelabel Error Page | エラー |
 | `/api/tasks/999` | 404 | Whitelabel Error Page | エラー |
 
-**画面として用意されているのは `/tasks` の 1 つだけです。**
+**画面は「一覧」「登録」「編集」の 3 つです。** `/` を開くと自動で一覧に移動し、そこからボタンで各画面に進めます。
 
 ### スクリーンショット相当の説明
 
@@ -344,15 +360,19 @@ Codespaces では、コンテナ同士の通信(アプリ → `db:5432`)が届�
 │                                                                          │
 │  タスク一覧                                                              │
 │                                                                          │
-│  ┌────┬──────────────────────────┬──────────────────────────────┬──────┐ │
-│  │ ID │ タイトル                 │ 説明                         │Active│ │
-│  ├────┼──────────────────────────┼──────────────────────────────┼──────┤ │
-│  │ 1  │ PCのセットアップ         │ 支給PCに開発ツールを…        │ Yes  │ │
-│  │ 2  │ 社内アカウントの登録     │ メール・チャット・勤怠…      │ Yes  │ │
-│  │ 3  │ 就業規則の確認           │ 就業規則とセキュリティ…      │ Yes  │ │
-│  │ 4  │ チームメンバーとの顔合わせ│ 配属チームのメンバーと…      │ Yes  │ │
-│  │ 5  │ 旧オリエンテーション資料…│ 現在は使われていない旧資料…  │ No   │ │
-│  └────┴──────────────────────────┴──────────────────────────────┴──────┘ │
+│  ┌──────────────────────────────────────────────────────────────────┐    │
+│  │ タスクを登録しました。            ← 登録・更新・削除の直後だけ表示│    │
+│  └──────────────────────────────────────────────────────────────────┘    │
+│  [新規登録]                                                              │
+│  ┌────┬────────────────────┬──────────────────────┬──────┬───────────┐   │
+│  │ ID │ タイトル           │ 説明                 │Active│ 操作      │   │
+│  ├────┼────────────────────┼──────────────────────┼──────┼───────────┤   │
+│  │ 1  │ PCのセットアップ   │ 支給PCに開発ツール…  │ Yes  │[編集][削除]│  │
+│  │ 2  │ 社内アカウントの…  │ メール・チャット…    │ Yes  │[編集][削除]│  │
+│  │ 3  │ 就業規則の確認     │ 就業規則とセキュ…    │ Yes  │[編集][削除]│  │
+│  │ 4  │ チームメンバーと…  │ 配属チームのメン…    │ Yes  │[編集][削除]│  │
+│  │ 5  │ 旧オリエンテー…    │ 現在は使われてい…    │ No   │[編集][削除]│  │
+│  └────┴────────────────────┴──────────────────────┴──────┴───────────┘   │
 │                                                                          │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
@@ -364,9 +384,43 @@ Codespaces では、コンテナ同士の通信(アプリ → `db:5432`)が届�
   - 文字はゴシック体(sans-serif)で表示されます。
 - 行は ID の小さい順に並びます。サンプルデータのみの状態では 5 行です。
 - Active 列は `true` が「Yes」、`false` が「No」と表示されます(5 行目のみ No)。
-- ボタン・リンク・入力欄はありません(閲覧専用)。
+- 表の上に青い「新規登録」ボタンがあります。押すと登録画面に移動します。
+- 各行の右端に、白い「編集」ボタンと赤い「削除」ボタンがあります。
+  - 「削除」を押すと「このタスクを削除しますか?」という確認が出て、OK で削除されます。
+- 登録・更新・削除の直後は、表の上に薄い緑の枠で「タスクを登録しました。」などのメッセージが表示されます(再読み込みすると消えます)。
 - タスクが 0 件のときは、表の代わりに「タスクはまだありません。」と表示されます。
 - API で追加・削除したタスクは、ページを再読み込みすると反映されます。
+
+#### `/tasks/new` — タスク登録画面 / `/tasks/{id}/edit` — タスク編集画面
+
+```
+┌──────────────────────────────────────────────┐
+│  タスク登録            (編集時は「タスク編集」)│
+│                                              │
+│  タイトル *                                  │
+│  ┌────────────────────────────────────┐      │
+│  │                                    │      │
+│  └────────────────────────────────────┘      │
+│  タイトルを入力してください  ← 未入力で送信した時だけ赤字で表示 │
+│                                              │
+│  説明                                        │
+│  ┌────────────────────────────────────┐      │
+│  │                                    │      │
+│  │                                    │      │
+│  └────────────────────────────────────┘      │
+│                                              │
+│  ☑ 有効(Active)                             │
+│                                              │
+│  [登録する] [一覧に戻る]  (編集時は「更新する」)│
+└──────────────────────────────────────────────┘
+```
+
+- 登録と編集は同じ画面(`task-form.html`)を使い、見出しとボタンの文字だけが変わります。
+- 登録画面では入力欄が空で、「有効(Active)」にはチェックが入っています。
+- 編集画面では、今の値があらかじめ入っています。
+- 「タイトル」の横の赤い `*` は必須項目の印です。
+- タイトルを空のまま送信すると、同じ画面のまま、入力欄の下に赤字で「タイトルを入力してください」と表示されます。
+- 「一覧に戻る」を押すと、保存せずに一覧に戻ります。
 
 #### `/api/tasks` — JSON 表示
 
@@ -374,7 +428,7 @@ Codespaces では、コンテナ同士の通信(アプリ → `db:5432`)が届�
 - 例: `[{"id":1,"title":"PCのセットアップ","description":"支給PCに開発ツールをインストールする","active":true,"createdAt":"…","updatedAt":"…"}, …]`
 - 「Pretty-print」にチェックを入れると、改行と字下げで読みやすくなります。
 
-#### `/` など存在しない URL — エラーページ
+#### `/tasks/1` など存在しない URL — エラーページ
 
 ```
 Whitelabel Error Page
@@ -386,7 +440,6 @@ There was an unexpected error (type=Not Found, status=404).
 
 - 白い背景に、大きな見出し「Whitelabel Error Page」と英語の説明文が表示されます。
 - アプリの故障ではなく、「その URL に対応する画面がない」という意味です。
-- トップページ(`/`)はまだ作っていないため、ここに来ます。
 
 ---
 
@@ -397,13 +450,10 @@ README の MVP を実現する順番で並べています。上から順に進�
 ### 優先度 高(MVP に必要)
 
 1. **テストの追加**
-   - 今ある Task API と `/tasks` 画面のテストを書きます(`@SpringBootTest` + `MockMvc` など)。
+   - 今ある Task API と画面(一覧・登録・編集・削除)のテストを書きます(`@SpringBootTest` + `MockMvc` など)。
    - このあと機能を増やしたときに、既存の機能が壊れていないかを確認できるようになります。
-2. **トップページ(`/`)**
-   - `/` を開いたら `/tasks` へ移動する(リダイレクト)だけでも、初めて触る人が迷わなくなります。
-3. **画面からのタスク登録・編集・削除**
-   - `/tasks/new`(登録フォーム)、`/tasks/{id}/edit`(編集フォーム)、削除ボタンを追加します。
-   - 一覧画面に「新規登録」ボタンと各行の「編集」「削除」を付けます。
+2. ~~**トップページ(`/`)**~~ → 対応済み(`/` は `/tasks` へ自動で移動)
+3. ~~**画面からのタスク登録・編集・削除**~~ → 対応済み
 4. **ユーザー(社員)の管理**
    - `users` テーブル(`V3__create_users_table.sql`)、`User` Entity、一覧画面を作ります。
 5. **タスクの割り当てと進捗状態**

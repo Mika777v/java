@@ -40,7 +40,7 @@ docker compose up --build
 
 Then access:
 
-- Task list page: http://localhost:8080/tasks
+- Task list page: http://localhost:8080/ (redirects to http://localhost:8080/tasks)
 - API: http://localhost:8080/api/tasks
 - PostgreSQL: localhost:5432
 
@@ -55,7 +55,7 @@ export POSTGRES_PASSWORD=<any password you like>
 docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up -d --build
 ```
 
-Then open port 8080 from the **Ports** tab and add `/tasks` to the URL.
+Then open port 8080 from the **Ports** tab. The task list page is shown.
 
 ## Database
 
