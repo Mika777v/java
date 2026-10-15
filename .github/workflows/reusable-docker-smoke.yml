@@ -214,6 +214,13 @@ jobs:
           echo "GET /users (progress updated to 0 / 3)"
           curl -sS $BASE/users | grep -q "0 / 3 完了(0%)" || { echo "Assignment not reflected in progress"; exit 1; }
 
+          echo "GET /users?status=OVERDUE (filter users with overdue tasks)"
+          STATUS=$(curl -sS -o "$RUNNER_TEMP/overdue.html" -w "%{http_code}" "$BASE/users?status=OVERDUE")
+          echo "HTTP status: $STATUS"
+          check_status 200 "$STATUS"
+          grep -q "佐藤 花子" "$RUNNER_TEMP/overdue.html" || { echo "Overdue user not listed"; exit 1; }
+          if grep -q "山田 太郎" "$RUNNER_TEMP/overdue.html"; then echo "User without overdue tasks was listed"; exit 1; fi
+
       - name: Show logs on failure
         if: failure()
         run: |

@@ -1,5 +1,6 @@
 package com.example.onboarding.controller;
 
+import com.example.onboarding.TestClockConfiguration;
 import com.example.onboarding.TestcontainersConfiguration;
 import com.example.onboarding.entity.User;
 import com.example.onboarding.repository.TaskAssignmentRepository;
@@ -17,6 +18,10 @@ import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -33,7 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
+@Import({TestcontainersConfiguration.class, TestClockConfiguration.class})
 @Transactional
 class UserPageControllerTest {
 
@@ -70,6 +75,76 @@ class UserPageControllerTest {
         mockMvc.perform(get("/users"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("未割り当て")));
+    }
+
+    // --- filter ---
+
+    @Test
+    void listCanBeFilteredByDepartment() throws Exception {
+        mockMvc.perform(get("/users").param("department", "開発部"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("users", contains(
+                        hasProperty("name", is("山田 太郎")),
+                        hasProperty("name", is("鈴木 一郎")))))
+                .andExpect(content().string(containsString("3 人中 2 人を表示しています。")));
+    }
+
+    @Test
+    void listCanBeFilteredByIncompleteProgress() throws Exception {
+        mockMvc.perform(get("/users").param("status", "INCOMPLETE"))
+                .andExpect(model().attribute("users", contains(
+                        hasProperty("name", is("佐藤 花子")),
+                        hasProperty("name", is("鈴木 一郎")))));
+    }
+
+    @Test
+    void listCanBeFilteredByOverdue() throws Exception {
+        // Fixed clock: 2026-10-15. 佐藤 has two tasks due 2026-04-10 that are not done.
+        mockMvc.perform(get("/users").param("status", "OVERDUE"))
+                .andExpect(model().attribute("users", contains(hasProperty("name", is("佐藤 花子")))))
+                .andExpect(content().string(containsString("期限切れ 2件")));
+    }
+
+    @Test
+    void listCanBeFilteredByCompleted() throws Exception {
+        mockMvc.perform(get("/users").param("status", "COMPLETED"))
+                .andExpect(model().attribute("users", contains(hasProperty("name", is("山田 太郎")))));
+    }
+
+    @Test
+    void listCanBeFilteredByUnassigned() throws Exception {
+        mockMvc.perform(get("/users").param("status", "UNASSIGNED"))
+                .andExpect(model().attribute("users", hasSize(0)))
+                .andExpect(content().string(containsString("条件に一致するユーザーはいません。")));
+
+        User user = new User();
+        user.setName("新人 次郎");
+        user.setEmail("jiro@example.com");
+        userRepository.save(user);
+
+        mockMvc.perform(get("/users").param("status", "UNASSIGNED"))
+                .andExpect(model().attribute("users", contains(hasProperty("name", is("新人 次郎")))));
+    }
+
+    @Test
+    void listCanBeFilteredByDepartmentAndProgress() throws Exception {
+        mockMvc.perform(get("/users").param("department", "開発部").param("status", "INCOMPLETE"))
+                .andExpect(model().attribute("users", contains(hasProperty("name", is("鈴木 一郎")))))
+                .andExpect(model().attribute("selectedDepartment", "開発部"));
+    }
+
+    @Test
+    void emptyConditionsShowEveryone() throws Exception {
+        mockMvc.perform(get("/users").param("department", "").param("status", ""))
+                .andExpect(model().attribute("users", hasSize(3)))
+                .andExpect(model().attribute("filtered", false))
+                .andExpect(content().string(not(containsString("人を表示しています"))));
+    }
+
+    @Test
+    void unknownProgressConditionReturns400() throws Exception {
+        mockMvc.perform(get("/users").param("status", "SOMETHING"))
+                .andExpect(status().isBadRequest());
     }
 
     // --- create ---

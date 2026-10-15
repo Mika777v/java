@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,15 +22,16 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
 
     boolean existsByUserIdAndTaskId(Long userId, Long taskId);
 
-    /** Number of assigned and completed tasks per user. */
+    /** Number of assigned, completed and overdue tasks per user. */
     @Query("""
             select a.user.id as userId,
                    count(a) as total,
-                   sum(case when a.status = :done then 1 else 0 end) as done
+                   sum(case when a.status = :done then 1 else 0 end) as done,
+                   sum(case when a.status <> :done and a.dueDate < :today then 1 else 0 end) as overdue
             from TaskAssignment a
             group by a.user.id
             """)
-    List<ProgressRow> countProgressByUser(@Param("done") AssignmentStatus done);
+    List<ProgressRow> countProgressByUser(@Param("done") AssignmentStatus done, @Param("today") LocalDate today);
 
     interface ProgressRow {
         Long getUserId();
@@ -37,5 +39,7 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
         long getTotal();
 
         long getDone();
+
+        long getOverdue();
     }
 }
