@@ -21,6 +21,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Generate temporary DB password
+        run: |
+          # Random password for this run only; masked so it never appears in logs
+          DB_PASSWORD="$(openssl rand -hex 16)"
+          echo "::add-mask::$DB_PASSWORD"
+          echo "POSTGRES_PASSWORD=$DB_PASSWORD" >> "$GITHUB_ENV"
+
       - name: Build and start services
         run: |
           set -e
@@ -45,30 +52,60 @@ jobs:
             echo "No 'db' service found in docker-compose, skipping DB wait"
           fi
 
+      - name: Wait for app to be ready
+        run: |
+          cd "${{ inputs.project_dir }}"
+          for i in {1..36}; do
+            if curl -sf -o /dev/null http://localhost:8080/api/tasks; then
+              echo "App is ready"
+              exit 0
+            fi
+            echo "Waiting for app... ($i/36)"
+            sleep 5
+          done
+          echo "App did not become ready in time"
+          exit 1
+
       - name: Smoke test API (HTTP checks)
         run: |
           set -e
           cd "${{ inputs.project_dir }}"
 
+          # Fails the step if the HTTP status code is not the expected one
+          check_status() {
+            if [ "$2" != "$1" ]; then
+              echo "Expected HTTP $1 but got HTTP $2"
+              exit 1
+            fi
+          }
+
           echo "GET /api/tasks"
-          curl -sS -w "\nHTTP status: %{http_code}\n" http://localhost:8080/api/tasks || true
+          STATUS=$(curl -sS -o /dev/stderr -w "%{http_code}" http://localhost:8080/api/tasks)
+          echo; echo "HTTP status: $STATUS"
+          check_status 200 "$STATUS"
 
           echo "POST /api/tasks"
-          POST_RESPONSE=$(curl -sS -w "\nHTTP status: %{http_code}\n" -X POST -H "Content-Type: application/json" -d '{"title":"Set up laptop","description":"Install tools","active":true}' http://localhost:8080/api/tasks)
-          echo "$POST_RESPONSE"
-          CREATED_ID=$(echo "$POST_RESPONSE" | grep -o '"id":[0-9]*' | head -n 1 | cut -d: -f2 || true)
+          POST_BODY=$(curl -sS -w "\n%{http_code}" -X POST -H "Content-Type: application/json" -d '{"title":"Set up laptop","description":"Install tools","active":true}' http://localhost:8080/api/tasks)
+          STATUS=$(echo "$POST_BODY" | tail -n 1)
+          echo "$POST_BODY" | sed '$d'
+          echo "HTTP status: $STATUS"
+          check_status 201 "$STATUS"
+          CREATED_ID=$(echo "$POST_BODY" | grep -o '"id":[0-9]*' | head -n 1 | cut -d: -f2 || true)
 
           if [ -z "$CREATED_ID" ]; then
-            echo "No ID returned from POST request; attempting to show app logs and failing the run"
-            docker compose logs || true
+            echo "No ID returned from POST request"
             exit 1
           fi
 
           echo "GET created task"
-          curl -sS -w "\nHTTP status: %{http_code}\n" http://localhost:8080/api/tasks/$CREATED_ID
+          STATUS=$(curl -sS -o /dev/stderr -w "%{http_code}" http://localhost:8080/api/tasks/$CREATED_ID)
+          echo; echo "HTTP status: $STATUS"
+          check_status 200 "$STATUS"
 
           echo "DELETE created task"
-          curl -sS -w "\nHTTP status: %{http_code}\n" -X DELETE http://localhost:8080/api/tasks/$CREATED_ID
+          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" -X DELETE http://localhost:8080/api/tasks/$CREATED_ID)
+          echo "HTTP status: $STATUS"
+          check_status 204 "$STATUS"
 
       - name: Show logs on failure
         if: failure()
