@@ -1,5 +1,6 @@
 package com.example.onboarding.controller;
 
+import com.example.onboarding.TestClockConfiguration;
 import com.example.onboarding.TestcontainersConfiguration;
 import com.example.onboarding.entity.Task;
 import com.example.onboarding.repository.TaskRepository;
@@ -29,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
+@Import({TestcontainersConfiguration.class, TestClockConfiguration.class})
 @Transactional
 class TaskPageControllerTest {
 

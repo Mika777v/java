@@ -63,10 +63,18 @@ public class AssignmentService {
     /** Progress of every user that has at least one assignment, keyed by user id. */
     @Transactional(readOnly = true)
     public Map<Long, UserProgress> progressByUser() {
-        return assignmentRepository.countProgressByUser(AssignmentStatus.DONE).stream()
+        return assignmentRepository.countProgressByUser(AssignmentStatus.DONE, LocalDate.now(clock)).stream()
                 .collect(Collectors.toMap(
                         TaskAssignmentRepository.ProgressRow::getUserId,
-                        row -> new UserProgress(row.getTotal(), row.getDone())));
+                        row -> new UserProgress(row.getTotal(), row.getDone(), row.getOverdue())));
+    }
+
+    /** Progress of the given assignments (e.g. those of one user). */
+    public UserProgress summarize(List<TaskAssignment> assignments) {
+        LocalDate today = LocalDate.now(clock);
+        long done = assignments.stream().filter(a -> a.getStatus() == AssignmentStatus.DONE).count();
+        long overdue = assignments.stream().filter(a -> a.isOverdue(today)).count();
+        return new UserProgress(assignments.size(), done, overdue);
     }
 
     public TaskAssignment assign(User user, Long taskId, LocalDate dueDate) {

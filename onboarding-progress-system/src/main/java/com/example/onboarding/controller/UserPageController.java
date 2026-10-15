@@ -7,6 +7,7 @@ import com.example.onboarding.form.UserForm;
 import com.example.onboarding.repository.UserRepository;
 import com.example.onboarding.service.AssignmentException;
 import com.example.onboarding.service.AssignmentService;
+import com.example.onboarding.service.ProgressFilter;
 import com.example.onboarding.service.UserProgress;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Sort;
@@ -26,6 +27,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Controller
 public class UserPageController {
@@ -40,13 +42,38 @@ public class UserPageController {
 
     // --- users ---
 
+    /**
+     * User list. Can be narrowed down by department and by progress, e.g. /users?department=開発部&status=OVERDUE
+     */
     @GetMapping("/users")
-    public String listUsers(Model model) {
-        List<User> users = userRepository.findAll(Sort.by("id"));
+    public String listUsers(@RequestParam(required = false) String department,
+                            @RequestParam(required = false) ProgressFilter status,
+                            Model model) {
+        List<User> allUsers = userRepository.findAll(Sort.by("id"));
         Map<Long, UserProgress> progress = assignmentService.progressByUser();
+        String selectedDepartment = department == null || department.isBlank() ? null : department;
+
+        List<User> users = allUsers.stream()
+                .filter(user -> selectedDepartment == null || selectedDepartment.equals(user.getDepartment()))
+                .filter(user -> status == null
+                        || status.matches(progress.getOrDefault(user.getId(), UserProgress.NONE)))
+                .toList();
+        List<String> departments = allUsers.stream()
+                .map(User::getDepartment)
+                .filter(Objects::nonNull)
+                .distinct()
+                .sorted()
+                .toList();
+
         model.addAttribute("users", users);
+        model.addAttribute("totalUserCount", allUsers.size());
         model.addAttribute("progress", progress);
         model.addAttribute("noProgress", UserProgress.NONE);
+        model.addAttribute("departments", departments);
+        model.addAttribute("filters", ProgressFilter.values());
+        model.addAttribute("selectedDepartment", selectedDepartment);
+        model.addAttribute("selectedStatus", status);
+        model.addAttribute("filtered", selectedDepartment != null || status != null);
         return "users";
     }
 
@@ -122,11 +149,10 @@ public class UserPageController {
     public String showUser(@PathVariable Long id, Model model) {
         User user = findUser(id);
         List<TaskAssignment> assignments = assignmentService.findAssignments(id);
-        long done = assignments.stream().filter(a -> a.getStatus() == AssignmentStatus.DONE).count();
 
         model.addAttribute("user", user);
         model.addAttribute("assignments", assignments);
-        model.addAttribute("progress", new UserProgress(assignments.size(), done));
+        model.addAttribute("progress", assignmentService.summarize(assignments));
         model.addAttribute("assignableTasks", assignmentService.findAssignableTasks(id));
         model.addAttribute("statuses", AssignmentStatus.values());
         return "user-detail";
