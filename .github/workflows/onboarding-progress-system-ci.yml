@@ -1,10 +1,25 @@
 name: Onboarding progress system CI (caller)
 
 on:
+  # Runs when a pull request is opened, and again on every push to its branch.
+  # No path filter: these checks are required by the master branch ruleset, and a
+  # required check that never starts would block merging docs-only pull requests.
+  pull_request:
+  # Runs after merging into master, to confirm master itself is healthy
   push:
+    branches:
+      - master
     paths:
       - 'onboarding-progress-system/**'
+      - '.github/workflows/onboarding-progress-system-ci.yml'
+      - '.github/workflows/reusable-docker-smoke.yml'
+  # "Run workflow" button on the Actions page (any branch)
   workflow_dispatch:
+
+# When new commits are pushed to the same pull request, cancel the older, still-running check
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:

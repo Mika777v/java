@@ -251,3 +251,19 @@ h2 {
     padding: 0.3rem;
     font-size: 0.95rem;
 }
+
+.error-page {
+    max-width: 40rem;
+    margin-top: 2rem;
+}
+
+.error-code {
+    margin: 0;
+    color: #777;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+}
+
+.error-page h1 {
+    margin-top: 0.25rem;
+}

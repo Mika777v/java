@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>リクエストを処理できません</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<th:block th:replace="~{fragments/error :: page('リクエストを処理できません',
+        '送信された内容や URL の指定に誤りがあります。前の画面に戻って、もう一度操作してください。')}"></th:block>
+</body>
+</html>
