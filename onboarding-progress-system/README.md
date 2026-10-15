@@ -34,6 +34,7 @@ This project is a learning-focused Spring Boot application for managing onboardi
 ### Run with Docker
 
 ```bash
+export POSTGRES_PASSWORD=<any password you like>
 docker compose up --build
 ```
 
