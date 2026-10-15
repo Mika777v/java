@@ -2,6 +2,7 @@ package com.example.onboarding.controller;
 
 import com.example.onboarding.entity.Task;
 import com.example.onboarding.repository.TaskRepository;
+import com.example.onboarding.service.TaskOrderService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -14,14 +15,16 @@ import java.util.List;
 public class TaskController {
 
     private final TaskRepository taskRepository;
+    private final TaskOrderService taskOrderService;
 
-    public TaskController(TaskRepository taskRepository) {
+    public TaskController(TaskRepository taskRepository, TaskOrderService taskOrderService) {
         this.taskRepository = taskRepository;
+        this.taskOrderService = taskOrderService;
     }
 
     @GetMapping
     public List<Task> getAllTasks() {
-        return taskRepository.findAll();
+        return taskRepository.findAllInDisplayOrder();
     }
 
     @GetMapping("/{id}")
@@ -38,6 +41,9 @@ public class TaskController {
         if (task.getActive() == null) {
             task.setActive(true);
         }
+        if (task.getSortOrder() == null) {
+            task.setSortOrder(taskOrderService.nextSortOrder());
+        }
         return taskRepository.save(task);
     }
 
@@ -49,6 +55,9 @@ public class TaskController {
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
         task.setActive(request.getActive() != null ? request.getActive() : true);
+        if (request.getSortOrder() != null) {
+            task.setSortOrder(request.getSortOrder());
+        }
 
         return taskRepository.save(task);
     }

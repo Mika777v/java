@@ -43,13 +43,6 @@ class TaskPageControllerTest {
     // --- list ---
 
     @Test
-    void rootRedirectsToTaskList() throws Exception {
-        mockMvc.perform(get("/"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/tasks"));
-    }
-
-    @Test
     void listShowsSampleTasks() throws Exception {
         mockMvc.perform(get("/tasks"))
                 .andExpect(status().isOk())

@@ -1,7 +1,7 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-15(第8版)
-- 対象: PR #11 マージ後の `master` に、タスク API の入力値の不具合修正を加えた状態
+- 調査日: 2026-10-15(第10版)
+- 対象: PR #13 の内容に、Codespaces の自動起動・タスクの並び順・ダッシュボードを加えた状態
 - デフォルトブランチは `main` から `master` に変更されています
 - 対象プロジェクト: `onboarding-progress-system`(新入社員・中途入社者のオンボーディング進捗管理)
 - 調査方法: ソースコードの確認、自動テストの実行、アプリを実際に起動してブラウザで操作
@@ -18,7 +18,9 @@
 | #9 | ユーザー管理、タスクの割り当て、進捗管理(未着手 / 対応中 / 完了)を追加 |
 | #10 | ユーザー一覧の絞り込み(部署・進捗)と期限切れ件数の表示を追加 |
 | #11 | 404・400・500 などのエラー画面を日本語化、PR の作成・更新時に CI を自動実行 |
-| (第8版) | タスク API の入力値の不具合を修正(`active: null` の 500 など) |
+| #12 | タスク API の入力値の不具合を修正(`active: null` の 500 など) |
+| #13 | 後片付け: 古いワークフロー削除、compose の `version` 削除、Actions を Node.js 24 対応版へ更新、初期パスワード削除 |
+| (第10版) | Codespaces の自動起動、タスクの並び順(↑ / ↓)、ダッシュボード(トップページ) |
 
 ---
 
@@ -43,6 +45,9 @@ java/
 ├── .github/workflows/
 │   ├── onboarding-progress-system-ci.yml   … CI の呼び出し元(test ジョブ + 動作確認の呼び出し)
 │   └── reusable-docker-smoke.yml           … Docker で起動して API・画面を確認する本体
+├── .devcontainer/
+│   ├── devcontainer.json                   … Codespaces の設定(8080 番の転送、起動時に start-app.sh)
+│   └── start-app.sh                        … DB とアプリを起動(DB パスワードは初回に自動生成)
 ├── docs/current-status.md                  … このレポート
 └── onboarding-progress-system/
     ├── README.md
@@ -50,13 +55,13 @@ java/
     ├── docker-compose.yml                  … アプリ(app)と DB(db)
     ├── docker-compose.codespaces.yml       … Codespaces 用の上書き設定
     ├── pom.xml
-    ├── .github/workflows/ci-docker-smoke.yml   … ※この場所では実行されない(9 章)
     └── src/
         ├── main/
         │   ├── java/com/example/onboarding/
         │   │   ├── OnboardingProgressSystemApplication.java
         │   │   ├── config/TimeConfig.java            … 「今日」「現在時刻」のタイムゾーン設定
         │   │   ├── controller/
+        │   │   │   ├── DashboardController.java      … ダッシュボード(トップページ)
         │   │   │   ├── TaskController.java           … タスクの REST API(JSON)
         │   │   │   ├── TaskPageController.java       … タスクの画面
         │   │   │   └── UserPageController.java       … ユーザー・割り当ての画面
@@ -75,6 +80,8 @@ java/
         │   │   ├── service/
         │   │   │   ├── AssignmentService.java        … 割り当てのルール
         │   │   │   ├── AssignmentException.java      … 割り当てできないときのエラー
+        │   │   │   ├── Dashboard.java / DashboardService.java   … ダッシュボードの数字と一覧
+        │   │   │   ├── TaskOrderService.java         … タスクの並び順(↑ / ↓)
         │   │   │   ├── ProgressFilter.java           … 一覧の絞り込み条件
         │   │   │   └── UserProgress.java             … 完了数・完了率・期限切れ件数
         │   │   └── web/DateTimeDisplay.java          … 画面用の日時表示・期限切れ判定
@@ -84,15 +91,17 @@ java/
         │       │   ├── V1__create_tasks_table.sql
         │       │   ├── V2__insert_sample_tasks.sql
         │       │   ├── V3__create_users_and_task_assignments.sql
-        │       │   └── V4__insert_sample_users_and_assignments.sql
+        │       │   ├── V4__insert_sample_users_and_assignments.sql
+        │       │   └── V5__add_sort_order_to_tasks.sql
         │       ├── static/css/app.css
         │       └── templates/
         │           ├── fragments/nav.html            … 共通メニュー・メッセージ表示
         │           ├── fragments/error.html          … エラー画面の共通部分
         │           ├── error/404.html / 4xx.html / 5xx.html   … エラー画面
+        │           ├── dashboard.html
         │           ├── tasks.html / task-form.html
         │           └── users.html / user-form.html / user-detail.html
-        └── test/java/com/example/onboarding/          … 自動テスト(81 件)
+        └── test/java/com/example/onboarding/          … 自動テスト(95 件)
 ```
 
 まだ存在しないもの:
@@ -106,17 +115,19 @@ java/
 
 | 機能 | 内容 |
 |---|---|
-| タスク管理 | 一覧・登録・編集・削除(画面と REST API)。`/` を開くとタスク一覧へ |
+| ダッシュボード | トップページ(`/`)。全体の完了率・状態の内訳・期限切れ件数、フォローが必要な人、7 日以内が期限のタスク |
+| タスク管理 | 一覧・登録・編集・削除(画面と REST API)。一覧の ↑ / ↓ で並び順を変更 |
 | ユーザー管理 | 一覧・登録・編集・削除。メールアドレスの形式・重複チェック(大文字小文字を区別しない) |
 | タスクの割り当て | ユーザー詳細画面から、有効なタスクを 1 件ずつ(期限付き)、またはまとめて割り当て。割り当て解除も可能 |
 | 進捗管理 | 割り当てごとに 未着手 / 対応中 / 完了 を変更。完了にすると完了日時を記録、戻すと消去 |
 | 進捗の確認 | ユーザー一覧に「完了数 / 割り当て数」と完了率のバー、期限切れ件数(赤いラベル)。詳細画面でも期限切れを表示 |
 | 絞り込み | ユーザー一覧を部署と進捗(未完了あり / 期限切れあり / すべて完了 / 未割り当て)で絞り込み。条件は URL に入るのでブックマーク可能 |
-| 共通メニュー | 全画面の上部に「タスク | ユーザー」のメニュー |
+| 共通メニュー | 全画面の上部に「ダッシュボード | タスク | ユーザー」のメニュー |
+| Codespaces | Codespace を開くと DB とアプリが自動で起動し、8080 番ポートが転送される |
 | サンプルデータ | タスク 5 件、ユーザー 3 人、割り当て 10 件(進み具合がばらばら) |
 | エラー画面 | 404・その他 4xx・5xx を日本語の画面で表示。API は JSON のまま |
-| 自動テスト | 81 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
-| CI | push のたびに自動テストと、Docker で起動しての動作確認を実行 |
+| 自動テスト | 95 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
+| CI | PR の作成・更新時と `master` へのマージ後に、自動テストと Docker での動作確認を実行 |
 
 ### 割り当てのルール
 
@@ -147,6 +158,7 @@ java/
 | `title` | `VARCHAR(200)` | 不可 | | タスク名 |
 | `description` | `TEXT` | 可 | | 説明 |
 | `active` | `BOOLEAN` | 不可 | `true` | 有効フラグ(無効なタスクは割り当てられない) |
+| `sort_order` | `INTEGER` | 不可 | `0` | 表示順(小さい順。V5 で追加。10, 20, 30 … と付け直す) |
 | `created_at` / `updated_at` | `TIMESTAMPTZ` | 不可 | `now()` | 作成・更新日時 |
 
 ### `users`(ユーザー)— V3
@@ -209,17 +221,18 @@ users 1 ──── * task_assignments * ──── 1 tasks
 | 設定 | 値 | 補足 |
 |---|---|---|
 | ポート | `8080` | |
-| DB 接続 | 環境変数 `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | Docker では `db:5432`、Codespaces では `localhost:5432` |
+| DB 接続 | 環境変数 `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | Docker では `db:5432`、Codespaces では `localhost:5432`。パスワードに初期値はなく、必ず環境変数で渡す |
 | `ddl-auto` | `none` | テーブルは Flyway が作る |
 | `app.time-zone` | 環境変数 `APP_TIME_ZONE`(初期値 `Asia/Tokyo`) | 完了日時の表示と「今日」(期限切れ判定)に使用 |
 
 ### レイヤー構成
 
 ```
-画面:  ブラウザ → TaskPageController ─────────────→ TaskRepository → DB
+画面:  ブラウザ → DashboardController → DashboardService → TaskAssignmentRepository / UserRepository → DB
+       ブラウザ → TaskPageController → TaskOrderService → TaskRepository → DB
        ブラウザ → UserPageController → AssignmentService → TaskAssignmentRepository / TaskRepository → DB
                                     └→ UserRepository → DB
-API:   クライアント → TaskController → TaskRepository → DB
+API:   クライアント → TaskController → TaskOrderService / TaskRepository → DB
 ```
 
 - 割り当てのルール(重複・無効タスクの禁止、完了日時の記録)は `AssignmentService` と `TaskAssignment` にまとめています。
@@ -231,7 +244,7 @@ API:   クライアント → TaskController → TaskRepository → DB
 
 | Entity | テーブル | 主な項目・メソッド |
 |---|---|---|
-| `Task` | `tasks` | `title`, `description`, `active` |
+| `Task` | `tasks` | `title`, `description`, `active`, `sortOrder` |
 | `User` | `users` | `name`, `email`, `department`, `joinedOn` |
 | `TaskAssignment` | `task_assignments` | `user`(多対一), `task`(多対一), `status`, `dueDate`, `completedAt` / `changeStatus()`(完了日時の記録・消去), `isOverdue()`(期限切れ判定) |
 | `AssignmentStatus`(enum) | — | `NOT_STARTED`(未着手), `IN_PROGRESS`(対応中), `DONE`(完了) |
@@ -242,8 +255,9 @@ API:   クライアント → TaskController → TaskRepository → DB
 
 | Controller | 種類 | 担当パス |
 |---|---|---|
+| `DashboardController` | `@Controller` | `/`(ダッシュボード) |
 | `TaskController` | `@RestController` | `/api/tasks` 配下(JSON) |
-| `TaskPageController` | `@Controller` | `/`, `/tasks` 配下(画面) |
+| `TaskPageController` | `@Controller` | `/tasks` 配下(画面) |
 | `UserPageController` | `@Controller` | `/users` 配下(画面) |
 
 ---
@@ -254,11 +268,12 @@ API:   クライアント → TaskController → TaskRepository → DB
 
 | メソッド | パス | 内容 |
 |---|---|---|
-| `GET` | `/` | `/tasks` へ転送 |
-| `GET` | `/tasks` | タスク一覧 |
+| `GET` | `/` | ダッシュボード |
+| `GET` | `/tasks` | タスク一覧(表示順) |
 | `GET` / `POST` | `/tasks/new` / `/tasks` | タスク登録 |
 | `GET` / `POST` | `/tasks/{id}/edit` / `/tasks/{id}` | タスク編集 |
 | `POST` | `/tasks/{id}/delete` | タスク削除(割り当ても削除) |
+| `POST` | `/tasks/{id}/move-up` / `/tasks/{id}/move-down` | 表示順を 1 つ上 / 下へ(先頭・末尾では何もしない) |
 | `GET` | `/users` | ユーザー一覧(進捗付き)。`?department=開発部&status=OVERDUE` で絞り込み(`status` は `INCOMPLETE` / `OVERDUE` / `COMPLETED` / `UNASSIGNED`。それ以外の値は 400) |
 | `GET` / `POST` | `/users/new` / `/users` | ユーザー登録 → 詳細画面へ |
 | `GET` | `/users/{id}` | ユーザー詳細(割り当て・進捗) |
@@ -297,7 +312,7 @@ API:   クライアント → TaskController → TaskRepository → DB
 
 | ジョブ | 内容 |
 |---|---|
-| `test` | Java 21 で `mvn -B test`(81 件)。失敗時はテスト結果を成果物として保存 |
+| `test` | Java 21 で `mvn -B test`(95 件)。失敗時はテスト結果を成果物として保存 |
 | `call-reusable` | 下の `reusable-docker-smoke.yml` を呼ぶ |
 
 **`reusable-docker-smoke.yml`**
@@ -306,30 +321,52 @@ API:   クライアント → TaskController → TaskRepository → DB
 |---|---|---|
 | 1〜4 | 準備・起動 | チェックアウト、ランダムな DB パスワード生成(ログでは `***`)、`docker compose up -d --build` |
 | 5〜6 | 起動待ち | DB(`pg_isready`)とアプリ(`/api/tasks`)の応答を待つ |
-| 7 | Smoke test API | API の登録・取得・削除、`/tasks` 画面、`/` の転送 |
+| 7 | Smoke test API | API の登録・取得・削除、`/tasks` 画面、`/` のダッシュボード |
 | 8 | Smoke test screens | 画面からのタスク登録・入力エラー・編集・削除 |
 | 9 | Smoke test user screens | ユーザー一覧の進捗表示、詳細画面、タスクの割り当てと進捗への反映、期限切れでの絞り込み、日本語の 404 画面 |
 | 10〜11 | 後片付け | 失敗時のみ `docker compose logs`、最後に `docker compose down -v` |
 
-実行されないワークフロー `onboarding-progress-system/.github/workflows/ci-docker-smoke.yml` は古い版なので削除して問題ありません。
+使用しているアクション(すべて Node.js 24 で動作するバージョン):
+`actions/checkout@v5`、`actions/setup-java@v5`、`actions/upload-artifact@v6`、`docker/setup-buildx-action@v4`
 
 ---
 
 ## 10. ブラウザで確認できる画面
 
 起動方法: `export POSTGRES_PASSWORD=<任意>` → `docker compose up -d --build`
-(Codespaces では `docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up -d --build`)
+(Codespaces では自動で起動します。手動なら `bash .devcontainer/start-app.sh`)
 
-全画面の上部に濃い紺色のメニューバー「オンボーディング進捗管理 | タスク | ユーザー」があり、今いる方に下線が付きます。
+全画面の上部に濃い紺色のメニューバー「オンボーディング進捗管理 | ダッシュボード | タスク | ユーザー」があり、今いる画面に下線が付きます。
 登録・更新・削除などの直後は、緑の枠でメッセージ(エラーは赤い枠)が表示されます。
 
 | 画面 | URL | 主な内容 |
 |---|---|---|
-| タスク一覧 | `/tasks`(`/` からも) | タスクの表、「新規登録」、各行の「編集」「削除」 |
+| ダッシュボード | `/` | 下記 |
+| タスク一覧 | `/tasks` | タスクの表(表示順)、「新規登録」、各行の「↑」「↓」「編集」「削除」 |
 | タスク登録・編集 | `/tasks/new`, `/tasks/{id}/edit` | タイトル(必須)・説明・有効 |
 | ユーザー一覧 | `/users` | 下記 |
 | ユーザー登録・編集 | `/users/new`, `/users/{id}/edit` | 氏名(必須)・メールアドレス(必須)・部署・入社日(カレンダー入力) |
 | ユーザー詳細 | `/users/{id}` | 下記 |
+
+### ダッシュボード(`/`)
+
+```
+ダッシュボード
+2026-10-15 時点
+┌──────────┐┌──────────────┐┌────────────┐┌──────────┐
+│ユーザー   ││全体の完了率   ││状態の内訳   ││期限切れ   │(期限切れがあると赤)
+│ 3 人     ││ 60%          ││未着手 2    ││ 2 件     │
+│          ││██████░░░░    ││対応中 2    ││          │
+│          ││6 / 10 件完了 ││完了 6      ││          │
+└──────────┘└──────────────┘└────────────┘└──────────┘
+
+フォローが必要な人(期限切れあり)
+│ 氏名 │ 部署 │ 期限切れ │ 進捗 │   … 期限切れ件数の多い順。氏名から詳細画面へ
+期限切れのある人をユーザー一覧で見る        … /users?status=OVERDUE へのリンク
+
+期限が近いタスク(10/22 まで)
+│ 期限 │ 氏名 │ タスク │ 状態 │   … 今日から 7 日以内が期限の未完了タスク(期限の早い順)
+```
 
 ### ユーザー一覧(`/users`)
 
@@ -421,11 +458,13 @@ URL: /users/999
 
 4. **ユーザー・割り当ての REST API**: 他のシステムと連携する場合に追加
 5. **ログイン・権限管理**(Spring Security): 新入社員本人は自分の進捗だけ更新できる、など
-6. **タスクの並び順**: オンボーディングの順番(表示順)をタスクに持たせる
+6. ~~**タスクの並び順**~~ → 対応済み(↑ / ↓ ボタン)
+- ~~**Codespaces の自動起動**~~ → 対応済み(`.devcontainer/`)
+- ~~**ダッシュボード**~~ → 対応済み(トップページ)
 
-### 優先度 低(整理)
+### 優先度 低(整理)— すべて対応済み
 
-7. 実行されないワークフロー `onboarding-progress-system/.github/workflows/ci-docker-smoke.yml` を削除する
-8. `docker-compose.yml` から `version: "3.8"` を削除して警告を消す
-9. Actions のバージョンを上げて Node.js 20 の警告を消す
-10. `application.yml` の予備パスワード `pass` を見直す
+7. ~~実行されないワークフロー `onboarding-progress-system/.github/workflows/ci-docker-smoke.yml` を削除する~~
+8. ~~`docker-compose.yml` から `version: "3.8"` を削除して警告を消す~~
+9. ~~Actions のバージョンを上げて Node.js 20 の警告を消す~~
+10. ~~`application.yml` の初期パスワード `pass` を削除する~~(DB パスワードは必ず環境変数で渡す)

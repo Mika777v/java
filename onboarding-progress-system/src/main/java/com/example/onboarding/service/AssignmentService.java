@@ -6,7 +6,6 @@ import com.example.onboarding.entity.TaskAssignment;
 import com.example.onboarding.entity.User;
 import com.example.onboarding.repository.TaskAssignmentRepository;
 import com.example.onboarding.repository.TaskRepository;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,7 +39,7 @@ public class AssignmentService {
 
     @Transactional(readOnly = true)
     public List<TaskAssignment> findAssignments(Long userId) {
-        return assignmentRepository.findByUserIdOrderByTaskIdAsc(userId);
+        return assignmentRepository.findByUserIdOrderByTaskSortOrderAscTaskIdAsc(userId);
     }
 
     @Transactional(readOnly = true)
@@ -48,13 +47,13 @@ public class AssignmentService {
         return assignmentRepository.findByIdAndUserId(assignmentId, userId);
     }
 
-    /** Active tasks that are not assigned to the user yet, ordered by id. */
+    /** Active tasks that are not assigned to the user yet, in the task display order. */
     @Transactional(readOnly = true)
     public List<Task> findAssignableTasks(Long userId) {
         Set<Long> assignedTaskIds = findAssignments(userId).stream()
                 .map(assignment -> assignment.getTask().getId())
                 .collect(Collectors.toSet());
-        return taskRepository.findAll(Sort.by("id")).stream()
+        return taskRepository.findAllInDisplayOrder().stream()
                 .filter(task -> Boolean.TRUE.equals(task.getActive()))
                 .filter(task -> !assignedTaskIds.contains(task.getId()))
                 .toList();

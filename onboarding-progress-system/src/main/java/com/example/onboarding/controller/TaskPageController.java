@@ -3,8 +3,8 @@ package com.example.onboarding.controller;
 import com.example.onboarding.entity.Task;
 import com.example.onboarding.form.TaskForm;
 import com.example.onboarding.repository.TaskRepository;
+import com.example.onboarding.service.TaskOrderService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -20,19 +20,16 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class TaskPageController {
 
     private final TaskRepository taskRepository;
+    private final TaskOrderService taskOrderService;
 
-    public TaskPageController(TaskRepository taskRepository) {
+    public TaskPageController(TaskRepository taskRepository, TaskOrderService taskOrderService) {
         this.taskRepository = taskRepository;
-    }
-
-    @GetMapping("/")
-    public String home() {
-        return "redirect:/tasks";
+        this.taskOrderService = taskOrderService;
     }
 
     @GetMapping("/tasks")
     public String listTasks(Model model) {
-        model.addAttribute("tasks", taskRepository.findAll(Sort.by("id")));
+        model.addAttribute("tasks", taskRepository.findAllInDisplayOrder());
         return "tasks";
     }
 
@@ -52,6 +49,7 @@ public class TaskPageController {
 
         Task task = new Task();
         form.applyTo(task);
+        task.setSortOrder(taskOrderService.nextSortOrder());
         taskRepository.save(task);
 
         redirectAttributes.addFlashAttribute("message", "タスクを登録しました。");
@@ -91,6 +89,24 @@ public class TaskPageController {
         taskRepository.delete(task);
 
         redirectAttributes.addFlashAttribute("message", "タスクを削除しました。");
+        return "redirect:/tasks";
+    }
+
+    @PostMapping("/tasks/{id}/move-up")
+    public String moveTaskUp(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        return moveTask(id, -1, "上", redirectAttributes);
+    }
+
+    @PostMapping("/tasks/{id}/move-down")
+    public String moveTaskDown(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        return moveTask(id, 1, "下", redirectAttributes);
+    }
+
+    private String moveTask(Long id, int offset, String direction, RedirectAttributes redirectAttributes) {
+        Task task = findTask(id);
+        if (taskOrderService.move(task, offset)) {
+            redirectAttributes.addFlashAttribute("message", "「" + task.getTitle() + "」を" + direction + "に移動しました。");
+        }
         return "redirect:/tasks";
     }
 

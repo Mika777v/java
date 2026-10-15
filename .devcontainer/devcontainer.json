@@ -1,0 +1,33 @@
+{
+  // GitHub Codespaces settings for this repository.
+  // When a codespace starts, the DB and the app are started automatically
+  // and port 8080 (the app) is forwarded.
+  "name": "onboarding-progress-system",
+
+  // Default Codespaces image: includes Java 21, Maven and Docker
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": {
+      "label": "Onboarding app",
+      "onAutoForward": "notify"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "silent"
+    }
+  },
+
+  // Runs every time the codespace starts (also after it was stopped and resumed)
+  "postStartCommand": "bash .devcontainer/start-app.sh",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vmware.vscode-boot-dev-pack"
+      ]
+    }
+  }
+}
