@@ -47,16 +47,30 @@ Then access:
 
 ### Run on GitHub Codespaces
 
-In Codespaces, the app container cannot reach the `db` container over the
-compose network, so use the Codespaces override file:
+The repository has a dev container configuration (`.devcontainer/`), so in a
+codespace **the DB and the app start automatically**:
+
+1. Create a codespace (Code → Codespaces → Create codespace on master).
+   For an existing codespace, run "Codespaces: Rebuild Container" once from the command palette.
+2. Wait 2-3 minutes for the first build. Port 8080 is forwarded automatically.
+3. Open port 8080 from the **Ports** tab.
+
+What happens on start (`.devcontainer/start-app.sh`):
+
+- A random DB password is generated once and saved to `onboarding-progress-system/.env`
+  (ignored by git). Docker Compose reads it automatically.
+- `docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up -d --build` is run.
+  In Codespaces the app container cannot reach the `db` container over the compose network,
+  so the override file runs the app on the host network and connects via `localhost:5432`.
+
+Useful commands (in `onboarding-progress-system`):
 
 ```bash
-cd onboarding-progress-system
-export POSTGRES_PASSWORD=<any password you like>
-docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up -d --build
+bash ../.devcontainer/start-app.sh                                        # start again
+docker compose logs -f app                                                # app logs
+docker compose -f docker-compose.yml -f docker-compose.codespaces.yml down      # stop
+docker compose -f docker-compose.yml -f docker-compose.codespaces.yml down -v   # stop and delete DB data
 ```
-
-Then open port 8080 from the **Ports** tab. The task list page is shown.
 
 ## Tests
 
