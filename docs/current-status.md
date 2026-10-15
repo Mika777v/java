@@ -1,7 +1,7 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-15(第8版)
-- 対象: PR #11 マージ後の `master` に、タスク API の入力値の不具合修正を加えた状態
+- 調査日: 2026-10-15(第9版)
+- 対象: PR #12 マージ後の `master` に、後片付け(古いファイルの削除・警告の解消)を加えた状態
 - デフォルトブランチは `main` から `master` に変更されています
 - 対象プロジェクト: `onboarding-progress-system`(新入社員・中途入社者のオンボーディング進捗管理)
 - 調査方法: ソースコードの確認、自動テストの実行、アプリを実際に起動してブラウザで操作
@@ -18,7 +18,8 @@
 | #9 | ユーザー管理、タスクの割り当て、進捗管理(未着手 / 対応中 / 完了)を追加 |
 | #10 | ユーザー一覧の絞り込み(部署・進捗)と期限切れ件数の表示を追加 |
 | #11 | 404・400・500 などのエラー画面を日本語化、PR の作成・更新時に CI を自動実行 |
-| (第8版) | タスク API の入力値の不具合を修正(`active: null` の 500 など) |
+| #12 | タスク API の入力値の不具合を修正(`active: null` の 500 など) |
+| (第9版) | 後片付け: 古いワークフロー削除、compose の `version` 削除、Actions を Node.js 24 対応版へ更新、初期パスワード削除 |
 
 ---
 
@@ -50,7 +51,6 @@ java/
     ├── docker-compose.yml                  … アプリ(app)と DB(db)
     ├── docker-compose.codespaces.yml       … Codespaces 用の上書き設定
     ├── pom.xml
-    ├── .github/workflows/ci-docker-smoke.yml   … ※この場所では実行されない(9 章)
     └── src/
         ├── main/
         │   ├── java/com/example/onboarding/
@@ -209,7 +209,7 @@ users 1 ──── * task_assignments * ──── 1 tasks
 | 設定 | 値 | 補足 |
 |---|---|---|
 | ポート | `8080` | |
-| DB 接続 | 環境変数 `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | Docker では `db:5432`、Codespaces では `localhost:5432` |
+| DB 接続 | 環境変数 `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | Docker では `db:5432`、Codespaces では `localhost:5432`。パスワードに初期値はなく、必ず環境変数で渡す |
 | `ddl-auto` | `none` | テーブルは Flyway が作る |
 | `app.time-zone` | 環境変数 `APP_TIME_ZONE`(初期値 `Asia/Tokyo`) | 完了日時の表示と「今日」(期限切れ判定)に使用 |
 
@@ -311,7 +311,8 @@ API:   クライアント → TaskController → TaskRepository → DB
 | 9 | Smoke test user screens | ユーザー一覧の進捗表示、詳細画面、タスクの割り当てと進捗への反映、期限切れでの絞り込み、日本語の 404 画面 |
 | 10〜11 | 後片付け | 失敗時のみ `docker compose logs`、最後に `docker compose down -v` |
 
-実行されないワークフロー `onboarding-progress-system/.github/workflows/ci-docker-smoke.yml` は古い版なので削除して問題ありません。
+使用しているアクション(すべて Node.js 24 で動作するバージョン):
+`actions/checkout@v5`、`actions/setup-java@v5`、`actions/upload-artifact@v6`、`docker/setup-buildx-action@v4`
 
 ---
 
@@ -423,9 +424,9 @@ URL: /users/999
 5. **ログイン・権限管理**(Spring Security): 新入社員本人は自分の進捗だけ更新できる、など
 6. **タスクの並び順**: オンボーディングの順番(表示順)をタスクに持たせる
 
-### 優先度 低(整理)
+### 優先度 低(整理)— すべて対応済み
 
-7. 実行されないワークフロー `onboarding-progress-system/.github/workflows/ci-docker-smoke.yml` を削除する
-8. `docker-compose.yml` から `version: "3.8"` を削除して警告を消す
-9. Actions のバージョンを上げて Node.js 20 の警告を消す
-10. `application.yml` の予備パスワード `pass` を見直す
+7. ~~実行されないワークフロー `onboarding-progress-system/.github/workflows/ci-docker-smoke.yml` を削除する~~
+8. ~~`docker-compose.yml` から `version: "3.8"` を削除して警告を消す~~
+9. ~~Actions のバージョンを上げて Node.js 20 の警告を消す~~
+10. ~~`application.yml` の初期パスワード `pass` を削除する~~(DB パスワードは必ず環境変数で渡す)
