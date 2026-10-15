@@ -1,7 +1,7 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-15(第3版)
-- 対象: PR #6 マージ後の `main` に、ルート転送と画面からの登録・編集・削除を加えた状態
+- 調査日: 2026-10-15(第4版)
+- 対象: PR #7 マージ後の `main` に、自動テストを加えた状態
 - 対象プロジェクト: `onboarding-progress-system`(新入社員・中途入社者のオンボーディング進捗管理)
 - 調査方法: ソースコードの確認に加え、アプリを実際に起動し、各 URL をブラウザ(Chromium)で開いて表示を確認
 
@@ -11,7 +11,8 @@
 |---|---|
 | #4 | タスク一覧画面 `GET /tasks` を追加(`TaskPageController`、`tasks.html`)、サンプルデータ 5 件を追加 |
 | #5 | GitHub Codespaces 用の Docker Compose 設定 `docker-compose.codespaces.yml` を追加 |
-| (第3版) | `/` を `/tasks` へ転送、画面からのタスク登録・編集・削除を追加 |
+| #7 | `/` を `/tasks` へ転送、画面からのタスク登録・編集・削除を追加 |
+| (第4版) | 自動テスト(27 件)を追加し、GitHub Actions で毎回実行 |
 
 ---
 
@@ -53,29 +54,34 @@ java/                                   … リポジトリのルート(Java 学
     ├── pom.xml                         … Maven のビルド設定
     ├── .github/workflows/ci-docker-smoke.yml   … ※この場所では GitHub に実行されない(9 章)
     └── src/
-        └── main/
-            ├── java/com/example/onboarding/
-            │   ├── OnboardingProgressSystemApplication.java   … 起動クラス
-            │   ├── controller/
-            │   │   ├── TaskController.java       … REST API(JSON)
-            │   │   └── TaskPageController.java   … 画面(HTML)
-            │   ├── entity/Task.java
-            │   ├── form/TaskForm.java            … 登録・編集フォームの入力値
-            │   └── repository/TaskRepository.java
-            └── resources/
-                ├── application.yml
-                ├── db/migration/
-                │   ├── V1__create_tasks_table.sql
-                │   └── V2__insert_sample_tasks.sql   … サンプルデータ 5 件(PR #4)
-                ├── static/css/app.css            … 画面共通のデザイン
-                └── templates/
-                    ├── tasks.html                    … タスク一覧画面
-                    └── task-form.html                … タスク登録・編集画面(共通)
+        ├── main/
+        │   ├── java/com/example/onboarding/
+        │   │   ├── OnboardingProgressSystemApplication.java   … 起動クラス
+        │   │   ├── controller/
+        │   │   │   ├── TaskController.java       … REST API(JSON)
+        │   │   │   └── TaskPageController.java   … 画面(HTML)
+        │   │   ├── entity/Task.java
+        │   │   ├── form/TaskForm.java            … 登録・編集フォームの入力値
+        │   │   └── repository/TaskRepository.java
+        │   └── resources/
+        │       ├── application.yml
+        │       ├── db/migration/
+        │       │   ├── V1__create_tasks_table.sql
+        │       │   └── V2__insert_sample_tasks.sql   … サンプルデータ 5 件
+        │       ├── static/css/app.css            … 画面共通のデザイン
+        │       └── templates/
+        │           ├── tasks.html                    … タスク一覧画面
+        │           └── task-form.html                … タスク登録・編集画面(共通)
+        └── test/java/com/example/onboarding/     … 自動テスト(第4版)
+            ├── TestcontainersConfiguration.java  … テスト用 PostgreSQL の起動設定
+            ├── controller/
+            │   ├── TaskControllerTest.java       … REST API のテスト(9 件)
+            │   └── TaskPageControllerTest.java   … 画面のテスト(14 件)
+            └── form/TaskFormTest.java            … TaskForm の単体テスト(4 件)
 ```
 
 まだ存在しないもの:
 
-- `src/test/`(テストコードなし)
 - `service/` 層(Controller が Repository を直接呼んでいる)
 
 ---
@@ -93,7 +99,8 @@ java/                                   … リポジトリのルート(Java 学
 | DB テーブルの自動作成 | 起動時に Flyway が `tasks` テーブルを作る |
 | Docker での起動 | `docker compose up --build` でアプリと PostgreSQL が起動する |
 | Codespaces での起動 | `docker-compose.codespaces.yml` を重ねて指定すると起動できる |
-| CI(GitHub Actions) | Docker で起動し、API と画面(一覧・登録・編集・削除・入力チェック)を実際に呼んで確認する |
+| 自動テスト | 27 件(API・画面・フォーム)。`mvn test` で実行。テスト用の PostgreSQL は Testcontainers が自動で起動 |
+| CI(GitHub Actions) | push のたびに自動テストを実行し、さらに Docker で起動して API と画面を実際に呼んで確認する |
 
 ---
 
@@ -111,7 +118,6 @@ java/                                   … リポジトリのルート(Java 学
 その他、まだないもの:
 
 - タスク詳細画面(`/tasks/{id}` は 404)
-- テストコード
 - ログイン・権限管理
 - エラーレスポンス・エラー画面の共通化(現在は Spring Boot 標準のもの)
 - ヘルスチェック用エンドポイント(Spring Boot Actuator は未導入)
@@ -174,7 +180,8 @@ java/                                   … リポジトリのルート(Java 学
 | `spring-boot-starter-thymeleaf` | HTML 画面 | **使用中**(`tasks.html`)※第1版では未使用 |
 | `flyway-core` / `flyway-database-postgresql` | テーブル作成・初期データ投入 | 使用中 |
 | `postgresql` | DB ドライバ | 使用中 |
-| `spring-boot-starter-test` | テスト | **未使用**(テストなし) |
+| `spring-boot-starter-test` | テスト(JUnit 5・MockMvc・AssertJ) | 使用中 |
+| `spring-boot-testcontainers` / `testcontainers`(`junit-jupiter`・`postgresql`) | テスト用 PostgreSQL の自動起動 | 使用中。Docker 29 に対応するため、バージョンを 1.21.4 に指定(`pom.xml` の `testcontainers.version`) |
 
 ### 設定(`application.yml`)
 
@@ -294,7 +301,9 @@ Repository は `TaskRepository extends JpaRepository<Task, Long>` の 1 つだ�
 - 起動条件
   - `onboarding-progress-system/` 配下のファイルが変わった push(ブランチは問わない)
   - Actions 画面からの手動実行(`workflow_dispatch`)
-- 処理: 下の `reusable-docker-smoke.yml` を `project_dir: onboarding-progress-system` で呼ぶ
+- 処理(2 つのジョブが並行して動く)
+  - `test` ジョブ: Java 21 を準備し、`mvn -B test` で自動テストを実行。失敗したときはテスト結果(`surefire-reports`)を成果物として保存
+  - `call-reusable` ジョブ: 下の `reusable-docker-smoke.yml` を `project_dir: onboarding-progress-system` で呼ぶ
 
 **`reusable-docker-smoke.yml`(本体)**
 
@@ -449,9 +458,7 @@ README の MVP を実現する順番で並べています。上から順に進�
 
 ### 優先度 高(MVP に必要)
 
-1. **テストの追加**
-   - 今ある Task API と画面(一覧・登録・編集・削除)のテストを書きます(`@SpringBootTest` + `MockMvc` など)。
-   - このあと機能を増やしたときに、既存の機能が壊れていないかを確認できるようになります。
+1. ~~**テストの追加**~~ → 対応済み(27 件。機能を追加するときは、あわせてテストも追加します)
 2. ~~**トップページ(`/`)**~~ → 対応済み(`/` は `/tasks` へ自動で移動)
 3. ~~**画面からのタスク登録・編集・削除**~~ → 対応済み
 4. **ユーザー(社員)の管理**
@@ -466,7 +473,7 @@ README の MVP を実現する順番で並べています。上から順に進�
 
 7. **Service 層の追加**: Controller から業務ロジックを分けます。割り当て機能を作るタイミングで導入すると自然です。
 8. **エラーレスポンス・エラー画面の統一**: `@RestControllerAdvice` で API のエラーを同じ形の JSON にし、画面用には `templates/error/404.html` などを用意します。
-9. **CI でテストを実行する**: 1 を作ったら、ワークフローに `mvn test` を追加します。
+9. ~~**CI でテストを実行する**~~ → 対応済み(`test` ジョブ)
 10. **`active: null` の扱いを修正**: 8 章の注意点のとおり、500 エラーにならないようにします。
 
 ### 優先度 低(整理・後回しでよいもの)
