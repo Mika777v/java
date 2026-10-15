@@ -2,6 +2,7 @@ package com.example.onboarding.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.time.Instant;
 
 @Entity
@@ -13,6 +14,7 @@ public class Task {
     private Long id;
 
     @NotBlank(message = "title is required")
+    @Size(max = 200, message = "title must be at most 200 characters")
     @Column(nullable = false, length = 200)
     private String title;
 
