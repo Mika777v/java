@@ -17,6 +17,10 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
     @EntityGraph(attributePaths = "task")
     List<TaskAssignment> findByUserIdOrderByTaskIdAsc(Long userId);
 
+    /** Assignments of one user, with their tasks loaded, in the task display order. */
+    @EntityGraph(attributePaths = "task")
+    List<TaskAssignment> findByUserIdOrderByTaskSortOrderAscTaskIdAsc(Long userId);
+
     @EntityGraph(attributePaths = "task")
     Optional<TaskAssignment> findByIdAndUserId(Long id, Long userId);
 

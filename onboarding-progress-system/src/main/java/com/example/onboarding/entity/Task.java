@@ -24,6 +24,10 @@ public class Task {
     @Column(nullable = false)
     private Boolean active = true;
 
+    /** Display order (smaller first). New tasks are put at the end. */
+    @Column(name = "sort_order", nullable = false)
+    private Integer sortOrder;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -75,6 +79,14 @@ public class Task {
 
     public void setActive(Boolean active) {
         this.active = active;
+    }
+
+    public Integer getSortOrder() {
+        return sortOrder;
+    }
+
+    public void setSortOrder(Integer sortOrder) {
+        this.sortOrder = sortOrder;
     }
 
     public Instant getCreatedAt() {

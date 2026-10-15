@@ -22,6 +22,7 @@
 <table th:unless="${#lists.isEmpty(tasks)}">
     <thead>
     <tr>
+        <th>順番</th>
         <th>ID</th>
         <th>タイトル</th>
         <th>説明</th>
@@ -30,7 +31,17 @@
     </tr>
     </thead>
     <tbody>
-    <tr th:each="task : ${tasks}">
+    <tr th:each="task, stat : ${tasks}">
+        <td class="order-cell">
+            <form th:action="@{/tasks/{id}/move-up(id=${task.id})}" method="post">
+                <button type="submit" class="button button-secondary button-small" title="上へ"
+                        th:disabled="${stat.first}" th:attr="aria-label=${task.title} + ' を上へ'">↑</button>
+            </form>
+            <form th:action="@{/tasks/{id}/move-down(id=${task.id})}" method="post">
+                <button type="submit" class="button button-secondary button-small" title="下へ"
+                        th:disabled="${stat.last}" th:attr="aria-label=${task.title} + ' を下へ'">↓</button>
+            </form>
+        </td>
         <td th:text="${task.id}">1</td>
         <td th:text="${task.title}">タイトル</td>
         <td th:text="${task.description}">説明</td>

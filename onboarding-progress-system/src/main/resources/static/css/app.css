@@ -267,3 +267,16 @@ h2 {
 .error-page h1 {
     margin-top: 0.25rem;
 }
+
+.order-cell {
+    white-space: nowrap;
+}
+
+.order-cell form {
+    display: inline;
+}
+
+.button:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
