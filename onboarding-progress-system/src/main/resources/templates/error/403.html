@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>権限がありません</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<th:block th:replace="~{fragments/error :: page('このページを表示する権限がありません',
+        'このページは管理者だけが利用できます。マイページから自分のタスクを確認してください。')}"></th:block>
+</body>
+</html>

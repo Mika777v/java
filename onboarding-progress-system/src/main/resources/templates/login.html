@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ログイン</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<nav class="nav">
+    <span class="nav-title">オンボーディング進捗管理</span>
+</nav>
+
+<div class="login-box">
+    <h1>ログイン</h1>
+
+    <p class="message message-error" th:if="${param.error}">メールアドレスまたはパスワードが正しくありません。</p>
+    <p class="message" th:if="${param.logout}">ログアウトしました。</p>
+
+    <form th:action="@{/login}" method="post">
+        <div class="form-row">
+            <label for="username">メールアドレス</label>
+            <input type="text" id="username" name="username" autocomplete="username" autofocus>
+        </div>
+        <div class="form-row">
+            <label for="password">パスワード</label>
+            <input type="password" id="password" name="password" autocomplete="current-password">
+        </div>
+        <button type="submit" class="button">ログイン</button>
+    </form>
+</div>
+</body>
+</html>

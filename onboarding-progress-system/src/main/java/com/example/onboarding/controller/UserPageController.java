@@ -1,10 +1,12 @@
 package com.example.onboarding.controller;
 
 import com.example.onboarding.entity.AssignmentStatus;
+import com.example.onboarding.entity.Role;
 import com.example.onboarding.entity.TaskAssignment;
 import com.example.onboarding.entity.User;
 import com.example.onboarding.form.UserForm;
 import com.example.onboarding.repository.UserRepository;
+import com.example.onboarding.security.AppUserDetails;
 import com.example.onboarding.service.AssignmentException;
 import com.example.onboarding.service.AssignmentService;
 import com.example.onboarding.service.ProgressFilter;
@@ -13,6 +15,8 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -34,10 +38,14 @@ public class UserPageController {
 
     private final UserRepository userRepository;
     private final AssignmentService assignmentService;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserPageController(UserRepository userRepository, AssignmentService assignmentService) {
+    public UserPageController(UserRepository userRepository,
+                              AssignmentService assignmentService,
+                              PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.assignmentService = assignmentService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // --- users ---
@@ -55,8 +63,9 @@ public class UserPageController {
 
         List<User> users = allUsers.stream()
                 .filter(user -> selectedDepartment == null || selectedDepartment.equals(user.getDepartment()))
+                // Progress conditions are about new employees, so administrators are left out
                 .filter(user -> status == null
-                        || status.matches(progress.getOrDefault(user.getId(), UserProgress.NONE)))
+                        || (!user.isAdmin() && status.matches(progress.getOrDefault(user.getId(), UserProgress.NONE))))
                 .toList();
         List<String> departments = allUsers.stream()
                 .map(User::getDepartment)
@@ -83,6 +92,12 @@ public class UserPageController {
         return "user-form";
     }
 
+    /** Choices for the role select on the user form. */
+    @ModelAttribute("roles")
+    public Role[] roles() {
+        return Role.values();
+    }
+
     @PostMapping("/users")
     public String createUser(@Valid @ModelAttribute("userForm") UserForm form,
                              BindingResult bindingResult,
@@ -91,12 +106,15 @@ public class UserPageController {
                 && userRepository.existsByEmailIgnoreCase(form.normalizedEmail())) {
             rejectDuplicateEmail(bindingResult);
         }
+        checkPasswordLength(form, bindingResult);
         if (bindingResult.hasErrors()) {
+            form.setPassword(null);
             return "user-form";
         }
 
         User user = new User();
         form.applyTo(user);
+        applyPassword(form, user);
         userRepository.save(user);
 
         redirectAttributes.addFlashAttribute("message", "ユーザーを登録しました。");
@@ -107,6 +125,7 @@ public class UserPageController {
     public String editUser(@PathVariable Long id, Model model) {
         User user = findUser(id);
         model.addAttribute("userId", id);
+        model.addAttribute("loginEnabled", user.isLoginEnabled());
         model.addAttribute("userForm", UserForm.from(user));
         return "user-form";
     }
@@ -115,6 +134,7 @@ public class UserPageController {
     public String updateUser(@PathVariable Long id,
                              @Valid @ModelAttribute("userForm") UserForm form,
                              BindingResult bindingResult,
+                             @AuthenticationPrincipal AppUserDetails me,
                              Model model,
                              RedirectAttributes redirectAttributes) {
         User user = findUser(id);
@@ -122,12 +142,20 @@ public class UserPageController {
                 && userRepository.existsByEmailIgnoreCaseAndIdNot(form.normalizedEmail(), id)) {
             rejectDuplicateEmail(bindingResult);
         }
+        checkPasswordLength(form, bindingResult);
+        // An administrator cannot take away their own administrator role (they would lock themselves out)
+        if (isSelf(me, id) && form.getRole() != Role.ADMIN) {
+            bindingResult.rejectValue("role", "self", "自分の役割は管理者から変更できません");
+        }
         if (bindingResult.hasErrors()) {
+            form.setPassword(null);
             model.addAttribute("userId", id);
+            model.addAttribute("loginEnabled", user.isLoginEnabled());
             return "user-form";
         }
 
         form.applyTo(user);
+        applyPassword(form, user);
         userRepository.save(user);
 
         redirectAttributes.addFlashAttribute("message", "ユーザーを更新しました。");
@@ -135,8 +163,14 @@ public class UserPageController {
     }
 
     @PostMapping("/users/{id}/delete")
-    public String deleteUser(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    public String deleteUser(@PathVariable Long id,
+                             @AuthenticationPrincipal AppUserDetails me,
+                             RedirectAttributes redirectAttributes) {
         User user = findUser(id);
+        if (isSelf(me, id)) {
+            redirectAttributes.addFlashAttribute("error", "自分自身は削除できません。");
+            return "redirect:/users";
+        }
         userRepository.delete(user);
 
         redirectAttributes.addFlashAttribute("message", "ユーザーを削除しました。");
@@ -222,6 +256,24 @@ public class UserPageController {
     private TaskAssignment findAssignment(Long userId, Long assignmentId) {
         return assignmentService.findAssignment(userId, assignmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment not found"));
+    }
+
+    private void checkPasswordLength(UserForm form, BindingResult bindingResult) {
+        if (form.hasNewPassword() && form.getPassword().length() < UserForm.MIN_PASSWORD_LENGTH
+                && !bindingResult.hasFieldErrors("password")) {
+            bindingResult.rejectValue("password", "short",
+                    "パスワードは" + UserForm.MIN_PASSWORD_LENGTH + "文字以上で入力してください");
+        }
+    }
+
+    private void applyPassword(UserForm form, User user) {
+        if (form.hasNewPassword()) {
+            user.setPasswordHash(passwordEncoder.encode(form.getPassword()));
+        }
+    }
+
+    private boolean isSelf(AppUserDetails me, Long userId) {
+        return me != null && userId.equals(me.getUserId());
     }
 
     private void rejectDuplicateEmail(BindingResult bindingResult) {

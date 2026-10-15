@@ -35,15 +35,18 @@ This project is a learning-focused Spring Boot application for managing onboardi
 
 ```bash
 export POSTGRES_PASSWORD=<any password you like>
+export APP_ADMIN_PASSWORD=<password of the first administrator>
 docker compose up --build
 ```
 
-Then access:
+Then open http://localhost:8080/ and log in as `admin@example.com` with `APP_ADMIN_PASSWORD`
+(see [Login](#login)).
 
-- Dashboard (top page): http://localhost:8080/
+- Dashboard (top page, administrators): http://localhost:8080/
 - Task list page (reorder with ↑ / ↓): http://localhost:8080/tasks
 - User list and progress page: http://localhost:8080/users
-- API: http://localhost:8080/api/tasks
+- My page (new employees): http://localhost:8080/me
+- API (administrators, HTTP Basic): `curl -u admin@example.com:<password> http://localhost:8080/api/tasks`
 - PostgreSQL: localhost:5432
 
 ### Run on GitHub Codespaces
@@ -60,8 +63,9 @@ codespace **the DB and the app start automatically**:
 
 What happens on start (`.devcontainer/start-app.sh`):
 
-- A random DB password is generated once and saved to `onboarding-progress-system/.env`
-  (ignored by git). Docker Compose reads it automatically.
+- A random DB password and a random administrator password are generated once and saved to
+  `onboarding-progress-system/.env` (ignored by git). Docker Compose reads it automatically.
+  The administrator login is printed at the end (`cat onboarding-progress-system/.env` shows it again).
 - `docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up -d --build` is run,
   then the script waits until the app answers (up to 5 minutes) and prints "Ready".
   In Codespaces the app container cannot reach the `db` container over the compose network,
@@ -96,9 +100,27 @@ mvn test
 | `controller/UserAssignmentPageTest` | Assigning tasks, changing progress, unassigning, cascade delete, 400/404 |
 | `controller/TaskOrderTest` | Task display order (↑ / ↓, new tasks at the end, order of assignments) |
 | `controller/DashboardTest` | Dashboard numbers, follow-up users, tasks due within 7 days |
+| `controller/SecurityTest` | Login, logout, who can open which page, my page, passwords and roles |
 | `form/TaskFormTest` | `TaskForm` conversion (trimming the title, blank description to null) |
 | `entity/TaskAssignmentTest` | Progress rules (completion time, overdue check) |
 | `service/UserProgressTest` | Completion rate calculation |
+
+## Login
+
+| Role | Can do | Home |
+|---|---|---|
+| 管理者 (`ADMIN`) | Everything: dashboard, tasks, users, assignments, REST API | `/` (dashboard) |
+| 新入社員 (`MEMBER`) | See their own tasks and change their status | `/me` (my page) |
+
+- Log in on `/login` with the email address and password. Passwords are stored as BCrypt hashes.
+- **First administrator**: created on startup when no administrator exists, from
+  `APP_ADMIN_EMAIL` (default `admin@example.com`) and `APP_ADMIN_PASSWORD`. Nothing is created
+  without `APP_ADMIN_PASSWORD`, and an existing administrator is never overwritten.
+- **New employees**: an administrator sets the initial password on the user registration / edit
+  screen (8 characters or more). Users without a password cannot log in; the sample users
+  (山田, 佐藤, 鈴木) have no password at first.
+- An administrator cannot remove their own administrator role or delete themselves.
+- Forms are protected against CSRF. The REST API uses HTTP Basic and is for administrators only.
 
 ## Database
 
@@ -107,7 +129,7 @@ The database schema is managed by Flyway (`src/main/resources/db/migration`).
 | Table | Contents |
 |---|---|
 | `tasks` | Onboarding tasks shared by everyone (the template list) |
-| `users` | New employees / mid-career hires |
+| `users` | New employees / mid-career hires and administrators (role, password hash) |
 | `task_assignments` | Which task is assigned to which user, its status (未着手 / 対応中 / 完了), due date and completion time |
 
 Sample data (5 tasks, 3 users and their assignments) is inserted on the first start.

@@ -23,3 +23,9 @@ server:
 app:
   # Time zone used for "today" (overdue check) and for showing completion times
   time-zone: ${APP_TIME_ZONE:Asia/Tokyo}
+  # First administrator, created on startup when no administrator exists yet.
+  # The password must be given from outside (never written in the code).
+  admin:
+    email: ${APP_ADMIN_EMAIL:admin@example.com}
+    password: ${APP_ADMIN_PASSWORD:}
+    name: ${APP_ADMIN_NAME:管理者}

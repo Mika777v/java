@@ -53,7 +53,7 @@ public class DashboardService {
         Map<Long, UserProgress> progressByUser = assignmentService.progressByUser();
         long overdue = progressByUser.values().stream().mapToLong(UserProgress::overdue).sum();
 
-        List<User> users = userRepository.findAll();
+        List<User> users = userRepository.findAll().stream().filter(user -> !user.isAdmin()).toList();
         List<Dashboard.FollowUp> followUps = users.stream()
                 .map(user -> new Dashboard.FollowUp(user, progressByUser.getOrDefault(user.getId(), UserProgress.NONE)))
                 .filter(followUp -> followUp.progress().hasOverdue())

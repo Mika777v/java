@@ -24,6 +24,14 @@ public class User {
     @Column(name = "joined_on")
     private LocalDate joinedOn;
 
+    /** BCrypt hash of the password. null means the user cannot log in. */
+    @Column(name = "password_hash", length = 100)
+    private String passwordHash;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Role role = Role.MEMBER;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -83,6 +91,31 @@ public class User {
 
     public void setJoinedOn(LocalDate joinedOn) {
         this.joinedOn = joinedOn;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    /** True when a password is set, i.e. the user can log in. */
+    public boolean isLoginEnabled() {
+        return passwordHash != null;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
+    public boolean isAdmin() {
+        return role == Role.ADMIN;
     }
 
     public Instant getCreatedAt() {

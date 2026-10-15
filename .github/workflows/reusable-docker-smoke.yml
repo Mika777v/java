@@ -21,12 +21,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Generate temporary DB password
+      - name: Generate temporary passwords
         run: |
-          # Random password for this run only; masked so it never appears in logs
+          # Random passwords for this run only; masked so they never appear in logs
           DB_PASSWORD="$(openssl rand -hex 16)"
+          ADMIN_PASSWORD="$(openssl rand -hex 16)"
           echo "::add-mask::$DB_PASSWORD"
+          echo "::add-mask::$ADMIN_PASSWORD"
           echo "POSTGRES_PASSWORD=$DB_PASSWORD" >> "$GITHUB_ENV"
+          echo "APP_ADMIN_EMAIL=admin@example.com" >> "$GITHUB_ENV"
+          echo "APP_ADMIN_PASSWORD=$ADMIN_PASSWORD" >> "$GITHUB_ENV"
 
       - name: Build and start services
         run: |
@@ -56,7 +60,7 @@ jobs:
         run: |
           cd "${{ inputs.project_dir }}"
           for i in {1..36}; do
-            if curl -sf -o /dev/null http://localhost:8080/api/tasks; then
+            if curl -sf -o /dev/null http://localhost:8080/login; then
               echo "App is ready"
               exit 0
             fi
@@ -66,10 +70,13 @@ jobs:
           echo "App did not become ready in time"
           exit 1
 
-      - name: Smoke test API (HTTP checks)
+      - name: Write test helpers
         run: |
-          set -e
-          cd "${{ inputs.project_dir }}"
+          # Shared shell functions for the following steps (login session in a cookie file, CSRF token)
+          cat > "$RUNNER_TEMP/helpers.sh" <<'HELPERS'
+          BASE=http://localhost:8080
+          ADMIN_JAR="$RUNNER_TEMP/admin-cookies.txt"
+          API_AUTH="$APP_ADMIN_EMAIL:$APP_ADMIN_PASSWORD"
 
           # Fails the step if the HTTP status code is not the expected one
           check_status() {
@@ -79,45 +86,97 @@ jobs:
             fi
           }
 
+          # CSRF token of a page (needed to send forms), using the given cookie file
+          csrf() {
+            curl -sS -b "$1" -c "$1" "$BASE$2" | grep -o 'name="_csrf" value="[^"]*"' | head -n 1 | sed 's/.*value="//; s/"$//'
+          }
+
+          # Logs in through the login page; prints "status redirect_url"
+          login() {
+            TOKEN=$(csrf "$1" /login)
+            curl -sS -o /dev/null -b "$1" -c "$1" -w "%{http_code} %{redirect_url}" -X POST \
+              --data-urlencode "username=$2" --data-urlencode "password=$3" --data-urlencode "_csrf=$TOKEN" \
+              "$BASE/login"
+          }
+
+          # Sends a form as the logged-in administrator (CSRF token taken from the given page)
+          admin_post() {
+            PAGE="$1"; URL="$2"; shift 2
+            curl -sS -o /dev/null -w "%{http_code}" -b "$ADMIN_JAR" -c "$ADMIN_JAR" -X POST \
+              --data-urlencode "_csrf=$(csrf "$ADMIN_JAR" "$PAGE")" "$@" "$BASE$URL"
+          }
+
+          admin_get() {
+            curl -sS -b "$ADMIN_JAR" -c "$ADMIN_JAR" "$@"
+          }
+          HELPERS
+          sed -i 's/^          //' "$RUNNER_TEMP/helpers.sh"
+
+      - name: Smoke test login
+        run: |
+          set -e
+          . "$RUNNER_TEMP/helpers.sh"
+
+          echo "GET / without login (redirects to the login page)"
+          RESULT=$(curl -sS -o /dev/null -w "%{http_code} %{redirect_url}" $BASE/)
+          echo "$RESULT"
+          case "$RESULT" in 302\ */login) ;; *) echo "Expected a redirect to /login"; exit 1 ;; esac
+
+          echo "GET /api/tasks without credentials"
+          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" $BASE/api/tasks)
+          echo "HTTP status: $STATUS"
+          check_status 401 "$STATUS"
+
+          echo "Log in with a wrong password"
+          RESULT=$(login "$RUNNER_TEMP/wrong.txt" "$APP_ADMIN_EMAIL" "wrong-password")
+          echo "$RESULT"
+          case "$RESULT" in 302\ */login?error) ;; *) echo "Expected a redirect to /login?error"; exit 1 ;; esac
+
+          echo "Log in as administrator"
+          RESULT=$(login "$ADMIN_JAR" "$APP_ADMIN_EMAIL" "$APP_ADMIN_PASSWORD")
+          echo "$RESULT"
+          case "$RESULT" in 302\ */) ;; *) echo "Administrator login failed"; exit 1 ;; esac
+
+      - name: Smoke test API (HTTP checks)
+        run: |
+          set -e
+          . "$RUNNER_TEMP/helpers.sh"
+
           echo "GET /api/tasks"
-          STATUS=$(curl -sS -o /dev/stderr -w "%{http_code}" http://localhost:8080/api/tasks)
+          STATUS=$(curl -sS -u "$API_AUTH" -o /dev/stderr -w "%{http_code}" $BASE/api/tasks)
           echo; echo "HTTP status: $STATUS"
           check_status 200 "$STATUS"
 
           echo "POST /api/tasks"
-          POST_BODY=$(curl -sS -w "\n%{http_code}" -X POST -H "Content-Type: application/json" -d '{"title":"Set up laptop","description":"Install tools","active":true}' http://localhost:8080/api/tasks)
+          POST_BODY=$(curl -sS -u "$API_AUTH" -w "\n%{http_code}" -X POST -H "Content-Type: application/json" -d '{"title":"Set up laptop","description":"Install tools","active":true}' $BASE/api/tasks)
           STATUS=$(echo "$POST_BODY" | tail -n 1)
           echo "$POST_BODY" | sed '$d'
           echo "HTTP status: $STATUS"
           check_status 201 "$STATUS"
           CREATED_ID=$(echo "$POST_BODY" | grep -o '"id":[0-9]*' | head -n 1 | cut -d: -f2 || true)
-
-          if [ -z "$CREATED_ID" ]; then
-            echo "No ID returned from POST request"
-            exit 1
-          fi
+          [ -n "$CREATED_ID" ] || { echo "No ID returned from POST request"; exit 1; }
 
           echo "GET created task"
-          STATUS=$(curl -sS -o /dev/stderr -w "%{http_code}" http://localhost:8080/api/tasks/$CREATED_ID)
+          STATUS=$(curl -sS -u "$API_AUTH" -o /dev/stderr -w "%{http_code}" $BASE/api/tasks/$CREATED_ID)
           echo; echo "HTTP status: $STATUS"
           check_status 200 "$STATUS"
 
           echo "POST /api/tasks with \"active\": null (treated as active)"
-          NULL_BODY=$(curl -sS -w "\n%{http_code}" -X POST -H "Content-Type: application/json" -d '{"title":"CI null active","active":null}' http://localhost:8080/api/tasks)
+          NULL_BODY=$(curl -sS -u "$API_AUTH" -w "\n%{http_code}" -X POST -H "Content-Type: application/json" -d '{"title":"CI null active","active":null}' $BASE/api/tasks)
           STATUS=$(echo "$NULL_BODY" | tail -n 1)
           echo "HTTP status: $STATUS"
           check_status 201 "$STATUS"
           NULL_ID=$(echo "$NULL_BODY" | grep -o '"id":[0-9]*' | head -n 1 | cut -d: -f2)
           echo "$NULL_BODY" | grep -q '"active":true' || { echo "active was not defaulted to true"; exit 1; }
-          curl -sS -o /dev/null -X DELETE http://localhost:8080/api/tasks/$NULL_ID
+          curl -sS -u "$API_AUTH" -o /dev/null -X DELETE $BASE/api/tasks/$NULL_ID
 
           echo "DELETE created task"
-          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" -X DELETE http://localhost:8080/api/tasks/$CREATED_ID)
+          STATUS=$(curl -sS -u "$API_AUTH" -o /dev/null -w "%{http_code}" -X DELETE $BASE/api/tasks/$CREATED_ID)
           echo "HTTP status: $STATUS"
           check_status 204 "$STATUS"
 
           echo "GET /tasks (HTML page)"
-          STATUS=$(curl -sS -o "$RUNNER_TEMP/tasks.html" -w "%{http_code}" http://localhost:8080/tasks)
+          STATUS=$(admin_get -o "$RUNNER_TEMP/tasks.html" -w "%{http_code}" $BASE/tasks)
           echo "HTTP status: $STATUS"
           check_status 200 "$STATUS"
           ROWS=$(grep -c '<tr>' "$RUNNER_TEMP/tasks.html" || true)
@@ -128,7 +187,7 @@ jobs:
           fi
 
           echo "GET / (dashboard)"
-          STATUS=$(curl -sS -o "$RUNNER_TEMP/dashboard.html" -w "%{http_code}" http://localhost:8080/)
+          STATUS=$(admin_get -o "$RUNNER_TEMP/dashboard.html" -w "%{http_code}" $BASE/)
           echo "HTTP status: $STATUS"
           check_status 200 "$STATUS"
           grep -q "ダッシュボード" "$RUNNER_TEMP/dashboard.html" || { echo "Dashboard not shown"; exit 1; }
@@ -137,102 +196,126 @@ jobs:
       - name: Smoke test screens (create / edit / delete via forms)
         run: |
           set -e
-          BASE=http://localhost:8080
-
-          check_status() {
-            if [ "$2" != "$1" ]; then
-              echo "Expected HTTP $1 but got HTTP $2"
-              exit 1
-            fi
-          }
+          . "$RUNNER_TEMP/helpers.sh"
 
           echo "GET /tasks/new (registration form)"
-          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" $BASE/tasks/new)
+          STATUS=$(admin_get -o /dev/null -w "%{http_code}" $BASE/tasks/new)
           echo "HTTP status: $STATUS"
           check_status 200 "$STATUS"
 
           echo "POST /tasks with empty title (validation error)"
-          STATUS=$(curl -sS -o "$RUNNER_TEMP/invalid.html" -w "%{http_code}" -X POST \
-            --data-urlencode "title=" -d "_active=on" $BASE/tasks)
+          TOKEN=$(csrf "$ADMIN_JAR" /tasks/new)
+          STATUS=$(admin_get -o "$RUNNER_TEMP/invalid.html" -w "%{http_code}" -X POST \
+            --data-urlencode "_csrf=$TOKEN" --data-urlencode "title=" -d "_active=on" $BASE/tasks)
           echo "HTTP status: $STATUS"
           check_status 200 "$STATUS"
           grep -q "タイトルを入力してください" "$RUNNER_TEMP/invalid.html" || { echo "Validation message not shown"; exit 1; }
 
           echo "POST /tasks (create via form)"
-          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" -X POST \
+          STATUS=$(admin_post /tasks/new /tasks \
             --data-urlencode "title=CI form task" --data-urlencode "description=created by CI" \
-            -d "active=true" -d "_active=on" $BASE/tasks)
+            -d "active=true" -d "_active=on")
           echo "HTTP status: $STATUS"
           check_status 302 "$STATUS"
-          FORM_ID=$(curl -sS $BASE/api/tasks | jq -r '.[] | select(.title=="CI form task") | .id')
+          FORM_ID=$(curl -sS -u "$API_AUTH" $BASE/api/tasks | jq -r '.[] | select(.title=="CI form task") | .id')
           echo "Created task id: $FORM_ID"
           [ -n "$FORM_ID" ] || { echo "Task created via form was not found"; exit 1; }
 
           echo "GET /tasks/$FORM_ID/edit (edit form)"
-          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" $BASE/tasks/$FORM_ID/edit)
+          STATUS=$(admin_get -o /dev/null -w "%{http_code}" $BASE/tasks/$FORM_ID/edit)
           echo "HTTP status: $STATUS"
           check_status 200 "$STATUS"
 
           echo "POST /tasks/$FORM_ID (update via form, unchecking Active)"
-          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" -X POST \
-            --data-urlencode "title=CI form task (edited)" -d "_active=on" $BASE/tasks/$FORM_ID)
+          STATUS=$(admin_post /tasks/$FORM_ID/edit /tasks/$FORM_ID \
+            --data-urlencode "title=CI form task (edited)" -d "_active=on")
           echo "HTTP status: $STATUS"
           check_status 302 "$STATUS"
-          UPDATED=$(curl -sS $BASE/api/tasks/$FORM_ID | jq -r '"\(.title)|\(.active)"')
+          UPDATED=$(curl -sS -u "$API_AUTH" $BASE/api/tasks/$FORM_ID | jq -r '"\(.title)|\(.active)"')
           echo "Updated task: $UPDATED"
           [ "$UPDATED" = "CI form task (edited)|false" ] || { echo "Task was not updated as expected"; exit 1; }
 
           echo "POST /tasks/$FORM_ID/delete (delete via form)"
-          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" -X POST $BASE/tasks/$FORM_ID/delete)
+          STATUS=$(admin_post /tasks /tasks/$FORM_ID/delete)
           echo "HTTP status: $STATUS"
           check_status 302 "$STATUS"
-          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" $BASE/api/tasks/$FORM_ID)
+          STATUS=$(curl -sS -u "$API_AUTH" -o /dev/null -w "%{http_code}" $BASE/api/tasks/$FORM_ID)
           echo "GET /api/tasks/$FORM_ID after delete: HTTP $STATUS"
           check_status 404 "$STATUS"
 
       - name: Smoke test user screens (progress and assignments)
         run: |
           set -e
-          BASE=http://localhost:8080
-
-          check_status() {
-            if [ "$2" != "$1" ]; then
-              echo "Expected HTTP $1 but got HTTP $2"
-              exit 1
-            fi
-          }
+          . "$RUNNER_TEMP/helpers.sh"
 
           echo "GET /users (user list with progress)"
-          STATUS=$(curl -sS -o "$RUNNER_TEMP/users.html" -w "%{http_code}" $BASE/users)
+          STATUS=$(admin_get -o "$RUNNER_TEMP/users.html" -w "%{http_code}" $BASE/users)
           echo "HTTP status: $STATUS"
           check_status 200 "$STATUS"
           grep -q "4 / 4 完了(100%)" "$RUNNER_TEMP/users.html" || { echo "Progress of sample user not shown"; exit 1; }
 
           echo "GET /users/3 (user detail)"
-          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" $BASE/users/3)
+          STATUS=$(admin_get -o /dev/null -w "%{http_code}" $BASE/users/3)
           echo "HTTP status: $STATUS"
           check_status 200 "$STATUS"
 
           echo "POST /users/3/assignments (assign task 3)"
-          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" -X POST -d "taskId=3" -d "dueDate=2026-12-01" $BASE/users/3/assignments)
+          STATUS=$(admin_post /users/3 /users/3/assignments -d "taskId=3" -d "dueDate=2026-12-01")
           echo "HTTP status: $STATUS"
           check_status 302 "$STATUS"
 
           echo "GET /users (progress updated to 0 / 3)"
-          curl -sS $BASE/users | grep -q "0 / 3 完了(0%)" || { echo "Assignment not reflected in progress"; exit 1; }
+          admin_get $BASE/users | grep -q "0 / 3 完了(0%)" || { echo "Assignment not reflected in progress"; exit 1; }
 
           echo "GET /users?status=OVERDUE (filter users with overdue tasks)"
-          STATUS=$(curl -sS -o "$RUNNER_TEMP/overdue.html" -w "%{http_code}" "$BASE/users?status=OVERDUE")
+          STATUS=$(admin_get -o "$RUNNER_TEMP/overdue.html" -w "%{http_code}" "$BASE/users?status=OVERDUE")
           echo "HTTP status: $STATUS"
           check_status 200 "$STATUS"
           grep -q "佐藤 花子" "$RUNNER_TEMP/overdue.html" || { echo "Overdue user not listed"; exit 1; }
           if grep -q "山田 太郎" "$RUNNER_TEMP/overdue.html"; then echo "User without overdue tasks was listed"; exit 1; fi
 
           echo "GET /no-such-page (Japanese error page)"
-          STATUS=$(curl -sS -o "$RUNNER_TEMP/404.html" -w "%{http_code}" -H "Accept: text/html" $BASE/no-such-page)
+          STATUS=$(admin_get -o "$RUNNER_TEMP/404.html" -w "%{http_code}" -H "Accept: text/html" $BASE/no-such-page)
           echo "HTTP status: $STATUS"
           check_status 404 "$STATUS"
           grep -q "ページが見つかりません" "$RUNNER_TEMP/404.html" || { echo "Japanese 404 page not shown"; exit 1; }
+
+      - name: Smoke test new employee login
+        run: |
+          set -e
+          . "$RUNNER_TEMP/helpers.sh"
+          MEMBER_JAR="$RUNNER_TEMP/member-cookies.txt"
+          MEMBER_PASSWORD="$(openssl rand -hex 8)"
+          echo "::add-mask::$MEMBER_PASSWORD"
+
+          echo "Give 鈴木 (user 3) a password"
+          STATUS=$(admin_post /users/3/edit /users/3 \
+            --data-urlencode "name=鈴木 一郎" -d "email=suzuki@example.com" --data-urlencode "department=開発部" \
+            -d "joinedOn=2026-10-01" -d "role=MEMBER" --data-urlencode "password=$MEMBER_PASSWORD")
+          echo "HTTP status: $STATUS"
+          check_status 302 "$STATUS"
+
+          echo "Log in as 鈴木"
+          RESULT=$(login "$MEMBER_JAR" "suzuki@example.com" "$MEMBER_PASSWORD")
+          echo "$RESULT"
+          case "$RESULT" in 302\ */) ;; *) echo "Login of new employee failed"; exit 1 ;; esac
+
+          echo "GET / as new employee (redirects to /me)"
+          RESULT=$(curl -sS -o /dev/null -b "$MEMBER_JAR" -w "%{http_code} %{redirect_url}" $BASE/)
+          echo "$RESULT"
+          case "$RESULT" in 302\ */me) ;; *) echo "Expected a redirect to /me"; exit 1 ;; esac
+
+          echo "GET /me"
+          STATUS=$(curl -sS -b "$MEMBER_JAR" -o "$RUNNER_TEMP/me.html" -w "%{http_code}" $BASE/me)
+          echo "HTTP status: $STATUS"
+          check_status 200 "$STATUS"
+          grep -q "鈴木 一郎 さんのタスク" "$RUNNER_TEMP/me.html" || { echo "My page not shown"; exit 1; }
+
+          echo "GET /tasks as new employee (forbidden)"
+          STATUS=$(curl -sS -b "$MEMBER_JAR" -o "$RUNNER_TEMP/403.html" -w "%{http_code}" -H "Accept: text/html" $BASE/tasks)
+          echo "HTTP status: $STATUS"
+          check_status 403 "$STATUS"
+          grep -q "このページを表示する権限がありません" "$RUNNER_TEMP/403.html" || { echo "Japanese 403 page not shown"; exit 1; }
 
       - name: Show logs on failure
         if: failure()
