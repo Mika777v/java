@@ -53,14 +53,17 @@ codespace **the DB and the app start automatically**:
 
 1. Create a codespace (Code → Codespaces → Create codespace on master).
    For an existing codespace, run "Codespaces: Rebuild Container" once from the command palette.
-2. Wait 2-3 minutes for the first build. Port 8080 is forwarded automatically.
-3. Open port 8080 from the **Ports** tab. The dashboard is shown.
+2. Wait 2-3 minutes for the first build. When the app is ready, port 8080 is
+   forwarded and the dashboard opens in the browser automatically.
+3. If the browser does not open, open port 8080 from the **Ports** tab
+   (the globe icon). If you see 401 or 502, wait a moment and open it again from the Ports tab.
 
 What happens on start (`.devcontainer/start-app.sh`):
 
 - A random DB password is generated once and saved to `onboarding-progress-system/.env`
   (ignored by git). Docker Compose reads it automatically.
-- `docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up -d --build` is run.
+- `docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up -d --build` is run,
+  then the script waits until the app answers (up to 5 minutes) and prints "Ready".
   In Codespaces the app container cannot reach the `db` container over the compose network,
   so the override file runs the app on the host network and connects via `localhost:5432`.
 

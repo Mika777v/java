@@ -1,17 +1,17 @@
 {
   // GitHub Codespaces settings for this repository.
-  // When a codespace starts, the DB and the app are started automatically
-  // and port 8080 (the app) is forwarded.
+  // When a codespace starts, the DB and the app are started automatically.
+  // Port 8080 is forwarded (and the browser opened) only once the app is
+  // actually listening, so the page is never opened while the app is starting.
   "name": "onboarding-progress-system",
 
   // Default Codespaces image: includes Java 21, Maven and Docker
   "image": "mcr.microsoft.com/devcontainers/universal:2",
 
-  "forwardPorts": [8080],
   "portsAttributes": {
     "8080": {
       "label": "Onboarding app",
-      "onAutoForward": "notify"
+      "onAutoForward": "openBrowser"
     },
     "5432": {
       "label": "PostgreSQL",
