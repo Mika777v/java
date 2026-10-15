@@ -2,13 +2,13 @@ name: Onboarding progress system CI (caller)
 
 on:
   # Runs when a pull request is opened, and again on every push to its branch.
-  # No path filter: these checks are required by the main branch ruleset, and a
+  # No path filter: these checks are required by the master branch ruleset, and a
   # required check that never starts would block merging docs-only pull requests.
   pull_request:
-  # Runs after merging into main, to confirm main itself is healthy
+  # Runs after merging into master, to confirm master itself is healthy
   push:
     branches:
-      - main
+      - master
     paths:
       - 'onboarding-progress-system/**'
       - '.github/workflows/onboarding-progress-system-ci.yml'
