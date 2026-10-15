@@ -15,6 +15,11 @@ public class TaskPageController {
         this.taskRepository = taskRepository;
     }
 
+    @GetMapping("/")
+    public String home() {
+        return "redirect:/tasks";
+    }
+
     @GetMapping("/tasks")
     public String listTasks(Model model) {
         model.addAttribute("tasks", taskRepository.findAll(Sort.by("id")));

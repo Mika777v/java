@@ -118,6 +118,15 @@ jobs:
             exit 1
           fi
 
+          echo "GET / (redirects to /tasks)"
+          RESULT=$(curl -sS -o /dev/null -w "%{http_code} %{redirect_url}" http://localhost:8080/)
+          echo "HTTP status and redirect: $RESULT"
+          check_status 302 "${RESULT%% *}"
+          case "$RESULT" in
+            */tasks) ;;
+            *) echo "Expected a redirect to /tasks"; exit 1 ;;
+          esac
+
       - name: Show logs on failure
         if: failure()
         run: |
