@@ -107,6 +107,17 @@ jobs:
           echo "HTTP status: $STATUS"
           check_status 204 "$STATUS"
 
+          echo "GET /tasks (HTML page)"
+          STATUS=$(curl -sS -o "$RUNNER_TEMP/tasks.html" -w "%{http_code}" http://localhost:8080/tasks)
+          echo "HTTP status: $STATUS"
+          check_status 200 "$STATUS"
+          ROWS=$(grep -c '<tr>' "$RUNNER_TEMP/tasks.html" || true)
+          echo "Table rows (including header): $ROWS"
+          if [ "$ROWS" -lt 6 ]; then
+            echo "Expected the header row and 5 sample tasks"
+            exit 1
+          fi
+
       - name: Show logs on failure
         if: failure()
         run: |

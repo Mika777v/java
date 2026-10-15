@@ -40,6 +40,7 @@ docker compose up --build
 
 Then access:
 
+- Task list page: http://localhost:8080/tasks
 - API: http://localhost:8080/api/tasks
 - PostgreSQL: localhost:5432
 
