@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>エラーが発生しました</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<th:block th:replace="~{fragments/error :: page('エラーが発生しました',
+        'システムで予期しないエラーが発生しました。時間をおいてもう一度お試しください。解決しない場合は管理者に連絡してください。')}"></th:block>
+</body>
+</html>

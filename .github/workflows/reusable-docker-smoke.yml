@@ -221,6 +221,12 @@ jobs:
           grep -q "佐藤 花子" "$RUNNER_TEMP/overdue.html" || { echo "Overdue user not listed"; exit 1; }
           if grep -q "山田 太郎" "$RUNNER_TEMP/overdue.html"; then echo "User without overdue tasks was listed"; exit 1; fi
 
+          echo "GET /no-such-page (Japanese error page)"
+          STATUS=$(curl -sS -o "$RUNNER_TEMP/404.html" -w "%{http_code}" -H "Accept: text/html" $BASE/no-such-page)
+          echo "HTTP status: $STATUS"
+          check_status 404 "$STATUS"
+          grep -q "ページが見つかりません" "$RUNNER_TEMP/404.html" || { echo "Japanese 404 page not shown"; exit 1; }
+
       - name: Show logs on failure
         if: failure()
         run: |
