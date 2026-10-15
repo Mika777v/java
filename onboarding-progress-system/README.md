@@ -40,7 +40,8 @@ docker compose up --build
 
 Then access:
 
-- Task list page: http://localhost:8080/ (redirects to http://localhost:8080/tasks)
+- Dashboard (top page): http://localhost:8080/
+- Task list page (reorder with ↑ / ↓): http://localhost:8080/tasks
 - User list and progress page: http://localhost:8080/users
 - API: http://localhost:8080/api/tasks
 - PostgreSQL: localhost:5432
@@ -53,7 +54,7 @@ codespace **the DB and the app start automatically**:
 1. Create a codespace (Code → Codespaces → Create codespace on master).
    For an existing codespace, run "Codespaces: Rebuild Container" once from the command palette.
 2. Wait 2-3 minutes for the first build. Port 8080 is forwarded automatically.
-3. Open port 8080 from the **Ports** tab.
+3. Open port 8080 from the **Ports** tab. The dashboard is shown.
 
 What happens on start (`.devcontainer/start-app.sh`):
 
@@ -90,6 +91,8 @@ mvn test
 | `controller/TaskPageControllerTest` | Screens (`/`, list, create/edit/delete forms, validation messages, 404) |
 | `controller/UserPageControllerTest` | User screens (list with progress, create/edit/delete, validation, duplicate email, 404) |
 | `controller/UserAssignmentPageTest` | Assigning tasks, changing progress, unassigning, cascade delete, 400/404 |
+| `controller/TaskOrderTest` | Task display order (↑ / ↓, new tasks at the end, order of assignments) |
+| `controller/DashboardTest` | Dashboard numbers, follow-up users, tasks due within 7 days |
 | `form/TaskFormTest` | `TaskForm` conversion (trimming the title, blank description to null) |
 | `entity/TaskAssignmentTest` | Progress rules (completion time, overdue check) |
 | `service/UserProgressTest` | Completion rate calculation |

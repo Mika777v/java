@@ -127,14 +127,12 @@ jobs:
             exit 1
           fi
 
-          echo "GET / (redirects to /tasks)"
-          RESULT=$(curl -sS -o /dev/null -w "%{http_code} %{redirect_url}" http://localhost:8080/)
-          echo "HTTP status and redirect: $RESULT"
-          check_status 302 "${RESULT%% *}"
-          case "$RESULT" in
-            */tasks) ;;
-            *) echo "Expected a redirect to /tasks"; exit 1 ;;
-          esac
+          echo "GET / (dashboard)"
+          STATUS=$(curl -sS -o "$RUNNER_TEMP/dashboard.html" -w "%{http_code}" http://localhost:8080/)
+          echo "HTTP status: $STATUS"
+          check_status 200 "$STATUS"
+          grep -q "ダッシュボード" "$RUNNER_TEMP/dashboard.html" || { echo "Dashboard not shown"; exit 1; }
+          grep -q "全体の完了率" "$RUNNER_TEMP/dashboard.html" || { echo "Overall progress not shown"; exit 1; }
 
       - name: Smoke test screens (create / edit / delete via forms)
         run: |

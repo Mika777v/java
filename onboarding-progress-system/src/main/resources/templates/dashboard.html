@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ダッシュボード</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body th:with="d=${dashboard}">
+<nav th:replace="~{fragments/nav :: nav('dashboard')}"></nav>
+
+<h1>ダッシュボード</h1>
+<p class="muted" th:text="${d.today()} + ' 時点'">2026-10-15 時点</p>
+
+<div class="cards">
+    <div class="card">
+        <div class="card-label">ユーザー</div>
+        <div class="card-value" th:text="${d.userCount()} + ' 人'">3 人</div>
+    </div>
+    <div class="card">
+        <div class="card-label">全体の完了率</div>
+        <div class="card-value" th:text="${d.overall().percent()} + '%'">60%</div>
+        <div class="progress">
+            <div class="progress-bar" th:style="'width:' + ${d.overall().percent()} + '%'"></div>
+        </div>
+        <div class="muted small"
+             th:text="${d.overall().done()} + ' / ' + ${d.overall().total()} + ' 件完了'">6 / 10 件完了</div>
+    </div>
+    <div class="card">
+        <div class="card-label">状態の内訳</div>
+        <div class="card-breakdown">
+            <span>未着手 <strong th:text="${d.notStarted()}">2</strong></span>
+            <span>対応中 <strong th:text="${d.inProgress()}">2</strong></span>
+            <span>完了 <strong th:text="${d.overall().done()}">6</strong></span>
+        </div>
+    </div>
+    <div class="card" th:classappend="${d.overall().hasOverdue()} ? 'card-alert'">
+        <div class="card-label">期限切れ</div>
+        <div class="card-value" th:text="${d.overall().overdue()} + ' 件'">2 件</div>
+    </div>
+</div>
+
+<h2>フォローが必要な人(期限切れあり)</h2>
+<p th:if="${#lists.isEmpty(d.followUps())}" class="muted">期限切れのタスクがある人はいません。</p>
+<table th:unless="${#lists.isEmpty(d.followUps())}">
+    <thead>
+    <tr>
+        <th>氏名</th>
+        <th>部署</th>
+        <th>期限切れ</th>
+        <th>進捗</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="f : ${d.followUps()}">
+        <td><a th:href="@{/users/{id}(id=${f.user().id})}" th:text="${f.user().name}">佐藤 花子</a></td>
+        <td th:text="${f.user().department}">営業部</td>
+        <td><span class="badge-overdue" th:text="${f.progress().overdue()} + '件'">2件</span></td>
+        <td th:text="${f.progress().done() + ' / ' + f.progress().total() + ' 完了(' + f.progress().percent() + '%)'}">2 / 4 完了(50%)</td>
+    </tr>
+    </tbody>
+</table>
+<p th:unless="${#lists.isEmpty(d.followUps())}" class="small">
+    <a th:href="@{/users(status='OVERDUE')}">期限切れのある人をユーザー一覧で見る</a>
+</p>
+
+<h2 th:text="'期限が近いタスク(' + ${#temporals.format(d.upcomingUntil(), 'M/d')} + ' まで)'">期限が近いタスク</h2>
+<p th:if="${#lists.isEmpty(d.upcoming())}" class="muted">7日以内が期限の未完了タスクはありません。</p>
+<table th:unless="${#lists.isEmpty(d.upcoming())}">
+    <thead>
+    <tr>
+        <th>期限</th>
+        <th>氏名</th>
+        <th>タスク</th>
+        <th>状態</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="a : ${d.upcoming()}">
+        <td>
+            <span th:text="${a.dueDate}">2026-10-20</span>
+            <span class="badge-today" th:if="${a.dueDate == d.today()}">今日</span>
+        </td>
+        <td><a th:href="@{/users/{id}(id=${a.user.id})}" th:text="${a.user.name}">鈴木 一郎</a></td>
+        <td th:text="${a.task.title}">PCのセットアップ</td>
+        <td><span th:class="'status-label status-' + ${a.status.name().toLowerCase()}"
+                  th:text="${a.status.label}">対応中</span></td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>

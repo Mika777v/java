@@ -27,11 +27,6 @@ public class TaskPageController {
         this.taskOrderService = taskOrderService;
     }
 
-    @GetMapping("/")
-    public String home() {
-        return "redirect:/tasks";
-    }
-
     @GetMapping("/tasks")
     public String listTasks(Model model) {
         model.addAttribute("tasks", taskRepository.findAllInDisplayOrder());

@@ -37,6 +37,21 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
             """)
     List<ProgressRow> countProgressByUser(@Param("done") AssignmentStatus done, @Param("today") LocalDate today);
 
+    /** Number of assignments per status, for the dashboard. */
+    @Query("select a.status as status, count(a) as count from TaskAssignment a group by a.status")
+    List<StatusCount> countByStatus();
+
+    /** Unfinished assignments due in the given period, earliest first, with user and task loaded. */
+    @EntityGraph(attributePaths = {"user", "task"})
+    List<TaskAssignment> findByStatusNotAndDueDateBetweenOrderByDueDateAscIdAsc(
+            AssignmentStatus status, LocalDate from, LocalDate to);
+
+    interface StatusCount {
+        AssignmentStatus getStatus();
+
+        long getCount();
+    }
+
     interface ProgressRow {
         Long getUserId();
 

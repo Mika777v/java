@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="ja" xmlns:th="http://www.thymeleaf.org">
 <body>
-<!-- Menu shown at the top of every page. current: "tasks" or "users" -->
+<!-- Menu shown at the top of every page. current: "dashboard", "tasks" or "users" -->
 <nav class="nav" th:fragment="nav(current)">
     <span class="nav-title">オンボーディング進捗管理</span>
+    <a th:href="@{/}" th:classappend="${current == 'dashboard'} ? 'nav-current'">ダッシュボード</a>
     <a th:href="@{/tasks}" th:classappend="${current == 'tasks'} ? 'nav-current'">タスク</a>
     <a th:href="@{/users}" th:classappend="${current == 'users'} ? 'nav-current'">ユーザー</a>
 </nav>
