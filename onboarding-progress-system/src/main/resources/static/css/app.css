@@ -1,0 +1,94 @@
+body {
+    font-family: sans-serif;
+    margin: 2rem;
+    color: #222;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th, td {
+    border: 1px solid #ccc;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+}
+
+th {
+    background: #f2f2f2;
+}
+
+.toolbar {
+    margin-bottom: 1rem;
+}
+
+.message {
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid #9ccc9c;
+    background: #eef8ee;
+}
+
+.button {
+    display: inline-block;
+    padding: 0.4rem 0.9rem;
+    border: 1px solid #2f6fb5;
+    border-radius: 4px;
+    background: #2f6fb5;
+    color: #fff;
+    font-size: 0.95rem;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.button-secondary {
+    border-color: #999;
+    background: #fff;
+    color: #222;
+}
+
+.button-danger {
+    border-color: #c0392b;
+    background: #c0392b;
+}
+
+.actions {
+    white-space: nowrap;
+}
+
+.actions form {
+    display: inline;
+}
+
+.form-row {
+    margin-bottom: 1rem;
+}
+
+.form-row label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 0.3rem;
+}
+
+.form-row input[type="text"],
+.form-row textarea {
+    width: 100%;
+    max-width: 40rem;
+    padding: 0.4rem;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.form-row .checkbox {
+    font-weight: normal;
+}
+
+.required {
+    color: #c0392b;
+}
+
+.error {
+    color: #c0392b;
+    margin-top: 0.3rem;
+}

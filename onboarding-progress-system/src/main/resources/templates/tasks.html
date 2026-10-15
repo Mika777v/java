@@ -4,28 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>タスク一覧</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            margin: 2rem;
-            color: #222;
-        }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 0.5rem 0.75rem;
-            text-align: left;
-        }
-        th {
-            background: #f2f2f2;
-        }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
 <h1>タスク一覧</h1>
+
+<p class="message" th:if="${message}" th:text="${message}">タスクを登録しました。</p>
+
+<div class="toolbar">
+    <a class="button" th:href="@{/tasks/new}">新規登録</a>
+</div>
 
 <p th:if="${#lists.isEmpty(tasks)}">タスクはまだありません。</p>
 
@@ -36,6 +24,7 @@
         <th>タイトル</th>
         <th>説明</th>
         <th>Active</th>
+        <th>操作</th>
     </tr>
     </thead>
     <tbody>
@@ -44,6 +33,13 @@
         <td th:text="${task.title}">タイトル</td>
         <td th:text="${task.description}">説明</td>
         <td th:text="${task.active} ? 'Yes' : 'No'">Yes</td>
+        <td class="actions">
+            <a class="button button-secondary" th:href="@{/tasks/{id}/edit(id=${task.id})}">編集</a>
+            <form th:action="@{/tasks/{id}/delete(id=${task.id})}" method="post"
+                  onsubmit="return confirm('このタスクを削除しますか?');">
+                <button type="submit" class="button button-danger">削除</button>
+            </form>
+        </td>
     </tr>
     </tbody>
 </table>
