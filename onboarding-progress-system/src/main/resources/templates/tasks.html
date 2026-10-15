@@ -7,9 +7,11 @@
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
+<nav th:replace="~{fragments/nav :: nav('tasks')}"></nav>
+
 <h1>タスク一覧</h1>
 
-<p class="message" th:if="${message}" th:text="${message}">タスクを登録しました。</p>
+<div th:replace="~{fragments/nav :: messages}"></div>
 
 <div class="toolbar">
     <a class="button" th:href="@{/tasks/new}">新規登録</a>
@@ -36,7 +38,7 @@
         <td class="actions">
             <a class="button button-secondary" th:href="@{/tasks/{id}/edit(id=${task.id})}">編集</a>
             <form th:action="@{/tasks/{id}/delete(id=${task.id})}" method="post"
-                  onsubmit="return confirm('このタスクを削除しますか?');">
+                  onsubmit="return confirm('このタスクを削除しますか?\nユーザーへの割り当て(進捗)も削除されます。');">
                 <button type="submit" class="button button-danger">削除</button>
             </form>
         </td>

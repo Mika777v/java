@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${userId == null} ? 'ユーザー登録' : 'ユーザー編集'">ユーザー登録</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<nav th:replace="~{fragments/nav :: nav('users')}"></nav>
+
+<h1 th:text="${userId == null} ? 'ユーザー登録' : 'ユーザー編集'">ユーザー登録</h1>
+
+<form th:action="${userId == null} ? @{/users} : @{/users/{id}(id=${userId})}"
+      th:object="${userForm}" method="post">
+
+    <div class="form-row">
+        <label for="name">氏名 <span class="required">*</span></label>
+        <input type="text" id="name" th:field="*{name}" maxlength="100">
+        <div class="error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">氏名を入力してください</div>
+    </div>
+
+    <div class="form-row">
+        <label for="email">メールアドレス <span class="required">*</span></label>
+        <input type="text" id="email" th:field="*{email}" maxlength="255" placeholder="taro@example.com">
+        <div class="error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">メールアドレスを入力してください</div>
+    </div>
+
+    <div class="form-row">
+        <label for="department">部署</label>
+        <input type="text" id="department" th:field="*{department}" maxlength="100">
+        <div class="error" th:if="${#fields.hasErrors('department')}" th:errors="*{department}">部署は100文字以内で入力してください</div>
+    </div>
+
+    <div class="form-row">
+        <label for="joinedOn">入社日</label>
+        <input type="date" id="joinedOn" th:field="*{joinedOn}">
+        <div class="error" th:if="${#fields.hasErrors('joinedOn')}">日付の形式が正しくありません</div>
+    </div>
+
+    <button type="submit" class="button" th:text="${userId == null} ? '登録する' : '更新する'">登録する</button>
+    <a class="button button-secondary"
+       th:href="${userId == null} ? @{/users} : @{/users/{id}(id=${userId})}">戻る</a>
+</form>
+</body>
+</html>

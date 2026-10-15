@@ -7,6 +7,8 @@
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
+<nav th:replace="~{fragments/nav :: nav('tasks')}"></nav>
+
 <h1 th:text="${taskId == null} ? 'タスク登録' : 'タスク編集'">タスク登録</h1>
 
 <form th:action="${taskId == null} ? @{/tasks} : @{/tasks/{id}(id=${taskId})}"

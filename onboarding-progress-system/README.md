@@ -41,6 +41,7 @@ docker compose up --build
 Then access:
 
 - Task list page: http://localhost:8080/ (redirects to http://localhost:8080/tasks)
+- User list and progress page: http://localhost:8080/users
 - API: http://localhost:8080/api/tasks
 - PostgreSQL: localhost:5432
 
@@ -73,8 +74,21 @@ mvn test
 |---|---|
 | `controller/TaskControllerTest` | REST API `/api/tasks` (list, get, create, update, delete, 400/404) |
 | `controller/TaskPageControllerTest` | Screens (`/`, list, create/edit/delete forms, validation messages, 404) |
+| `controller/UserPageControllerTest` | User screens (list with progress, create/edit/delete, validation, duplicate email, 404) |
+| `controller/UserAssignmentPageTest` | Assigning tasks, changing progress, unassigning, cascade delete, 400/404 |
 | `form/TaskFormTest` | `TaskForm` conversion (trimming the title, blank description to null) |
+| `entity/TaskAssignmentTest` | Progress rules (completion time, overdue check) |
+| `service/UserProgressTest` | Completion rate calculation |
 
 ## Database
 
-The database schema is managed by Flyway. The initial migration creates the `tasks` table.
+The database schema is managed by Flyway (`src/main/resources/db/migration`).
+
+| Table | Contents |
+|---|---|
+| `tasks` | Onboarding tasks shared by everyone (the template list) |
+| `users` | New employees / mid-career hires |
+| `task_assignments` | Which task is assigned to which user, its status (未着手 / 対応中 / 完了), due date and completion time |
+
+Sample data (5 tasks, 3 users and their assignments) is inserted on the first start.
+Deleting a user or a task also deletes its assignments.

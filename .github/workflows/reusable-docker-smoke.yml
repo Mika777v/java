@@ -183,6 +183,37 @@ jobs:
           echo "GET /api/tasks/$FORM_ID after delete: HTTP $STATUS"
           check_status 404 "$STATUS"
 
+      - name: Smoke test user screens (progress and assignments)
+        run: |
+          set -e
+          BASE=http://localhost:8080
+
+          check_status() {
+            if [ "$2" != "$1" ]; then
+              echo "Expected HTTP $1 but got HTTP $2"
+              exit 1
+            fi
+          }
+
+          echo "GET /users (user list with progress)"
+          STATUS=$(curl -sS -o "$RUNNER_TEMP/users.html" -w "%{http_code}" $BASE/users)
+          echo "HTTP status: $STATUS"
+          check_status 200 "$STATUS"
+          grep -q "4 / 4 完了(100%)" "$RUNNER_TEMP/users.html" || { echo "Progress of sample user not shown"; exit 1; }
+
+          echo "GET /users/3 (user detail)"
+          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" $BASE/users/3)
+          echo "HTTP status: $STATUS"
+          check_status 200 "$STATUS"
+
+          echo "POST /users/3/assignments (assign task 3)"
+          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" -X POST -d "taskId=3" -d "dueDate=2026-12-01" $BASE/users/3/assignments)
+          echo "HTTP status: $STATUS"
+          check_status 302 "$STATUS"
+
+          echo "GET /users (progress updated to 0 / 3)"
+          curl -sS $BASE/users | grep -q "0 / 3 完了(0%)" || { echo "Assignment not reflected in progress"; exit 1; }
+
       - name: Show logs on failure
         if: failure()
         run: |

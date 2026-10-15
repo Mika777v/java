@@ -80,6 +80,11 @@ th {
     box-sizing: border-box;
 }
 
+.form-row input[type="date"] {
+    padding: 0.4rem;
+    font-size: 1rem;
+}
+
 .form-row .checkbox {
     font-weight: normal;
 }
@@ -91,4 +96,136 @@ th {
 .error {
     color: #c0392b;
     margin-top: 0.3rem;
+}
+
+h2 {
+    margin-top: 2rem;
+    font-size: 1.2rem;
+}
+
+.nav {
+    display: flex;
+    gap: 1.25rem;
+    align-items: center;
+    margin: -2rem -2rem 1.5rem;
+    padding: 0.75rem 2rem;
+    background: #2f3b4a;
+}
+
+.nav a {
+    color: #dfe6ee;
+    text-decoration: none;
+}
+
+.nav a.nav-current {
+    color: #fff;
+    font-weight: bold;
+    border-bottom: 2px solid #fff;
+}
+
+.nav-title {
+    color: #fff;
+    font-weight: bold;
+    margin-right: 1rem;
+}
+
+.message-error {
+    border-color: #e0a3a3;
+    background: #fbeeee;
+    color: #a12b2b;
+}
+
+.muted {
+    color: #777;
+}
+
+.small {
+    font-size: 0.85rem;
+}
+
+.button-small {
+    padding: 0.2rem 0.6rem;
+    font-size: 0.85rem;
+}
+
+.progress-cell {
+    min-width: 11rem;
+}
+
+.progress {
+    width: 10rem;
+    height: 0.6rem;
+    margin-bottom: 0.25rem;
+    border-radius: 3px;
+    background: #e4e7eb;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: #3a9a5b;
+}
+
+.profile {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.4rem 1.5rem;
+    margin: 0 0 1rem;
+}
+
+.profile dt {
+    font-weight: bold;
+}
+
+.profile dd {
+    margin: 0;
+}
+
+.inline-form {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.inline-form select,
+.assign-form select,
+.assign-form input {
+    padding: 0.3rem;
+    font-size: 0.95rem;
+}
+
+.status-not_started {
+    background: #fff;
+}
+
+.status-in_progress {
+    background: #fff6d6;
+}
+
+.status-done {
+    background: #e3f4e8;
+}
+
+.badge-overdue {
+    display: inline-block;
+    margin-left: 0.4rem;
+    padding: 0 0.4rem;
+    border-radius: 3px;
+    background: #c0392b;
+    color: #fff;
+    font-size: 0.8rem;
+}
+
+.assign-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.assign-form label {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
 }
