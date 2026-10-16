@@ -367,6 +367,50 @@ jobs:
           echo "$RESULT"
           case "$RESULT" in *login\?error) ;; *) echo "The old password still works"; exit 1 ;; esac
 
+      - name: Smoke test first login password change
+        run: |
+          set -e
+          . "$RUNNER_TEMP/helpers.sh"
+          SECOND_JAR="$RUNNER_TEMP/second-admin-cookies.txt"
+          INITIAL_PASSWORD="$(openssl rand -hex 8)"
+          OWN_PASSWORD="$(openssl rand -hex 8)"
+          echo "::add-mask::$INITIAL_PASSWORD"
+          echo "::add-mask::$OWN_PASSWORD"
+
+          echo "Register a second administrator with an initial password"
+          STATUS=$(admin_post /users/new /users \
+            --data-urlencode "name=管理者 二郎" -d "email=admin2@example.com" -d "role=ADMIN" \
+            --data-urlencode "password=$INITIAL_PASSWORD")
+          echo "HTTP status: $STATUS"
+          check_status 302 "$STATUS"
+
+          echo "Log in as the second administrator"
+          RESULT=$(login "$SECOND_JAR" "admin2@example.com" "$INITIAL_PASSWORD")
+          echo "$RESULT"
+          case "$RESULT" in 302\ */) ;; *) echo "Login failed"; exit 1 ;; esac
+
+          echo "Pages lead to the password change until it is done"
+          RESULT=$(curl -sS -o /dev/null -b "$SECOND_JAR" -w "%{http_code} %{redirect_url}" $BASE/tasks)
+          echo "$RESULT"
+          case "$RESULT" in 302\ */me/password) ;; *) echo "Expected a redirect to /me/password"; exit 1 ;; esac
+          curl -sS -b "$SECOND_JAR" $BASE/me/password | grep -q "管理者が設定したパスワードでログインしています" \
+            || { echo "Notice not shown"; exit 1; }
+
+          echo "Change the password"
+          TOKEN=$(csrf "$SECOND_JAR" /me/password)
+          RESULT=$(curl -sS -o /dev/null -b "$SECOND_JAR" -c "$SECOND_JAR" -w "%{http_code} %{redirect_url}" -X POST \
+            --data-urlencode "currentPassword=$INITIAL_PASSWORD" \
+            --data-urlencode "newPassword=$OWN_PASSWORD" \
+            --data-urlencode "confirmPassword=$OWN_PASSWORD" \
+            --data-urlencode "_csrf=$TOKEN" "$BASE/me/password")
+          echo "$RESULT"
+          case "$RESULT" in 302\ */) ;; *) echo "Password change failed"; exit 1 ;; esac
+
+          echo "Pages open normally afterwards"
+          STATUS=$(curl -sS -o /dev/null -b "$SECOND_JAR" -w "%{http_code}" $BASE/tasks)
+          echo "HTTP status: $STATUS"
+          check_status 200 "$STATUS"
+
       - name: Show logs on failure
         if: failure()
         run: |

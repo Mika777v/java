@@ -127,7 +127,7 @@ public class UserPageController {
 
         User user = new User();
         form.applyTo(user);
-        applyPassword(form, user);
+        applyPassword(form, user, true);
         userRepository.save(user);
 
         redirectAttributes.addFlashAttribute("message", "ユーザーを登録しました。");
@@ -168,7 +168,7 @@ public class UserPageController {
         }
 
         form.applyTo(user);
-        applyPassword(form, user);
+        applyPassword(form, user, !isSelf(me, id));
         // Administrators log in with a password, so a personal link is no longer needed
         if (user.isAdmin()) {
             user.clearAccessLink();
@@ -324,9 +324,14 @@ public class UserPageController {
         }
     }
 
-    private void applyPassword(UserForm form, User user) {
+    /**
+     * Saves a new password if one was entered. A password set for someone else must be changed
+     * by that person at the next login (the administrator knows it).
+     */
+    private void applyPassword(UserForm form, User user, boolean forSomeoneElse) {
         if (form.hasNewPassword()) {
             user.setPasswordHash(passwordEncoder.encode(form.getPassword()));
+            user.setPasswordChangeRequired(forSomeoneElse);
         }
     }
 

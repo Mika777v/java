@@ -32,6 +32,10 @@ public class User {
     @Column(nullable = false, length = 20)
     private Role role = Role.MEMBER;
 
+    /** True when an administrator set the password: the user must change it before doing anything else. */
+    @Column(name = "password_change_required", nullable = false)
+    private boolean passwordChangeRequired;
+
     /** SHA-256 hash of the personal link token (/join/{token}). null means no link. */
     @Column(name = "access_token_hash", length = 64)
     private String accessTokenHash;
@@ -111,6 +115,14 @@ public class User {
     /** True when a password is set, i.e. the user can log in. */
     public boolean isLoginEnabled() {
         return passwordHash != null;
+    }
+
+    public boolean isPasswordChangeRequired() {
+        return passwordChangeRequired;
+    }
+
+    public void setPasswordChangeRequired(boolean passwordChangeRequired) {
+        this.passwordChangeRequired = passwordChangeRequired;
     }
 
     public Role getRole() {

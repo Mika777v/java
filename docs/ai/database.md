@@ -15,6 +15,7 @@
 | `V5__add_sort_order_to_tasks.sql` | `tasks.sort_order` 追加(既存は `id * 10`) |
 | `V6__add_login_to_users.sql` | `users.password_hash`, `users.role` 追加 |
 | `V7__add_access_link_to_users.sql` | `users.access_token_hash`, `users.access_token_expires_at` 追加(専用URL) |
+| `V8__add_password_change_required_to_users.sql` | `users.password_change_required` 追加(初回ログイン時のパスワード変更) |
 
 ### マイグレーションのルール
 
@@ -52,6 +53,7 @@
 | `role` | VARCHAR(20) | NOT NULL DEFAULT 'MEMBER', CHECK IN ('ADMIN','MEMBER') | |
 | `access_token_hash` | VARCHAR(64) | UNIQUE | 専用URLの鍵の SHA-256(16 進)。NULL = 未発行。鍵そのものは保存しない |
 | `access_token_expires_at` | TIMESTAMPTZ | | 専用URLの有効期限 |
+| `password_change_required` | BOOLEAN | NOT NULL DEFAULT false | 管理者がほかの人に設定したパスワード。本人が変更すると false |
 | `created_at`, `updated_at` | TIMESTAMPTZ | NOT NULL | |
 
 ### `task_assignments`(誰にどのタスクを割り当てたか、と進捗)
