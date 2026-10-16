@@ -44,6 +44,7 @@
 │   ├─ java-guide.md               … オーナー向けの Java 教科書
 │   ├─ requirements.md             … 要件定義書(人向け)
 │   ├─ design.md                   … 設計書(人向け)
+│   ├─ design-diagrams.md          … 図と定義表(状態遷移図・画面遷移図・ER 図など。Mermaid)
 │   └─ ai/                         … このフォルダ
 └─ onboarding-progress-system/     … アプリ本体(Maven プロジェクト。コマンドはここで実行)
     ├─ Dockerfile, docker-compose.yml, docker-compose.codespaces.yml

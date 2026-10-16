@@ -5,7 +5,7 @@
 - デフォルトブランチは `main` から `master` に変更されています
 - Codespaces での動作確認手順: [codespaces-check.md](codespaces-check.md)
 - Java の学習用教科書(このリポジトリのコードが教材): [java-guide.md](java-guide.md)
-- 要件定義書: [requirements.md](requirements.md) / 設計書: [design.md](design.md)(AI 向けは [ai/spec.md](ai/spec.md))
+- 要件定義書: [requirements.md](requirements.md) / 設計書: [design.md](design.md)/ 図と定義表: [design-diagrams.md](design-diagrams.md)(AI 向けは [ai/spec.md](ai/spec.md))
 - 対象プロジェクト: `onboarding-progress-system`(新入社員・中途入社者のオンボーディング進捗管理)
 - 調査方法: ソースコードの確認、自動テストの実行、アプリを実際に起動してブラウザで操作、Codespaces での動作確認(オーナー)
 
@@ -33,7 +33,7 @@
 | #22 | **パスワードのリセット**: ほかの管理者が仮パスワードを発行。管理者が 1 人だけなら起動時の設定(`APP_ADMIN_PASSWORD_RESET`)で戻す |
 | #23 | Codespaces での動作確認手順(`docs/codespaces-check.md`) |
 | #25 | このレポートを最新化(第18版) |
-| (第23版) | **要件定義書・設計書**を追加(人向け `docs/requirements.md` / `docs/design.md`、AI 向け `docs/ai/spec.md`。要件 ID とテストの対応表つき) |
+| (第23版) | **要件定義書・設計書**を追加(人向け `docs/requirements.md` / `docs/design.md`、AI 向け `docs/ai/spec.md`。要件 ID とテストの対応表つき)。**図と定義表** `docs/design-diagrams.md`(ユースケース・業務フロー・画面遷移・状態遷移・ER・シーケンス・CRUD・画面項目・メッセージ・コード定義) |
 | #29 | **テストの整理**: サンプルデータの件数・id・並び順をテスト用の `SampleData` にまとめた。サンプルデータを変えても、直すのはほぼこのファイルだけ |
 | #28 | **タスクの説明欄の URL をリンクに**: `http://` / `https://` で始まる URL を新しいタブで開けるリンクとして表示(SSO のログイン画面への案内など)。確認用のサンプルタスク「Google を開く」を追加 |
 | #27 | **Java の教科書**(`docs/java-guide.md`)を追加。このレポートにフロントエンド(画面)の状況を追記(5 章) |
@@ -73,6 +73,7 @@ java/
 │   ├── codespaces-check.md                 … Codespaces での動作確認手順(チェックリスト)
 │   ├── java-guide.md                       … このリポジトリのコードで学ぶ Java の教科書
 │   ├── requirements.md / design.md         … 要件定義書 / 設計書
+│   ├── design-diagrams.md                  … 図と定義表(状態遷移図など)
 │   └── ai/                                 … AI(Claude / Copilot)向けの開発メモ
 └── onboarding-progress-system/
     ├── README.md

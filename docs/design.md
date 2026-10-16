@@ -2,6 +2,7 @@
 
 - 版: 1.0(2026-10-16。PR #29 時点の実装に合わせて作成)
 - 関連: [要件定義書](requirements.md) / [現状レポート](current-status.md)(URL・テーブルの細かい一覧) / [Java の教科書](java-guide.md)
+- 図と定義表(状態遷移図・画面遷移図・ER 図・シーケンス図・CRUD 図・画面項目定義・メッセージ一覧など): [design-diagrams.md](design-diagrams.md)
 - AI 向けの同じ内容(守るべきルールとテストの対応表つき): [docs/ai/spec.md](ai/spec.md)
 
 この設計書は「全体の形」と「なぜそう作ったか」をまとめたものです。URL やテーブルの項目の一覧は、[現状レポート](current-status.md) の 4 章・8 章を見てください。

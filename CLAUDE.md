@@ -24,4 +24,4 @@
 - 修正は最小限。大きな変更は先に原因と方針を説明して了承をもらう
 - ユーザーへの説明は日本語で、専門用語を使いすぎない
 - push 前に `cd onboarding-progress-system && mvn -B test` を通す
-- 機能やテーブルを変えたら `docs/ai/`(特に `spec.md`)、`docs/current-status.md`、`docs/requirements.md` / `docs/design.md` も更新する
+- 機能やテーブルを変えたら `docs/ai/`(特に `spec.md`)、`docs/current-status.md`、`docs/requirements.md` / `docs/design.md` / `docs/design-diagrams.md` も更新する

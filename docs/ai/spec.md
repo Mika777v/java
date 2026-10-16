@@ -102,8 +102,48 @@
 | ドキュメントだけの PR はテストをスキップ扱い | 必須チェックを満たしたまま待ち時間をなくす。パスフィルタだとチェックが始まらずマージ不可になった | #26 |
 | テストのサンプルデータは `SampleData` に集約 | サンプルデータ変更時の修正箇所を減らす(#28 で 18 件直した反省) | #29 |
 
+## 6.5 状態遷移(表形式)
+
+図は人向けの [design-diagrams.md](../design-diagrams.md) 4 章。ここでは実装の判定条件を書く。
+
+**割り当て(`TaskAssignment.status`、`changeStatus(newStatus, now)`)**
+
+| 現在 → 新 | `completedAt` | 誰が |
+|---|---|---|
+| DONE 以外 → DONE | `now` を記録 | 管理者(`/users/{id}/...`)、本人(`/me/...`、`findByIdAndUserId`) |
+| DONE → DONE | 変えない(最初の完了日時を保つ) | 同上 |
+| 任意 → DONE 以外 | `null` | 同上 |
+
+- 「期限切れ」は保存しない派生状態: `dueDate < LocalDate.now(clock)` かつ `status != DONE`
+- 割り当ての削除: 解除操作、またはユーザー / タスク削除時の `ON DELETE CASCADE`
+
+**専用URL(`users.access_token_hash` / `access_token_expires_at`)**
+
+| 状態 | 条件 | `/join/{token}` |
+|---|---|---|
+| 未発行 | hash が NULL | 404「このリンクは使えません」 |
+| 有効 | hash あり かつ expiresAt > now | ログイン(`changeSessionId`)→ `/me` |
+| 期限切れ | hash あり かつ expiresAt <= now | 404「このリンクは使えません」 |
+
+- 発行・再発行: 新しい hash と期限で上書き(古い URL は無効)。無効化: 両方 NULL。役割を ADMIN にしたら両方 NULL
+- ADMIN には発行しない(エラー)。ADMIN の token でログインさせない
+
+**パスワード(`users.password_hash` / `password_change_required`)**
+
+| 操作 | `password_change_required` |
+|---|---|
+| 管理者がほかの人のパスワードを設定(登録・編集)/ 仮パスワード発行 | `true` |
+| 管理者が自分のパスワードを編集画面で設定 | `false` |
+| 本人が `/me/password` で変更 | `false` |
+| 起動時に最初の管理者を作成 | `false` |
+| `APP_ADMIN_PASSWORD_RESET=true` で起動 | `true` |
+
+- `true` の間は `PasswordChangeRequiredInterceptor` が `/me/password` 以外を変更画面へリダイレクト(`/api/**` は 403)
+
+**タスク(`tasks.active`)**: 有効 ⇄ 無効(編集画面)。無効は新しく割り当て不可(既存の割り当ては残す)。削除で割り当ても CASCADE。
+
 ## 7. このファイルの更新ルール
 
 - 機能を追加・変更したら、2 章の表(要件・実装・テスト)を更新する。新しい要件には新しい ID を振る(番号は詰めない)
 - 不変条件を変えるときは、オーナーの了承を得て 3 章を更新する
-- 人向けの [requirements.md](../requirements.md)・[design.md](../design.md) も同じ PR で合わせて更新する
+- 人向けの [requirements.md](../requirements.md)・[design.md](../design.md)・[design-diagrams.md](../design-diagrams.md) も同じ PR で合わせて更新する

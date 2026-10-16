@@ -53,4 +53,4 @@
 | Java の教科書(`docs/java-guide.md`)、現状レポートにフロントエンドの状況を追記 | #27 |
 | タスクの説明欄の URL をリンクにする(SSO などへの案内用) | #28 |
 | テストのサンプルデータの件数・id を `SampleData` にまとめる(サンプルデータを変えたときの修正箇所を減らす) | #29 |
-| 要件定義書・設計書(人向け `docs/requirements.md` / `docs/design.md`、AI 向け `docs/ai/spec.md`) | #30 |
+| 要件定義書・設計書(人向け `docs/requirements.md` / `docs/design.md`、AI 向け `docs/ai/spec.md`)、図と定義表(`docs/design-diagrams.md`、spec.md 6.5 章に状態遷移の表) | #30 |

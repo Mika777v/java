@@ -3,6 +3,7 @@
 - 版: 1.0(2026-10-16。PR #29 時点の実装に合わせて作成)
 - 対象: `onboarding-progress-system/`
 - 関連: [設計書](design.md) / [現状レポート](current-status.md) / [Codespaces での動作確認手順](codespaces-check.md)
+- 図と定義表(ユースケース・業務フロー・状態遷移図など): [design-diagrams.md](design-diagrams.md)
 - AI 向けの同じ内容(要件 ID・テストとの対応表つき): [docs/ai/spec.md](ai/spec.md)
 
 ---
