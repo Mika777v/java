@@ -42,6 +42,9 @@
 │   ├─ current-status.md           … 人間向けの現状レポート(機能・画面・URL の一覧)
 │   ├─ codespaces-check.md         … Codespaces での動作確認手順
 │   ├─ java-guide.md               … オーナー向けの Java 教科書
+│   ├─ requirements.md             … 要件定義書(人向け)
+│   ├─ design.md                   … 設計書(人向け)
+│   ├─ design-diagrams.md          … 図と定義表(状態遷移図・画面遷移図・ER 図など。Mermaid)
 │   └─ ai/                         … このフォルダ
 └─ onboarding-progress-system/     … アプリ本体(Maven プロジェクト。コマンドはここで実行)
     ├─ Dockerfile, docker-compose.yml, docker-compose.codespaces.yml
@@ -100,6 +103,7 @@ Codespaces では `.devcontainer/start-app.sh` が自動で起動し、`.env`(gi
 
 | ファイル | 内容 |
 |---|---|
+| [spec.md](spec.md) | 要件 ID(FR / NFR)、壊してはいけないルール(INV)、要件と実装・テストの対応、設計判断の記録。**機能を変える前に読む** |
 | [architecture.md](architecture.md) | レイヤー構成、クラスの役割、セキュリティ、URL 一覧 |
 | [database.md](database.md) | テーブル定義、マイグレーション、サンプルデータ |
 | [conventions.md](conventions.md) | コーディング・テスト・コミット・PR の決まりごと |
