@@ -1,7 +1,7 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-16(第13版)
-- 対象: PR #18 までの内容に、新入社員の専用URL(パスワードなしのログイン)を加えた状態
+- 調査日: 2026-10-16(第14版)
+- 対象: PR #19 までの内容に、初回ログイン時のパスワード変更を加えた状態
 - デフォルトブランチは `main` から `master` に変更されています
 - 対象プロジェクト: `onboarding-progress-system`(新入社員・中途入社者のオンボーディング進捗管理)
 - 調査方法: ソースコードの確認、自動テストの実行、アプリを実際に起動してブラウザで操作
@@ -25,7 +25,8 @@
 | #15 | **ログイン機能**: 管理者 / 新入社員の役割、マイページ、権限のない画面は 403 |
 | #16, #17 | AI 向け開発メモ(`docs/ai/`、`CLAUDE.md`、`.github/copilot-instructions.md`)、不要な `wait-test.sh` の削除 |
 | #18 | **自分のパスワード変更**(`/me/password`) |
-| (第13版) | **新入社員の専用URL**: 管理者が発行したリンクを開くだけでマイページへ。パスワードでのログインは設定(`APP_MEMBER_LOGIN`)で切り替え可能 |
+| #19 | **新入社員の専用URL**: 管理者が発行したリンクを開くだけでマイページへ。パスワードでのログインは設定(`APP_MEMBER_LOGIN`)で切り替え可能 |
+| (第14版) | **初回ログイン時のパスワード変更**: 管理者がほかの人に設定したパスワードは、本人が最初に変更するまで他の画面を開けない |
 
 ---
 
@@ -111,7 +112,8 @@ java/
         │       │   ├── V4__insert_sample_users_and_assignments.sql
         │       │   ├── V5__add_sort_order_to_tasks.sql
         │       │   ├── V6__add_login_to_users.sql
-        │       │   └── V7__add_access_link_to_users.sql
+        │       │   ├── V7__add_access_link_to_users.sql
+        │       │   └── V8__add_password_change_required_to_users.sql
         │       ├── static/css/app.css
         │       └── templates/
         │           ├── fragments/nav.html            … 共通メニュー・メッセージ表示
@@ -121,7 +123,7 @@ java/
         │           ├── login.html / my-page.html / password-form.html / join-invalid.html
         │           ├── tasks.html / task-form.html
         │           └── users.html / user-form.html / user-detail.html
-        └── test/java/com/example/onboarding/          … 自動テスト(147 件)
+        └── test/java/com/example/onboarding/          … 自動テスト(156 件)
 ```
 
 まだ存在しないもの:
@@ -149,7 +151,7 @@ java/
 | Codespaces | Codespace を開くと DB とアプリが自動で起動し、8080 番ポートが転送される |
 | サンプルデータ | タスク 5 件、ユーザー 3 人、割り当て 10 件(進み具合がばらばら) |
 | エラー画面 | 404・その他 4xx・5xx を日本語の画面で表示。API は JSON のまま |
-| 自動テスト | 147 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
+| 自動テスト | 156 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
 | CI | PR の作成・更新時と `master` へのマージ後に、自動テストと Docker での動作確認を実行 |
 
 ### 割り当てのルール
@@ -196,6 +198,7 @@ java/
 | `role` | `VARCHAR(20)` | 不可 | `'MEMBER'` | `ADMIN`(管理者)/ `MEMBER`(新入社員)(`CHECK` 制約。V6) |
 | `access_token_hash` | `VARCHAR(64)` | 可 | | 専用URLの鍵の SHA-256 ハッシュ(`UNIQUE`。NULL なら未発行。V7) |
 | `access_token_expires_at` | `TIMESTAMPTZ` | 可 | | 専用URLの有効期限(V7) |
+| `password_change_required` | `BOOLEAN` | 不可 | `false` | 管理者が設定したパスワードのため、本人の変更が必要(V8) |
 | `created_at` / `updated_at` | `TIMESTAMPTZ` | 不可 | `now()` | 作成・更新日時 |
 
 ### `task_assignments`(割り当て・進捗)— V3
@@ -368,7 +371,8 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 | 11 | Smoke test user screens | ユーザー一覧の進捗表示、詳細画面、タスクの割り当てと進捗への反映、期限切れでの絞り込み、日本語の 404 画面 |
 | 12 | Smoke test new employee personal link | 鈴木の専用URLを発行(1 回だけ表示)→ 開くと `/me` へ、`/tasks` は日本語の 403 画面 → でたらめな URL は 404 → 新入社員はパスワードではログインできない → 無効化すると開けない |
 | 13 | Smoke test administrator password change | 管理者が自分のパスワードを変更 → 新しいパスワードでログインでき、古いパスワードでは失敗 |
-| 14〜15 | 後片付け | 失敗時のみ `docker compose logs`、最後に `docker compose down -v` |
+| 14 | Smoke test first login password change | 2 人目の管理者を初期パスワード付きで登録 → その人でログイン → 他の画面は `/me/password` へ転送 → 変更すると通常どおり開ける |
+| 15〜16 | 後片付け | 失敗時のみ `docker compose logs`、最後に `docker compose down -v` |
 
 使用しているアクション(すべて Node.js 24 で動作するバージョン):
 `actions/checkout@v5`、`actions/setup-java@v5`、`actions/upload-artifact@v6`、`docker/setup-buildx-action@v4`
@@ -537,6 +541,7 @@ URL: /users/999
 - 新入社員のログイン方法は `APP_MEMBER_LOGIN` で切り替える(第13版):
   - `link`(初期値): 管理者がユーザー詳細画面で専用URLを発行して本人に渡す。開くだけでログインし `/me` へ。URL は発行直後に 1 回だけ表示(DB には SHA-256 ハッシュだけを保存)。有効期限は `APP_ACCESS_LINK_VALID_DAYS`(初期値 60 日)。再発行すると古い URL は使えなくなる。無効化も可能。すでにログイン中の画面は、ログアウトするかセッションが切れるまで使える
   - `password`: 新入社員の初期パスワードは、管理者がユーザー登録・編集画面で設定(8 文字以上)し、`/login` でログイン
+- 管理者がほかの人に設定したパスワード(登録・編集画面)は「変更が必要」になり、本人はログイン後、パスワード変更画面以外を開けない(REST API は 403)。変更すると解除。自分で自分に設定した場合と、起動時に作られる最初の管理者は対象外(第14版)
 - 管理者はどちらの設定でもパスワードでログインする。管理者には専用URLを発行できない(新入社員を管理者に変えると専用URLは消える)
 - Codespaces のポート 8080 は初期設定では本人(GitHub にログインした持ち主)しか開けない。新入社員に専用URLを開いてもらうには、ポートを Public にする必要がある
 - パスワードでログインする人は、メニュー右側の「パスワード変更」(`/me/password`)で自分のパスワードを変えられる。現在のパスワードの入力が必要で、新しいパスワードは 8〜72 文字・確認用と一致・現在と別のもの(第12版)

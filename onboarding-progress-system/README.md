@@ -107,6 +107,7 @@ mvn test
 | `controller/TaskOrderTest` | Task display order (↑ / ↓, new tasks at the end, order of assignments) |
 | `controller/DashboardTest` | Dashboard numbers, follow-up users, tasks due within 7 days |
 | `controller/SecurityTest` | Login, logout, who can open which page, my page, passwords and roles |
+| `controller/FirstLoginPasswordChangeTest` | Password set by an administrator must be changed first (redirects, API 403, unlock after change) |
 | `controller/AccessLinkTest` | Personal links: issuing (shown once, hash only), logging in, expiry, reissue, revoke, no password login for new employees |
 | `controller/AccessLinkBaseUrlTest` | Personal links use `app.base-url` when it is set |
 | `controller/PasswordChangeTest` | Changing one's own password (`/me/password`): checks, login with the new password |
@@ -134,6 +135,9 @@ mvn test
   - `password`: an administrator sets the initial password on the user registration / edit
     screen (8 characters or more), and the employee logs in on `/login`.
   Users without a password (or link) cannot log in; the sample users (山田, 佐藤, 鈴木) have neither at first.
+- **First login**: a password that an administrator set for someone else must be changed by that
+  person first: until then every page leads to `/me/password` (the API answers 403).
+  Not required for a password you set for yourself or for the first administrator from `APP_ADMIN_PASSWORD`.
 - **Own password**: users who log in with a password can change it on `/me/password`
   (link "パスワード変更" in the menu). The current password is required.
 - `APP_BASE_URL` (e.g. `https://onboarding.example.com`) sets the address shown in personal links;

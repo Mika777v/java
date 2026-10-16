@@ -77,8 +77,10 @@ public class MyPageController {
 
     @GetMapping("/me/password")
     public String passwordForm(@AuthenticationPrincipal AppUserDetails me, Model model) {
-        checkUsesPassword(currentUser(me));
+        User user = currentUser(me);
+        checkUsesPassword(user);
         model.addAttribute("passwordForm", new PasswordChangeForm());
+        model.addAttribute("changeRequired", user.isPasswordChangeRequired());
         return "password-form";
     }
 
@@ -86,6 +88,7 @@ public class MyPageController {
     public String changePassword(@AuthenticationPrincipal AppUserDetails me,
                                  @Valid @ModelAttribute("passwordForm") PasswordChangeForm form,
                                  BindingResult bindingResult,
+                                 Model model,
                                  RedirectAttributes redirectAttributes) {
         User user = currentUser(me);
         checkUsesPassword(user);
@@ -104,10 +107,12 @@ public class MyPageController {
         }
         if (bindingResult.hasErrors()) {
             form.clear();
+            model.addAttribute("changeRequired", user.isPasswordChangeRequired());
             return "password-form";
         }
 
         user.setPasswordHash(passwordEncoder.encode(form.getNewPassword()));
+        user.setPasswordChangeRequired(false);
         userRepository.save(user);
 
         redirectAttributes.addFlashAttribute("message", "パスワードを変更しました。");

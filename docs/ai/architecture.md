@@ -28,7 +28,8 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | パッケージ | クラス | 役割 |
 |---|---|---|
 | (ルート) | `OnboardingProgressSystemApplication` | 起動クラス |
-| `config` | `TimeConfig` | `Clock` Bean(`app.time-zone`)。「今日」は必ずこの `Clock` から取る |
+| `config` | `WebConfig` | `PasswordChangeRequiredInterceptor` を登録(除外: `/me/password`, `/login`, `/join/**`, `/css/**`, `/error`) |
+| | `TimeConfig` | `Clock` Bean(`app.time-zone`)。「今日」は必ずこの `Clock` から取る |
 | `controller` | `DashboardController` | `GET /`。新入社員は `/me` へリダイレクト |
 | | `LoginController` | `GET /login` |
 | | `JoinController` | `GET /join/{token}`。専用URLが有効ならログイン状態にして `/me` へ。無効なら `join-invalid.html`(404) |
@@ -53,7 +54,8 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | | `TaskOrderService` | 並び順。`move()` で全タスクを 10 刻みに振り直す |
 | | `DashboardService`, `Dashboard` | ダッシュボード用の集計(管理者は対象外、期限が近い = 今日から 7 日) |
 | | `UserProgress`, `ProgressFilter` | 進捗(合計・完了・期限切れ・完了率)と一覧の絞り込み条件 |
-| `web` | `CurrentUserAdvice` | 全画面に `${currentUserName}` を渡す |
+| `web` | `PasswordChangeRequiredInterceptor` | 「変更が必要」のユーザーを `/me/password` へ転送(API は 403)。毎回 DB を見るので再ログイン不要 |
+| | `CurrentUserAdvice` | 全画面に `${currentUserName}` を渡す |
 | | `DateTimeDisplay` | `@Component("dates")`。テンプレートで `${@dates...}` として日時を表示 |
 
 ## セキュリティ(`security/SecurityConfig`)
@@ -70,6 +72,8 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 - 新入社員のログインは、専用URL(既定)かパスワードか(`app.member-login`)。管理者は常にパスワード。
   専用URLでのログインは `JoinController` が SecurityContext を自分でセッションに保存している(セッション ID も変更)
 - 専用URLを無効化しても、すでにログイン中のセッションはログアウトかタイムアウトまで有効
+- 管理者がほかの人に設定したパスワードは `users.password_change_required = true` になり、本人が変更するまで
+  `PasswordChangeRequiredInterceptor` が他の画面を止める。ログイン中でも開ける必要がある画面を増やしたら `WebConfig` の除外に追加する
 - テンプレートでは `sec:authorize="hasRole('ADMIN')"` で表示を切り替える
 - 管理者は自分を新入社員に変更したり、自分を削除したりできない(`UserPageController` でチェック)
 
