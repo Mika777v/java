@@ -1111,6 +1111,7 @@ class UserProgressTest {
 // src/test/java/com/example/onboarding/controller/TaskPageControllerTest.java
 @Test
 void createShowsErrorWhenTitleIsBlank() throws Exception {
+    long before = taskRepository.count();                // 送る前の件数
     mockMvc.perform(post("/tasks")
                     .param("title", " ")
                     .param("description", "no title"))
@@ -1118,12 +1119,43 @@ void createShowsErrorWhenTitleIsBlank() throws Exception {
             .andExpect(view().name("task-form"))
             .andExpect(content().string(containsString("タイトルを入力してください")));
 
-    assertThat(taskRepository.count()).isEqualTo(5);   // 保存されていないこと
+    assertThat(taskRepository.count()).isEqualTo(before);   // 件数が変わっていない = 保存されていない
 }
 ```
 
 - ブラウザを使わずに、リクエストを送って結果を確かめられます
 - `@Transactional` を付けたテストクラスは、テストごとに DB の変更が取り消されるので、テスト同士が影響し合いません
+
+### サンプルデータの数字は 1 か所にまとめる(SampleData)
+
+テストはサンプルデータ(マイグレーションで入るタスク 6 件・ユーザー 3 人など)を前提にしています。
+件数や id をテストのあちこちに直接書くと、サンプルデータを 1 件増やしただけで、たくさんのテストを直すことになります
+(実際に #28 でサンプルタスクを 1 件足したとき、18 件のテストを直しました)。
+
+そこで、サンプルデータの件数・id・並び順を `SampleData` という 1 つのクラスに **定数(4 章)** としてまとめています。
+
+```java
+// src/test/java/com/example/onboarding/SampleData.java
+public final class SampleData {
+    public static final List<Long> TASK_IDS_IN_ORDER = List.of(1L, 2L, 3L, 4L, 5L, 6L);
+    public static final int TASK_COUNT = TASK_IDS_IN_ORDER.size();
+    public static final long SUZUKI = 3L;
+    public static final List<Long> TASKS_ASSIGNABLE_TO_SUZUKI = List.of(3L, 4L, 6L);
+    ...
+}
+```
+
+```java
+// テスト側
+.andExpect(model().attribute("tasks", hasSize(SampleData.TASK_COUNT)))
+assertThat(displayedTaskIds()).isEqualTo(TASK_IDS_IN_ORDER);
+```
+
+- **件数が変わるかどうか** は、上の例のように「前の件数 `before` と比べる」と、サンプルデータが何件でも直す必要がありません
+- `SampleData` の値は、アプリのコードで計算せず、マイグレーションを見て **手で書きます**。
+  アプリと同じ方法で答えを計算すると、アプリが間違っていてもテストが通ってしまうためです
+- 実験として、サンプルタスクをもう 1 件足してみたところ、直したのは `SampleData.java` の 5 か所だけで、全テストが通りました
+- `import static com.example.onboarding.SampleData.SUZUKI;` のように **static import** すると、`SampleData.` を省略して `SUZUKI` と書けます
 
 ### 本物の DB でテスト(Testcontainers)
 
