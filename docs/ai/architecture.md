@@ -74,6 +74,9 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 - 新入社員のログインは、専用URL(既定)かパスワードか(`app.member-login`)。管理者は常にパスワード。
   専用URLでのログインは `JoinController` が SecurityContext を自分でセッションに保存している(セッション ID も変更)
 - 専用URLを無効化しても、すでにログイン中のセッションはログアウトかタイムアウトまで有効
+- **リダイレクトはパスだけ**(`/users/3`)にする。Codespaces などのプロキシの裏ではアプリから見たアドレスが `localhost:8080` なので、
+  `http://localhost:8080/...` を返すとブラウザが localhost に行って失敗する。`server.tomcat.use-relative-redirects: true`、
+  `SecurityConfig` のログイン画面への移動とログイン後の移動もパスだけにしている(`RelativeRedirectTest` で確認)
 - 管理者がほかの人に設定したパスワードは `users.password_change_required = true` になり、本人が変更するまで
   `PasswordChangeRequiredInterceptor` が他の画面を止める。ログイン中でも開ける必要がある画面を増やしたら `WebConfig` の除外に追加する
 - テンプレートでは `sec:authorize="hasRole('ADMIN')"` で表示を切り替える

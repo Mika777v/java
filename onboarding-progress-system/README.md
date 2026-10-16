@@ -112,6 +112,7 @@ mvn test
 | `controller/FirstLoginPasswordChangeTest` | Password set by an administrator must be changed first (redirects, API 403, unlock after change) |
 | `controller/PasswordResetTest` | Temporary password: random, shown once, must be changed; not for yourself or for new employees with links |
 | `security/AdminPasswordRecoveryTest` | Startup recovery with `APP_ADMIN_PASSWORD_RESET` (administrators only) |
+| `web/RelativeRedirectTest` | Redirects contain only the path (needed behind proxies such as Codespaces) |
 | `web/HealthCheckTest` | Health check is open and shows only UP / DOWN; other actuator endpoints are not published |
 | `controller/AccessLinkTest` | Personal links: issuing (shown once, hash only), logging in, expiry, reissue, revoke, no password login for new employees |
 | `controller/AccessLinkBaseUrlTest` | Personal links use `app.base-url` when it is set |

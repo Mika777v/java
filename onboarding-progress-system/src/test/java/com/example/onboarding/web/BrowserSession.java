@@ -43,6 +43,15 @@ class BrowserSession {
                 .build());
     }
 
+    /** Sends an empty form to the path, with the CSRF token taken from the given page. */
+    HttpResponse<String> post(String formPage, String path) {
+        String csrf = csrfTokenOf(get(formPage).body());
+        return send(HttpRequest.newBuilder(URI.create(baseUrl + path))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString("_csrf=" + encode(csrf)))
+                .build());
+    }
+
     private static String csrfTokenOf(String html) {
         Matcher matcher = CSRF.matcher(html);
         if (!matcher.find()) {
