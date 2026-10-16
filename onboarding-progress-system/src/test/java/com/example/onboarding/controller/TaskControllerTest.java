@@ -1,5 +1,6 @@
 package com.example.onboarding.controller;
 
+import com.example.onboarding.SampleData;
 import com.example.onboarding.TestClockConfiguration;
 import com.example.onboarding.TestcontainersConfiguration;
 import com.example.onboarding.entity.Task;
@@ -48,7 +49,7 @@ class TaskControllerTest {
     void listReturnsSampleTasks() throws Exception {
         mockMvc.perform(get("/api/tasks"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(6)))
+                .andExpect(jsonPath("$", hasSize(SampleData.TASK_COUNT)))
                 .andExpect(jsonPath("$[*].title", hasItem("PCのセットアップ")));
     }
 
@@ -69,6 +70,7 @@ class TaskControllerTest {
 
     @Test
     void createSavesTask() throws Exception {
+        long before = taskRepository.count();
         mockMvc.perform(post("/api/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -79,11 +81,12 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.title").value("Set up laptop"))
                 .andExpect(jsonPath("$.createdAt", notNullValue()));
 
-        assertThat(taskRepository.count()).isEqualTo(7);
+        assertThat(taskRepository.count()).isEqualTo(before + 1);
     }
 
     @Test
     void createReturns400WhenTitleIsBlank() throws Exception {
+        long before = taskRepository.count();
         mockMvc.perform(post("/api/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -91,7 +94,7 @@ class TaskControllerTest {
                                 """))
                 .andExpect(status().isBadRequest());
 
-        assertThat(taskRepository.count()).isEqualTo(6);
+        assertThat(taskRepository.count()).isEqualTo(before);
     }
 
     @Test
@@ -107,6 +110,7 @@ class TaskControllerTest {
 
     @Test
     void createIgnoresIdAndTimestampsInBody() throws Exception {
+        long before = taskRepository.count();
         mockMvc.perform(post("/api/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -116,18 +120,19 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.id").value(not(1)))
                 .andExpect(jsonPath("$.createdAt").value(not(startsWith("2000"))));
 
-        assertThat(taskRepository.count()).isEqualTo(7);
+        assertThat(taskRepository.count()).isEqualTo(before + 1);
         assertThat(taskRepository.findById(1L).orElseThrow().getTitle()).isEqualTo("PCのセットアップ");
     }
 
     @Test
     void createReturns400WhenTitleIsTooLong() throws Exception {
+        long before = taskRepository.count();
         mockMvc.perform(post("/api/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\": \"" + "a".repeat(201) + "\"}"))
                 .andExpect(status().isBadRequest());
 
-        assertThat(taskRepository.count()).isEqualTo(6);
+        assertThat(taskRepository.count()).isEqualTo(before);
     }
 
     @Test

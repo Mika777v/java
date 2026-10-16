@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -28,11 +29,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static com.example.onboarding.SampleData.SUZUKI;
+import static com.example.onboarding.SampleData.TASKS_ASSIGNABLE_TO_SUZUKI;
+import static com.example.onboarding.SampleData.TASKS_ASSIGNABLE_TO_YAMADA;
+import static com.example.onboarding.SampleData.TASKS_OF_SUZUKI;
+import static com.example.onboarding.SampleData.YAMADA;
 
 /**
  * Tests for the user detail screen: assigning tasks and changing their progress.
- * Sample data: 鈴木 (user 3) has tasks 1 (対応中) and 2 (未着手); tasks 3, 4 and 6 are not assigned to him.
- * Task 5 is inactive. Task 6 is the sample task with a link (V9), not assigned to anyone.
+ * Sample data (see SampleData): 鈴木 (user 3) has tasks 1 (対応中) and 2 (未着手); tasks 3 and 4 are not
+ * assigned to him. Task 5 is inactive.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -40,8 +46,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 @WithMockUser(roles = "ADMIN")
 class UserAssignmentPageTest {
-
-    private static final long SUZUKI = 3L;
 
     @Autowired
     private MockMvc mockMvc;
@@ -61,10 +65,11 @@ class UserAssignmentPageTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("user-detail"))
                 .andExpect(model().attribute("assignments", hasSize(2)))
-                .andExpect(model().attribute("assignableTasks", hasSize(3)))
+                .andExpect(model().attribute("assignableTasks", hasSize(TASKS_ASSIGNABLE_TO_SUZUKI.size())))
                 .andExpect(content().string(containsString("鈴木 一郎 さんの進捗")))
                 .andExpect(content().string(containsString("0 / 2 完了(0%)")))
-                .andExpect(content().string(containsString("有効なタスクをすべて割り当てる(3件)")));
+                .andExpect(content().string(containsString(
+                        "有効なタスクをすべて割り当てる(" + TASKS_ASSIGNABLE_TO_SUZUKI.size() + "件)")));
     }
 
     @Test
@@ -121,19 +126,23 @@ class UserAssignmentPageTest {
     void assignAllAddsEveryActiveTaskNotYetAssigned() throws Exception {
         mockMvc.perform(post("/users/3/assignments/all").param("dueDate", "2026-11-30"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(flash().attribute("message", "3件のタスクを割り当てました。"));
+                .andExpect(flash().attribute("message", TASKS_ASSIGNABLE_TO_SUZUKI.size() + "件のタスクを割り当てました。"));
 
         List<TaskAssignment> assignments = assignmentsOf(SUZUKI);
-        assertThat(assignments).extracting(a -> a.getTask().getId()).containsExactly(1L, 2L, 3L, 4L, 6L);
-        assertThat(assignments.get(4).getDueDate()).isEqualTo(LocalDate.of(2026, 11, 30));
+        List<Long> everyActiveTask = Stream.concat(TASKS_OF_SUZUKI.stream(), TASKS_ASSIGNABLE_TO_SUZUKI.stream())
+                .sorted().toList();
+        assertThat(assignments).extracting(a -> a.getTask().getId()).isEqualTo(everyActiveTask);
+        assertThat(assignments.get(assignments.size() - 1).getDueDate()).isEqualTo(LocalDate.of(2026, 11, 30));
     }
 
     @Test
     void assignAllShowsErrorWhenNothingIsLeft() throws Exception {
-        // 山田 (user 1) has every active task except the sample task 6; after assigning it, nothing is left
-        mockMvc.perform(post("/users/1/assignments").param("taskId", "6"))
-                .andExpect(status().is3xxRedirection());
-        mockMvc.perform(post("/users/1/assignments/all"))
+        // After 山田 gets the few active tasks he does not have yet, nothing is left
+        for (long taskId : TASKS_ASSIGNABLE_TO_YAMADA) {
+            mockMvc.perform(post("/users/{id}/assignments", YAMADA).param("taskId", String.valueOf(taskId)))
+                    .andExpect(status().is3xxRedirection());
+        }
+        mockMvc.perform(post("/users/{id}/assignments/all", YAMADA))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("error", "割り当てられる有効なタスクはありません。"));
     }

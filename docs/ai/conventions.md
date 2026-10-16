@@ -56,6 +56,9 @@
 - POST / PUT / DELETE は `com.example.onboarding.WebTestSupport.post/put/delete` を使う(CSRF トークン付き)。
   `MockMvcRequestBuilders.post` を直接使うと 403 になる
 - `@Transactional` でテストごとにロールバックされるので、サンプルデータ(database.md)を前提にしてよい
+- サンプルデータの件数・id・並び順は **`SampleData`(テスト用)の定数を使う**。数字を直接書かない。
+  サンプルデータ(V2・V4・V9 など)を変えたら `SampleData.java` を直す。値はアプリのコードで計算せず、マイグレーションから手で写す
+- 登録・削除で件数が変わるかは、`long before = repository.count();` と比べて確かめる(`before + 1` など)
 - 日付は 2026-10-15 に固定されている。期限切れのテストはこの日付を基準に書く
 - 画面の確認は `content().string(containsString("..."))` で日本語の文言を直接確かめる
 - 新機能には「正常系」「入力エラー」「存在しない id で 404」「権限がない場合」を最低限書く

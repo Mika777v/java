@@ -1,5 +1,6 @@
 package com.example.onboarding.controller;
 
+import com.example.onboarding.SampleData;
 import com.example.onboarding.TestClockConfiguration;
 import com.example.onboarding.TestcontainersConfiguration;
 import com.example.onboarding.entity.Task;
@@ -49,7 +50,7 @@ class TaskPageControllerTest {
         mockMvc.perform(get("/tasks"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("tasks"))
-                .andExpect(model().attribute("tasks", hasSize(6)))
+                .andExpect(model().attribute("tasks", hasSize(SampleData.TASK_COUNT)))
                 .andExpect(content().string(containsString("PCのセットアップ")))
                 .andExpect(content().string(containsString("新規登録")));
     }
@@ -81,6 +82,7 @@ class TaskPageControllerTest {
 
     @Test
     void createShowsErrorWhenTitleIsBlank() throws Exception {
+        long before = taskRepository.count();
         mockMvc.perform(post("/tasks")
                         .param("title", " ")
                         .param("description", "no title"))
@@ -89,28 +91,30 @@ class TaskPageControllerTest {
                 .andExpect(model().attributeHasFieldErrors("taskForm", "title"))
                 .andExpect(content().string(containsString("タイトルを入力してください")));
 
-        assertThat(taskRepository.count()).isEqualTo(6);
+        assertThat(taskRepository.count()).isEqualTo(before);
     }
 
     @Test
     void createShowsErrorWhenTitleIsTooLong() throws Exception {
+        long before = taskRepository.count();
         mockMvc.perform(post("/tasks")
                         .param("title", "あ".repeat(201)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("task-form"))
                 .andExpect(content().string(containsString("タイトルは200文字以内で入力してください")));
 
-        assertThat(taskRepository.count()).isEqualTo(6);
+        assertThat(taskRepository.count()).isEqualTo(before);
     }
 
     @Test
     void createIgnoresIdSentFromForm() throws Exception {
+        long before = taskRepository.count();
         mockMvc.perform(post("/tasks")
                         .param("id", "1")
                         .param("title", "Should be a new task"))
                 .andExpect(status().is3xxRedirection());
 
-        assertThat(taskRepository.count()).isEqualTo(7);
+        assertThat(taskRepository.count()).isEqualTo(before + 1);
         assertThat(taskRepository.findById(1L).orElseThrow().getTitle()).isEqualTo("PCのセットアップ");
     }
 

@@ -26,6 +26,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static com.example.onboarding.SampleData.FIRST_TASK;
+import static com.example.onboarding.SampleData.LAST_TASK;
+import static com.example.onboarding.SampleData.NEXT_SORT_ORDER;
+import static com.example.onboarding.SampleData.SUZUKI;
+import static com.example.onboarding.SampleData.TASKS_ASSIGNABLE_TO_SUZUKI;
+import static com.example.onboarding.SampleData.TASK_IDS_IN_ORDER;
+import static com.example.onboarding.SampleData.swapped;
 
 /**
  * Tests for the display order of tasks (↑ / ↓ buttons on the task list).
@@ -53,7 +60,7 @@ class TaskOrderTest {
 
     @Test
     void sampleTasksKeepTheirOriginalOrder() {
-        assertThat(displayedTaskIds()).containsExactly(1L, 2L, 3L, 4L, 5L, 6L);
+        assertThat(displayedTaskIds()).isEqualTo(TASK_IDS_IN_ORDER);
     }
 
     @Test
@@ -63,7 +70,7 @@ class TaskOrderTest {
                 .andExpect(redirectedUrl("/tasks"))
                 .andExpect(flash().attribute("message", "「PCのセットアップ」を下に移動しました。"));
 
-        assertThat(displayedTaskIds()).containsExactly(2L, 1L, 3L, 4L, 5L, 6L);
+        assertThat(displayedTaskIds()).isEqualTo(swapped(TASK_IDS_IN_ORDER, 1L, 2L));
     }
 
     @Test
@@ -71,18 +78,18 @@ class TaskOrderTest {
         mockMvc.perform(post("/tasks/4/move-up"))
                 .andExpect(flash().attribute("message", "「チームメンバーとの顔合わせ」を上に移動しました。"));
 
-        assertThat(displayedTaskIds()).containsExactly(1L, 2L, 4L, 3L, 5L, 6L);
+        assertThat(displayedTaskIds()).isEqualTo(swapped(TASK_IDS_IN_ORDER, 3L, 4L));
     }
 
     @Test
     void firstTaskCannotMoveUpAndLastTaskCannotMoveDown() throws Exception {
-        mockMvc.perform(post("/tasks/1/move-up"))
+        mockMvc.perform(post("/tasks/{id}/move-up", FIRST_TASK))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attributeCount(0));
-        mockMvc.perform(post("/tasks/6/move-down"))
+        mockMvc.perform(post("/tasks/{id}/move-down", LAST_TASK))
                 .andExpect(flash().attributeCount(0));
 
-        assertThat(displayedTaskIds()).containsExactly(1L, 2L, 3L, 4L, 5L, 6L);
+        assertThat(displayedTaskIds()).isEqualTo(TASK_IDS_IN_ORDER);
     }
 
     @Test
@@ -106,7 +113,7 @@ class TaskOrderTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\": \"API task\"}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.sortOrder").value(70));
+                .andExpect(jsonPath("$.sortOrder").value(NEXT_SORT_ORDER));
     }
 
     @Test
@@ -129,12 +136,13 @@ class TaskOrderTest {
 
     @Test
     void userAssignmentsAndAssignableTasksFollowDisplayOrder() throws Exception {
-        // 鈴木 (user 3) has tasks 1 and 2; tasks 3, 4 and 6 (the sample link task) can still be assigned
+        // 鈴木 has tasks 1 and 2; tasks 3 and 4 can still be assigned
         mockMvc.perform(post("/tasks/2/move-up"));
         mockMvc.perform(post("/tasks/4/move-up"));
 
-        List<TaskAssignment> assignments = assignmentService.findAssignments(3L);
+        List<TaskAssignment> assignments = assignmentService.findAssignments(SUZUKI);
         assertThat(assignments).extracting(a -> a.getTask().getId()).containsExactly(2L, 1L);
-        assertThat(assignmentService.findAssignableTasks(3L)).extracting(Task::getId).containsExactly(4L, 3L, 6L);
+        assertThat(assignmentService.findAssignableTasks(SUZUKI)).extracting(Task::getId)
+                .isEqualTo(swapped(TASKS_ASSIGNABLE_TO_SUZUKI, 3L, 4L));
     }
 }
