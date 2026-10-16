@@ -162,6 +162,17 @@ class SecurityTest {
     }
 
     @Test
+    void myPageShowsAddressesInTaskDescriptionAsLinks() throws Exception {
+        // e.g. a task "log in with SSO" with the SSO address in its description
+        assignmentRepository.findByUserIdOrderByTaskIdAsc(2L).get(0).getTask()
+                .setDescription("SSO にログイン: https://sso.example.com/login");
+
+        mockMvc.perform(get("/me").with(user(new AppUserDetails(sato))))
+                .andExpect(content().string(containsString(
+                        "SSO にログイン: <a class=\"auto-link\" href=\"https://sso.example.com/login\" target=\"_blank\" rel=\"noopener noreferrer\">")));
+    }
+
+    @Test
     void newEmployeeCannotOpenAdministratorPages() throws Exception {
         for (String path : new String[] {"/tasks", "/tasks/new", "/users", "/users/2", "/users/2/edit"}) {
             mockMvc.perform(get(path).with(user(new AppUserDetails(sato))))

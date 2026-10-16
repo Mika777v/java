@@ -44,7 +44,7 @@
         </td>
         <td th:text="${task.id}">1</td>
         <td th:text="${task.title}">タイトル</td>
-        <td th:text="${task.description}">説明</td>
+        <td th:utext="${@links.linkify(task.description)}">説明</td>
         <td th:text="${task.active} ? 'Yes' : 'No'">Yes</td>
         <td class="actions">
             <a class="button button-secondary" th:href="@{/tasks/{id}/edit(id=${task.id})}">編集</a>

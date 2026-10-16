@@ -185,6 +185,22 @@ class TaskPageControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    // --- addresses in the description ---
+
+    @Test
+    void addressInDescriptionIsShownAsLinkAndHtmlIsNot() throws Exception {
+        Task task = taskRepository.findById(1L).orElseThrow();
+        task.setDescription("SSO: https://sso.example.com/login <b>bold</b>");
+        taskRepository.save(task);
+
+        mockMvc.perform(get("/tasks"))
+                .andExpect(content().string(containsString(
+                        "<a class=\"auto-link\" href=\"https://sso.example.com/login\" target=\"_blank\" rel=\"noopener noreferrer\">")))
+                .andExpect(content().string(containsString("&lt;b&gt;bold&lt;/b&gt;")));
+        mockMvc.perform(get("/users/1"))
+                .andExpect(content().string(containsString("href=\"https://sso.example.com/login\"")));
+    }
+
     private Task findByTitle(String title) {
         return taskRepository.findAll().stream()
                 .filter(task -> title.equals(task.getTitle()))

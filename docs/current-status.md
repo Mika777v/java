@@ -1,7 +1,7 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-16(第20版)
-- 対象: PR #26 までの内容(`master` の最新)に、Java の教科書を加えた状態。Codespaces での動作確認(13 章)まで完了
+- 調査日: 2026-10-16(第21版)
+- 対象: PR #27 までの内容に、タスクの説明欄の URL をリンクにする機能を加えた状態。Codespaces での動作確認(13 章)まで完了
 - デフォルトブランチは `main` から `master` に変更されています
 - Codespaces での動作確認手順: [codespaces-check.md](codespaces-check.md)
 - Java の学習用教科書(このリポジトリのコードが教材): [java-guide.md](java-guide.md)
@@ -32,7 +32,8 @@
 | #22 | **パスワードのリセット**: ほかの管理者が仮パスワードを発行。管理者が 1 人だけなら起動時の設定(`APP_ADMIN_PASSWORD_RESET`)で戻す |
 | #23 | Codespaces での動作確認手順(`docs/codespaces-check.md`) |
 | #25 | このレポートを最新化(第18版) |
-| (第20版) | **Java の教科書**(`docs/java-guide.md`)を追加。このレポートにフロントエンド(画面)の状況を追記(5 章) |
+| (第21版) | **タスクの説明欄の URL をリンクに**: `http://` / `https://` で始まる URL を新しいタブで開けるリンクとして表示(SSO のログイン画面への案内など) |
+| #27 | **Java の教科書**(`docs/java-guide.md`)を追加。このレポートにフロントエンド(画面)の状況を追記(5 章) |
 | #26 | **CI**: ドキュメントだけの PR では自動テストと Docker の確認をスキップ(必須チェックは「スキップ=成功」扱いでマージ可能) |
 | #24 | **不具合修正**: Codespaces で登録・発行などのボタンを押すと「localhost 接続が拒否されました」になる問題。画面移動の行き先をパスだけ(`/users/3` など)にした |
 
@@ -121,6 +122,7 @@ java/
         │   │   └── web/
         │   │       ├── DateTimeDisplay.java          … 画面用の日時表示・期限切れ判定
         │   │       ├── CurrentUserAdvice.java        … メニューに出すログイン中の名前
+        │   │       ├── LinkText.java                 … 説明欄の URL をリンクにする(ほかの文字は無害化)
         │   │       └── PasswordChangeRequiredInterceptor.java   … パスワード変更が必要な人を変更画面へ移動
         │   └── resources/
         │       ├── application.yml
@@ -142,7 +144,7 @@ java/
         │           ├── login.html / my-page.html / password-form.html / join-invalid.html
         │           ├── tasks.html / task-form.html
         │           └── users.html / user-form.html / user-detail.html
-        └── test/java/com/example/onboarding/          … 自動テスト(173 件)
+        └── test/java/com/example/onboarding/          … 自動テスト(184 件)
 ```
 
 まだ存在しないもの:
@@ -156,7 +158,7 @@ java/
 | 機能 | 内容 |
 |---|---|
 | ダッシュボード | トップページ(`/`)。全体の完了率・状態の内訳・期限切れ件数、フォローが必要な人、7 日以内が期限のタスク |
-| タスク管理 | 一覧・登録・編集・削除(画面と REST API)。一覧の ↑ / ↓ で並び順を変更 |
+| タスク管理 | 一覧・登録・編集・削除(画面と REST API)。一覧の ↑ / ↓ で並び順を変更。説明に書いた `http://` / `https://` の URL はリンクになる(新しいタブで開く。それ以外の文字や HTML タグはそのまま文字として表示) |
 | ユーザー管理 | 一覧・登録・編集・削除。メールアドレスの形式・重複チェック(大文字小文字を区別しない) |
 | タスクの割り当て | ユーザー詳細画面から、有効なタスクを 1 件ずつ(期限付き)、またはまとめて割り当て。割り当て解除も可能 |
 | 進捗管理 | 割り当てごとに 未着手 / 対応中 / 完了 を変更。完了にすると完了日時を記録、戻すと消去 |
@@ -173,7 +175,7 @@ java/
 | Codespaces | Codespace を開くと DB とアプリが自動で起動し、準備ができると 8080 番ポートが転送されてブラウザが開く。専用URLは Codespace のアドレスで表示 |
 | サンプルデータ | タスク 5 件、ユーザー 3 人、割り当て 10 件(進み具合がばらばら) |
 | エラー画面 | 404・その他 4xx・5xx を日本語の画面で表示。API は JSON のまま |
-| 自動テスト | 173 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
+| 自動テスト | 184 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
 | CI | PR の作成・更新時と `master` へのマージ後に、自動テストと Docker での動作確認を実行 |
 
 ### 割り当てのルール
