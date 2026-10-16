@@ -412,6 +412,34 @@ jobs:
           echo "HTTP status: $STATUS"
           check_status 200 "$STATUS"
 
+      - name: Smoke test password reset
+        run: |
+          set -e
+          . "$RUNNER_TEMP/helpers.sh"
+          RESET_JAR="$RUNNER_TEMP/reset-cookies.txt"
+
+          echo "Find the second administrator (registered in the previous step)"
+          SECOND_ID=$(admin_get -sS $BASE/users | grep -o 'href="/users/[0-9]*">管理者 二郎' | grep -o '[0-9]\+' | head -n 1)
+          [ -n "$SECOND_ID" ] || { echo "Second administrator not found"; exit 1; }
+          echo "User id: $SECOND_ID"
+
+          echo "Reset the password (a temporary password is shown once)"
+          STATUS=$(admin_post /users/$SECOND_ID /users/$SECOND_ID/password-reset)
+          echo "HTTP status: $STATUS"
+          check_status 302 "$STATUS"
+          TEMPORARY=$(admin_get -sS $BASE/users/$SECOND_ID | grep -o 'id="temporary-password"[^>]*value="[^"]*"' | sed 's/.*value="//; s/"$//')
+          [ -n "$TEMPORARY" ] || { echo "Temporary password not shown"; exit 1; }
+          echo "::add-mask::$TEMPORARY"
+          if admin_get -sS $BASE/users/$SECOND_ID | grep -q "$TEMPORARY"; then echo "Temporary password shown again"; exit 1; fi
+
+          echo "Log in with the temporary password (must change it first)"
+          RESULT=$(login "$RESET_JAR" "admin2@example.com" "$TEMPORARY")
+          echo "$RESULT"
+          case "$RESULT" in 302\ */) ;; *) echo "Login with the temporary password failed"; exit 1 ;; esac
+          RESULT=$(curl -sS -o /dev/null -b "$RESET_JAR" -w "%{http_code} %{redirect_url}" $BASE/)
+          echo "$RESULT"
+          case "$RESULT" in 302\ */me/password) ;; *) echo "Expected a redirect to /me/password"; exit 1 ;; esac
+
       - name: Show logs on failure
         if: failure()
         run: |

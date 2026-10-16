@@ -46,6 +46,13 @@ for i in $(seq 1 60); do
     echo "  email:    ${admin_email:-admin@example.com}"
     echo "  password: $(grep '^APP_ADMIN_PASSWORD=' .env | cut -d= -f2-)"
     echo "(shown again with: cat onboarding-progress-system/.env)"
+    if grep -q '^APP_ADMIN_PASSWORD_RESET=true' .env; then
+      echo
+      echo "NOTE: APP_ADMIN_PASSWORD_RESET=true is set in .env, so the administrator password was set"
+      echo "back to the one above. Log in, change it, then delete that line from .env and run"
+      echo "  bash .devcontainer/start-app.sh"
+      echo "again. Otherwise the password is set back every time the app starts."
+    fi
     echo
     echo "New employees open the personal link issued on their user page."
     echo "Port 8080 is private by default: only you can open it. To let others open"

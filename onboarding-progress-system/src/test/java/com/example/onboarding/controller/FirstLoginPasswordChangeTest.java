@@ -208,4 +208,15 @@ class FirstLoginPasswordChangeTest {
                 .andExpect(redirectedUrl("/me"));
         mockMvc.perform(get("/me").with(user(suzuki))).andExpect(status().isOk());
     }
+
+    @Test
+    void newEmployeePasswordCanBeResetWithPasswordLogin() throws Exception {
+        String temporary = (String) mockMvc.perform(post("/users/3/password-reset").with(user(asAdmin())))
+                .andExpect(status().is3xxRedirection())
+                .andReturn().getFlashMap().get("temporaryPassword");
+
+        User suzuki = userRepository.findById(3L).orElseThrow();
+        assertThat(passwordEncoder.matches(temporary, suzuki.getPasswordHash())).isTrue();
+        assertThat(suzuki.isPasswordChangeRequired()).isTrue();
+    }
 }

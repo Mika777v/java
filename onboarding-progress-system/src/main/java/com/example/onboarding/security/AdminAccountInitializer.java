@@ -16,6 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
  * Creates the first administrator on startup, so that someone can log in.
  * The password comes from the environment (APP_ADMIN_PASSWORD) and is never written in the code.
  * Nothing happens once an administrator exists.
+ *
+ * <p>Recovery when the only administrator forgot the password: start once with
+ * APP_ADMIN_PASSWORD_RESET=true. The password of the administrator APP_ADMIN_EMAIL is set back to
+ * APP_ADMIN_PASSWORD and must be changed after logging in. Remove the setting afterwards,
+ * otherwise the password is set back on every start.
  */
 @Component
 public class AdminAccountInitializer implements ApplicationRunner {
@@ -27,22 +32,28 @@ public class AdminAccountInitializer implements ApplicationRunner {
     private final String email;
     private final String password;
     private final String name;
+    private final boolean resetPassword;
 
     public AdminAccountInitializer(UserRepository userRepository,
                                    PasswordEncoder passwordEncoder,
                                    @Value("${app.admin.email:admin@example.com}") String email,
                                    @Value("${app.admin.password:}") String password,
-                                   @Value("${app.admin.name:管理者}") String name) {
+                                   @Value("${app.admin.name:管理者}") String name,
+                                   @Value("${app.admin.password-reset:false}") boolean resetPassword) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.email = email.strip();
         this.password = password;
         this.name = name;
+        this.resetPassword = resetPassword;
     }
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
+        if (resetPassword) {
+            resetAdministratorPassword();
+        }
         if (userRepository.existsByRole(Role.ADMIN)) {
             return;
         }
@@ -62,5 +73,23 @@ public class AdminAccountInitializer implements ApplicationRunner {
         admin.setPasswordHash(passwordEncoder.encode(password));
         userRepository.save(admin);
         log.info("Created administrator {}", email);
+    }
+
+    private void resetAdministratorPassword() {
+        if (password == null || password.isBlank()) {
+            log.warn("APP_ADMIN_PASSWORD_RESET is set, but APP_ADMIN_PASSWORD is empty: nothing was reset.");
+            return;
+        }
+        userRepository.findByEmailIgnoreCase(email).ifPresentOrElse(user -> {
+            if (!user.isAdmin()) {
+                log.warn("APP_ADMIN_PASSWORD_RESET is set, but {} is not an administrator: nothing was reset.", email);
+                return;
+            }
+            user.setPasswordHash(passwordEncoder.encode(password));
+            user.setPasswordChangeRequired(true);
+            userRepository.save(user);
+            log.warn("The password of administrator {} was reset to APP_ADMIN_PASSWORD. Log in, change it, "
+                    + "and then remove APP_ADMIN_PASSWORD_RESET (otherwise it is reset on every start).", email);
+        }, () -> log.warn("APP_ADMIN_PASSWORD_RESET is set, but no user {} exists: nothing was reset.", email));
     }
 }

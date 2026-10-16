@@ -86,6 +86,7 @@ Codespaces では `.devcontainer/start-app.sh` が自動で起動し、`.env`(gi
 | `POSTGRES_PASSWORD` | Docker 起動時は必須 | DB パスワード(`SPRING_DATASOURCE_PASSWORD` としてアプリに渡る) |
 | `APP_ADMIN_PASSWORD` | Docker 起動時は必須 | 管理者が 1 人もいないとき、起動時に作る管理者のパスワード |
 | `APP_ADMIN_EMAIL` | 任意 | 上記管理者のメールアドレス(既定 `admin@example.com`) |
+| `APP_ADMIN_PASSWORD_RESET` | 任意 | `true` で起動すると `APP_ADMIN_EMAIL` の管理者のパスワードを `APP_ADMIN_PASSWORD` に戻す(管理者が 1 人で忘れたとき用。使ったら外す) |
 | `APP_ADMIN_NAME` | 任意 | 上記管理者の名前(既定 `管理者`) |
 | `APP_MEMBER_LOGIN` | 任意 | 新入社員のログイン方法。`link`(既定。専用URL)または `password` |
 | `APP_ACCESS_LINK_VALID_DAYS` | 任意 | 専用URLの有効日数(既定 60) |

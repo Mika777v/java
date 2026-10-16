@@ -8,6 +8,7 @@ import com.example.onboarding.form.UserForm;
 import com.example.onboarding.repository.UserRepository;
 import com.example.onboarding.security.AppUserDetails;
 import com.example.onboarding.security.LoginSettings;
+import com.example.onboarding.security.TemporaryPasswords;
 import com.example.onboarding.service.AccessLinkService;
 import com.example.onboarding.service.AssignmentException;
 import com.example.onboarding.service.AssignmentService;
@@ -45,6 +46,7 @@ public class UserPageController {
     private final PasswordEncoder passwordEncoder;
     private final AccessLinkService accessLinkService;
     private final LoginSettings loginSettings;
+    private final TemporaryPasswords temporaryPasswords;
     private final String baseUrl;
 
     public UserPageController(UserRepository userRepository,
@@ -52,12 +54,14 @@ public class UserPageController {
                               PasswordEncoder passwordEncoder,
                               AccessLinkService accessLinkService,
                               LoginSettings loginSettings,
+                              TemporaryPasswords temporaryPasswords,
                               @Value("${app.base-url:}") String baseUrl) {
         this.userRepository = userRepository;
         this.assignmentService = assignmentService;
         this.passwordEncoder = passwordEncoder;
         this.accessLinkService = accessLinkService;
         this.loginSettings = loginSettings;
+        this.temporaryPasswords = temporaryPasswords;
         this.baseUrl = baseUrl;
     }
 
@@ -197,8 +201,9 @@ public class UserPageController {
     // --- user detail and assignments ---
 
     @GetMapping("/users/{id}")
-    public String showUser(@PathVariable Long id, Model model) {
+    public String showUser(@PathVariable Long id, @AuthenticationPrincipal AppUserDetails me, Model model) {
         User user = findUser(id);
+        model.addAttribute("self", isSelf(me, id));
         List<TaskAssignment> assignments = assignmentService.findAssignments(id);
 
         model.addAttribute("user", user);
@@ -207,6 +212,34 @@ public class UserPageController {
         model.addAttribute("assignableTasks", assignmentService.findAssignableTasks(id));
         model.addAttribute("statuses", AssignmentStatus.values());
         return "user-detail";
+    }
+
+    // --- password reset ---
+
+    /**
+     * Sets a new random temporary password, shown only once on the next page.
+     * The user must change it after logging in. For users who log in with a password.
+     */
+    @PostMapping("/users/{id}/password-reset")
+    public String resetPassword(@PathVariable Long id,
+                                @AuthenticationPrincipal AppUserDetails me,
+                                RedirectAttributes redirectAttributes) {
+        User user = findUser(id);
+        if (!user.isAdmin() && loginSettings.isLinkMode()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "New employees log in with personal links");
+        }
+        if (isSelf(me, id)) {
+            redirectAttributes.addFlashAttribute("error", "自分のパスワードは「パスワード変更」画面で変更してください。");
+            return "redirect:/users/" + id;
+        }
+        String temporaryPassword = temporaryPasswords.generate();
+        user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
+        user.setPasswordChangeRequired(true);
+        userRepository.save(user);
+
+        redirectAttributes.addFlashAttribute("temporaryPassword", temporaryPassword);
+        redirectAttributes.addFlashAttribute("message", "仮パスワードを発行しました。");
+        return "redirect:/users/" + id;
     }
 
     // --- personal link (when new employees log in with links) ---
