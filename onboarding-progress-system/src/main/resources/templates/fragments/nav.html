@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
-<!-- Menu shown at the top of every page. current: "dashboard", "tasks", "users" or "me" -->
+<!-- Menu shown at the top of every page. current: "dashboard", "tasks", "users", "me" or "password" -->
 <nav class="nav" th:fragment="nav(current)">
     <span class="nav-title">オンボーディング進捗管理</span>
     <th:block sec:authorize="hasRole('ADMIN')">
@@ -13,6 +13,7 @@
        th:classappend="${current == 'me'} ? 'nav-current'">マイページ</a>
     <span class="nav-user" sec:authorize="isAuthenticated()">
         <span th:text="${currentUserName}">山田 太郎</span>
+        <a th:href="@{/me/password}" th:classappend="${current == 'password'} ? 'nav-current'">パスワード変更</a>
         <form th:action="@{/logout}" method="post">
             <button type="submit" class="nav-logout">ログアウト</button>
         </form>

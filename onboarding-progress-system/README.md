@@ -101,6 +101,7 @@ mvn test
 | `controller/TaskOrderTest` | Task display order (↑ / ↓, new tasks at the end, order of assignments) |
 | `controller/DashboardTest` | Dashboard numbers, follow-up users, tasks due within 7 days |
 | `controller/SecurityTest` | Login, logout, who can open which page, my page, passwords and roles |
+| `controller/PasswordChangeTest` | Changing one's own password (`/me/password`): checks, login with the new password |
 | `form/TaskFormTest` | `TaskForm` conversion (trimming the title, blank description to null) |
 | `entity/TaskAssignmentTest` | Progress rules (completion time, overdue check) |
 | `service/UserProgressTest` | Completion rate calculation |
@@ -119,6 +120,8 @@ mvn test
 - **New employees**: an administrator sets the initial password on the user registration / edit
   screen (8 characters or more). Users without a password cannot log in; the sample users
   (山田, 佐藤, 鈴木) have no password at first.
+- **Own password**: every logged-in user can change their own password on `/me/password`
+  (link "パスワード変更" in the menu). The current password is required.
 - An administrator cannot remove their own administrator role or delete themselves.
 - Forms are protected against CSRF. The REST API uses HTTP Basic and is for administrators only.
 

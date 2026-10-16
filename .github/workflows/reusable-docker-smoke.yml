@@ -317,6 +317,28 @@ jobs:
           check_status 403 "$STATUS"
           grep -q "このページを表示する権限がありません" "$RUNNER_TEMP/403.html" || { echo "Japanese 403 page not shown"; exit 1; }
 
+          echo "Change own password as 鈴木"
+          NEW_MEMBER_PASSWORD="$(openssl rand -hex 8)"
+          echo "::add-mask::$NEW_MEMBER_PASSWORD"
+          TOKEN=$(csrf "$MEMBER_JAR" /me/password)
+          RESULT=$(curl -sS -o /dev/null -b "$MEMBER_JAR" -c "$MEMBER_JAR" -w "%{http_code} %{redirect_url}" -X POST \
+            --data-urlencode "currentPassword=$MEMBER_PASSWORD" \
+            --data-urlencode "newPassword=$NEW_MEMBER_PASSWORD" \
+            --data-urlencode "confirmPassword=$NEW_MEMBER_PASSWORD" \
+            --data-urlencode "_csrf=$TOKEN" "$BASE/me/password")
+          echo "$RESULT"
+          case "$RESULT" in 302\ */me) ;; *) echo "Password change failed"; exit 1 ;; esac
+
+          echo "Log in again with the new password (and not with the old one)"
+          rm -f "$MEMBER_JAR"
+          RESULT=$(login "$MEMBER_JAR" "suzuki@example.com" "$NEW_MEMBER_PASSWORD")
+          echo "$RESULT"
+          case "$RESULT" in 302\ */) ;; *) echo "Login with the new password failed"; exit 1 ;; esac
+          rm -f "$MEMBER_JAR"
+          RESULT=$(login "$MEMBER_JAR" "suzuki@example.com" "$MEMBER_PASSWORD")
+          echo "$RESULT"
+          case "$RESULT" in *login\?error) ;; *) echo "The old password still works"; exit 1 ;; esac
+
       - name: Show logs on failure
         if: failure()
         run: |

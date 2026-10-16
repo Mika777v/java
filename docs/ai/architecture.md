@@ -31,7 +31,7 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | `config` | `TimeConfig` | `Clock` Bean(`app.time-zone`)。「今日」は必ずこの `Clock` から取る |
 | `controller` | `DashboardController` | `GET /`。新入社員は `/me` へリダイレクト |
 | | `LoginController` | `GET /login` |
-| | `MyPageController` | `/me`、自分の割り当ての状態変更(他人の割り当ては 404) |
+| | `MyPageController` | `/me`、自分の割り当ての状態変更(他人の割り当ては 404)、自分のパスワード変更(`/me/password`) |
 | | `TaskController` | REST API `/api/tasks`(JSON) |
 | | `TaskPageController` | `/tasks` 画面の CRUD と並べ替え(↑↓) |
 | | `UserPageController` | `/users` 画面の CRUD、絞り込み、詳細、割り当て、状態変更 |
@@ -39,6 +39,7 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | | `AssignmentStatus` | `NOT_STARTED`(未着手)/ `IN_PROGRESS`(対応中)/ `DONE`(完了)。`getLabel()` が日本語 |
 | | `Role` | `ADMIN`(管理者)/ `MEMBER`(新入社員) |
 | `form` | `TaskForm`, `UserForm` | 画面の入力値と検証。`UserForm` はパスワード(空欄 = 変更しない)を持つ |
+| | `PasswordChangeForm` | 自分のパスワード変更の入力値。DB が必要なチェック(現在のパスワード)は Controller で行う |
 | `repository` | `TaskRepository` | `findAllInDisplayOrder()`(`sortOrder`, `id` 順)、`findMaxSortOrder()` |
 | | `UserRepository` | メールの重複確認(大文字小文字を区別しない)、役割での存在確認 |
 | | `TaskAssignmentRepository` | ユーザーごとの集計 `countProgressByUser`、状態ごとの件数、期限が近い割り当て |
@@ -77,6 +78,7 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | GET | `/` | ログイン済み | 管理者: ダッシュボード / 新入社員: `/me` へ |
 | GET | `/me` | ログイン済み | マイページ |
 | POST | `/me/assignments/{aid}/status` | ログイン済み | 自分の割り当ての状態変更 |
+| GET / POST | `/me/password` | ログイン済み | 自分のパスワード変更(成功後、管理者は `/`、新入社員は `/me` へ) |
 | GET | `/tasks`, `/tasks/new`, `/tasks/{id}/edit` | ADMIN | タスク一覧・登録・編集 |
 | POST | `/tasks`, `/tasks/{id}`, `/tasks/{id}/delete` | ADMIN | 登録・更新・削除 |
 | POST | `/tasks/{id}/move-up`, `/tasks/{id}/move-down` | ADMIN | 並べ替え |
@@ -118,6 +120,7 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | `fragments/nav.html` | 上部メニュー `nav(current)` と結果メッセージ `messages` |
 | `fragments/error.html` | エラー画面の本文(権限に応じたボタン) |
 | `login.html`, `my-page.html`, `dashboard.html` | ログイン、マイページ、ダッシュボード |
+| `password-form.html` | 自分のパスワード変更 |
 | `tasks.html`, `task-form.html` | タスク一覧、登録・編集(共用) |
 | `users.html`, `user-form.html`, `user-detail.html` | ユーザー一覧、登録・編集(共用)、詳細 |
 | `error/*.html` | エラー画面 |
