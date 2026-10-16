@@ -1,7 +1,7 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-16(第18版)
-- 対象: PR #24 までの内容(`master` の最新)。Codespaces での動作確認(13 章)まで完了
+- 調査日: 2026-10-16(第19版)
+- 対象: PR #25 までの内容に、ドキュメントだけの PR で CI をスキップする変更を加えた状態。Codespaces での動作確認(13 章)まで完了
 - デフォルトブランチは `main` から `master` に変更されています
 - Codespaces での動作確認手順: [codespaces-check.md](codespaces-check.md)
 - 対象プロジェクト: `onboarding-progress-system`(新入社員・中途入社者のオンボーディング進捗管理)
@@ -30,6 +30,8 @@
 | #21 | **ヘルスチェック**: `/actuator/health` で稼働状態(DB 接続を含む)を確認。CI と Codespaces の起動待ちに使用 |
 | #22 | **パスワードのリセット**: ほかの管理者が仮パスワードを発行。管理者が 1 人だけなら起動時の設定(`APP_ADMIN_PASSWORD_RESET`)で戻す |
 | #23 | Codespaces での動作確認手順(`docs/codespaces-check.md`) |
+| #25 | このレポートを最新化(第18版) |
+| (第19版) | **CI**: ドキュメントだけの PR では自動テストと Docker の確認をスキップ(必須チェックは「スキップ=成功」扱いでマージ可能) |
 | #24 | **不具合修正**: Codespaces で登録・発行などのボタンを押すと「localhost 接続が拒否されました」になる問題。画面移動の行き先をパスだけ(`/users/3` など)にした |
 
 ---
@@ -386,8 +388,13 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 
 | ジョブ | 内容 |
 |---|---|
-| `test` | Java 21 で `mvn -B test`(173 件)。失敗時はテスト結果を成果物として保存 |
-| `call-reusable` | 下の `reusable-docker-smoke.yml` を呼ぶ |
+| `changes` | PR で変わったファイルを調べる。**すべて** `docs/` 配下・`*.md`・`LICENSE` なら「ドキュメントだけ」と判定(`master` への push・手動実行は常に「実行する」) |
+| `test` | Java 21 で `mvn -B test`(173 件)。失敗時はテスト結果を成果物として保存。ドキュメントだけの PR ではスキップ |
+| `call-reusable` | 下の `reusable-docker-smoke.yml` を呼ぶ。ドキュメントだけの PR では、呼び出し先の `run-smoke` がスキップ |
+
+- スキップされたジョブは、必須チェックでは「成功」と同じ扱いになるので、ドキュメントだけの PR も数十秒でマージできる
+- `run-smoke` のスキップは呼び出し先の中で判定する(呼び出し元でスキップすると、チェックの名前が `call-reusable / run-smoke` から変わり、必須チェックが「待ち」のままになるため)
+- 判定ジョブ自体が失敗した場合は、安全のため両方とも実行する
 
 **`reusable-docker-smoke.yml`**
 

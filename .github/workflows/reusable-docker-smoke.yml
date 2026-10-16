@@ -10,9 +10,15 @@ on:
         required: false
         type: string
         default: docker-compose.yml
+      # false: skip the check (e.g. a docs-only pull request). A skipped job counts as passed.
+      run:
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   run-smoke:
+    if: ${{ inputs.run }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

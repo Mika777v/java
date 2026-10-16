@@ -80,3 +80,5 @@
   1. `mvn -B test` が通る
   2. 画面を変えたら Docker で起動して、スモークテストの手順(`reusable-docker-smoke.yml`)が通る
 - CI の 2 つのチェック(`test`, `call-reusable / run-smoke`)は master のルールセットで必須。両方緑になるまでが作業
+  (ドキュメントだけの PR では `changes` ジョブの判定でスキップされ、スキップ=成功扱い。
+  `run-smoke` のスキップは呼び出し先の `inputs.run` で行う。呼び出し元の job に `if` を付けるとチェック名が変わるので付けない)
