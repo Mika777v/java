@@ -40,6 +40,8 @@
 │   └─ reusable-docker-smoke.yml           … Docker で起動して curl で画面・API を確認
 ├─ docs/
 │   ├─ current-status.md           … 人間向けの現状レポート(機能・画面・URL の一覧)
+│   ├─ codespaces-check.md         … Codespaces での動作確認手順
+│   ├─ java-guide.md               … オーナー向けの Java 教科書
 │   └─ ai/                         … このフォルダ
 └─ onboarding-progress-system/     … アプリ本体(Maven プロジェクト。コマンドはここで実行)
     ├─ Dockerfile, docker-compose.yml, docker-compose.codespaces.yml
@@ -103,4 +105,5 @@ Codespaces では `.devcontainer/start-app.sh` が自動で起動し、`.env`(gi
 | [conventions.md](conventions.md) | コーディング・テスト・コミット・PR の決まりごと |
 | [backlog.md](backlog.md) | 未実装の機能、既知の課題 |
 | [../codespaces-check.md](../codespaces-check.md) | Codespaces での動作確認手順(オーナーが PR マージ後に使う。画面や機能を変えたらチェックリストも更新する) |
+| [../java-guide.md](../java-guide.md) | オーナー向けの Java 教科書(このリポジトリのコードが教材)。説明するときに章を案内すると伝わりやすい。コードの例を変えたら合わせて更新する |
 | [prompt-templates.md](prompt-templates.md) | AI に頼むときの依頼文のひな形 |
