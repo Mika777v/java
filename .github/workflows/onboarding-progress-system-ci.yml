@@ -4,6 +4,8 @@ on:
   # Runs when a pull request is opened, and again on every push to its branch.
   # No path filter: these checks are required by the master branch ruleset, and a
   # required check that never starts would block merging docs-only pull requests.
+  # Instead, the "changes" job below lets docs-only pull requests skip the slow jobs
+  # (a skipped job counts as passed for required checks).
   pull_request:
   # Runs after merging into master, to confirm master itself is healthy
   push:
@@ -22,7 +24,47 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Decides whether the tests and the Docker check are needed.
+  # Docs-only pull requests (docs/, *.md, LICENSE) skip them; everything else runs them.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.check.outputs.code }}
+    steps:
+      - name: Checkout repository
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Check whether anything other than documents changed
+        id: check
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Pushes to master and manual runs always run everything
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          CHANGED=$(git diff --name-only "$BASE_SHA...$HEAD_SHA")
+          echo "Changed files:"
+          echo "$CHANGED"
+          OTHERS=$(echo "$CHANGED" | grep -Ev '^docs/|\.md$|^LICENSE$' || true)
+          if [ -z "$CHANGED" ] || [ -n "$OTHERS" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "Not only documents changed: tests and the Docker check will run."
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+            echo "Only documents changed: tests and the Docker check are skipped."
+          fi
+
   test:
+    needs: changes
+    # Runs unless the "changes" job said "documents only" (also runs if that job itself failed)
+    if: ${{ !cancelled() && !(needs.changes.result == 'success' && needs.changes.outputs.code == 'false') }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -50,7 +92,12 @@ jobs:
           name: test-reports
           path: onboarding-progress-system/target/surefire-reports
 
+  # Always called: the skip is decided inside the reusable workflow, so that the required
+  # check keeps its name "call-reusable / run-smoke" (a skipped caller job would rename it)
   call-reusable:
+    needs: changes
+    if: ${{ !cancelled() }}
     uses: ./.github/workflows/reusable-docker-smoke.yml
     with:
       project_dir: onboarding-progress-system
+      run: ${{ !(needs.changes.result == 'success' && needs.changes.outputs.code == 'false') }}
