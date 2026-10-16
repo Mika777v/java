@@ -167,7 +167,7 @@ if (!Boolean.TRUE.equals(task.getActive())) {
 
 ```java
 // …/onboarding/service/AssignmentService.java
-return assignmentRepository.save(new TaskAssignment(user, task, dueDate));
+return saveNew(new TaskAssignment(user, task, dueDate));
 ```
 
 ### フィールド・コンストラクタ・メソッド
@@ -481,6 +481,21 @@ try {
     redirectAttributes.addFlashAttribute("error", e.getMessage());   // 画面に赤い枠で表示
 }
 ```
+
+例外を受け止めて、別の(分かりやすい)例外に包み直すこともできます。
+
+```java
+// …/onboarding/service/AssignmentService.java
+try {
+    return assignmentRepository.saveAndFlush(assignment);
+} catch (DataIntegrityViolationException e) {        // DB の「同じ組み合わせは 1 回だけ」に違反
+    throw new AssignmentException(ALREADY_ASSIGNED); // → 画面にいつものメッセージを出す
+}
+```
+
+> **実話:** 「割り当て」ボタンを素早く 2 回押すと、2 つのリクエストがどちらも「まだ割り当てていない」と判断し、
+> 2 つ目が DB に断られて 500 エラー画面になっていました(20 回中 17 回再現)。DB の制約を最後の砦にして、
+> 断られたら上のように包み直すことで、いつものメッセージを出すようにしました。
 
 ### Java 独特: チェック例外と非チェック例外
 
@@ -956,6 +971,8 @@ public PasswordEncoder passwordEncoder() {
 ブラウザ  POST /users/3/access-link
   ↓
 Spring Security(SecurityConfig)… ログイン済み? 管理者? CSRF トークンは正しい?
+  ↓
+RemovedUserLogoutInterceptor … 削除された人・役割が変わった人ならログアウトして /login へ
   ↓
 PasswordChangeRequiredInterceptor … パスワード変更が必要な人なら /me/password へ
   ↓

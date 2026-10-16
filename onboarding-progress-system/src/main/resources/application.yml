@@ -8,14 +8,18 @@ spring:
   jpa:
     hibernate:
       ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:none}
-    show-sql: true
+    # SQL is not printed by default (too much log output). To see it while learning or debugging,
+    # start with SPRING_JPA_SHOW_SQL=true.
+    show-sql: ${SPRING_JPA_SHOW_SQL:false}
     properties:
       hibernate:
         format_sql: true
 
   flyway:
     enabled: true
-    baseline-on-migrate: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:true}
+    # false: when pointed by mistake at a database that has other tables but no Flyway history,
+    # stop with an error instead of marking V1 as done and changing that database.
+    baseline-on-migrate: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:false}
 
 server:
   port: 8080

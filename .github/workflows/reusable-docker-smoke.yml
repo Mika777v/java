@@ -16,6 +16,10 @@ on:
         type: boolean
         default: true
 
+# Only reads the repository (see the caller workflow)
+permissions:
+  contents: read
+
 jobs:
   run-smoke:
     if: ${{ inputs.run }}

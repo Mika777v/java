@@ -18,17 +18,22 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 
 - **Controller は薄く保つ。** 複数テーブルにまたがる処理や業務ルールは `service/` に置く
   (例: 割り当ての重複チェック・無効タスクの禁止は `AssignmentService`)
-- 単純な 1 テーブルの CRUD(タスク・ユーザー)は Controller から Repository を直接呼んでいる。
-  新しいコードもこの既存スタイルに合わせてよい(無理にサービス層を挟まない)
+- **目指す構成は Controller → Service → Repository → DB。** 新しいコードは Service を通す
+- 既存の単純な CRUD(タスク・ユーザー)は Controller から Repository を直接呼んでいる
+  (`TaskPageController`, `TaskController`, `UserPageController`, `MyPageController`)。
+  これは **改善候補(技術的負債)** として扱う。直すときは機能追加と混ぜず、別の PR で行う
+  (候補と直し方: `.claude/skills/review-and-refactor/refactoring-catalog.md`、一覧: `backlog.md` の技術的負債)
+- `security/`・`web/` が `UserRepository` を使うのは、ログイン処理・共通処理での検索だけなので対象外
 - 画面のフォームは `form/` のクラスで受け取り、Entity に直接バインドしない(`id` などを書き換えられないように)。
-  REST API(`TaskController`)だけは Entity `Task` をそのまま受け取り、`id` を `null` にしてから保存している
+  REST API(`TaskController`)は入力を `TaskController.TaskRequest`(record)で受け取る(`id`・日時は受け付けない。`active` の省略を見分けられる)。
+  出力はまだ Entity `Task` をそのまま返している(JSON の形を変えないため。backlog.md の D5)
 
 ## クラス一覧
 
 | パッケージ | クラス | 役割 |
 |---|---|---|
 | (ルート) | `OnboardingProgressSystemApplication` | 起動クラス |
-| `config` | `WebConfig` | `PasswordChangeRequiredInterceptor` を登録(除外: `/me/password`, `/login`, `/join/**`, `/css/**`, `/error`) |
+| `config` | `WebConfig` | `RemovedUserLogoutInterceptor`(先)と `PasswordChangeRequiredInterceptor` を登録(除外: `/login`, `/join/**`, `/css/**`, `/error`。後者は `/me/password` も) |
 | | `TimeConfig` | `Clock` Bean(`app.time-zone`)。「今日」は必ずこの `Clock` から取る |
 | `controller` | `DashboardController` | `GET /`。新入社員は `/me` へリダイレクト |
 | | `LoginController` | `GET /login` |
@@ -55,7 +60,8 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | | `TaskOrderService` | 並び順。`move()` で全タスクを 10 刻みに振り直す |
 | | `DashboardService`, `Dashboard` | ダッシュボード用の集計(管理者は対象外、期限が近い = 今日から 7 日) |
 | | `UserProgress`, `ProgressFilter` | 進捗(合計・完了・期限切れ・完了率)と一覧の絞り込み条件 |
-| `web` | `PasswordChangeRequiredInterceptor` | 「変更が必要」のユーザーを `/me/password` へ転送(API は 403)。毎回 DB を見るので再ログイン不要 |
+| `web` | `RemovedUserLogoutInterceptor` | ログイン中のユーザーが削除されたか、役割が変わっていたら、セッションを無効にして `/login` へ(API は 401)。セッションにはログイン時の役割が残るため、毎回 DB と比べる |
+| | `PasswordChangeRequiredInterceptor` | 「変更が必要」のユーザーを `/me/password` へ転送(API は 403)。毎回 DB を見るので再ログイン不要 |
 | | `CurrentUserAdvice` | 全画面に `${currentUserName}` を渡す |
 | | `LinkText` | `@Component("links")`。`${@links.linkify(text)}` + `th:utext` で、`http(s)://` の URL だけをリンク(新しいタブ、`rel="noopener noreferrer"`)にし、ほかは HTML エスケープ。タスクの説明の表示に使用 |
 | | `DateTimeDisplay` | `@Component("dates")`。テンプレートで `${@dates...}` として日時を表示 |
@@ -82,6 +88,11 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
   `PasswordChangeRequiredInterceptor` が他の画面を止める。ログイン中でも開ける必要がある画面を増やしたら `WebConfig` の除外に追加する
 - テンプレートでは `sec:authorize="hasRole('ADMIN')"` で表示を切り替える
 - 管理者は自分を新入社員に変更したり、自分を削除したりできない(`UserPageController` でチェック)
+- ほかの管理者に削除された・役割を変えられた人は、次の画面操作でログアウトされる(`RemovedUserLogoutInterceptor`)。
+  専用URLの無効化だけではログアウトされない(オーナー判断。backlog.md)
+- 「確認してから保存」(メールの重複・割り当ての重複)は、同時に 2 つのリクエストが来ると確認をすり抜ける。
+  DB の一意制約(`uk_users_email_lower`, `uk_task_assignments_user_task`)が最後の砦で、違反したら
+  `saveAndFlush` で例外を受け止め、いつものメッセージ(入力エラー / flash の `error`)を出す
 
 ## URL 一覧
 
@@ -120,8 +131,8 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 |---|---|---|---|
 | GET | `/api/tasks` | 200 | 表示順 |
 | GET | `/api/tasks/{id}` | 200 / 404 | |
-| POST | `/api/tasks` | 201 | `id` は無視。`active` 省略時 true、`sortOrder` 省略時は末尾 |
-| PUT | `/api/tasks/{id}` | 200 / 404 | `sortOrder` 省略時は今の値のまま |
+| POST | `/api/tasks` | 201 | `Location: /api/tasks/{id}` を返す。`id` は無視。`active` 省略時 true、`sortOrder` 省略時は末尾 |
+| PUT | `/api/tasks/{id}` | 200 / 404 | `active`・`sortOrder` 省略時は今の値のまま |
 | DELETE | `/api/tasks/{id}` | 204 / 404 | 割り当ても削除される(DB の `ON DELETE CASCADE`) |
 
 ユーザー・割り当ての REST API はまだない(backlog.md)。

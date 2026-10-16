@@ -18,6 +18,11 @@ on:
   # "Run workflow" button on the Actions page (any branch)
   workflow_dispatch:
 
+# The jobs only read the repository. Giving the token nothing more limits the damage
+# if an action or a build step were ever compromised.
+permissions:
+  contents: read
+
 # When new commits are pushed to the same pull request, cancel the older, still-running check
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

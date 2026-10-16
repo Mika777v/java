@@ -16,6 +16,7 @@ import com.example.onboarding.service.ProgressFilter;
 import com.example.onboarding.service.UserProgress;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -132,7 +133,10 @@ public class UserPageController {
         User user = new User();
         form.applyTo(user);
         applyPassword(form, user, true);
-        userRepository.save(user);
+        if (!saveUnlessEmailIsTaken(user, bindingResult)) {
+            form.setPassword(null);
+            return "user-form";
+        }
 
         redirectAttributes.addFlashAttribute("message", "ユーザーを登録しました。");
         return "redirect:/users/" + user.getId();
@@ -177,7 +181,12 @@ public class UserPageController {
         if (user.isAdmin()) {
             user.clearAccessLink();
         }
-        userRepository.save(user);
+        if (!saveUnlessEmailIsTaken(user, bindingResult)) {
+            form.setPassword(null);
+            model.addAttribute("userId", id);
+            model.addAttribute("loginEnabled", user.isLoginEnabled());
+            return "user-form";
+        }
 
         redirectAttributes.addFlashAttribute("message", "ユーザーを更新しました。");
         return "redirect:/users/" + id;
@@ -304,11 +313,15 @@ public class UserPageController {
                                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueDate,
                                        RedirectAttributes redirectAttributes) {
         User user = findUser(id);
-        int count = assignmentService.assignAllActive(user, dueDate);
-        if (count == 0) {
-            redirectAttributes.addFlashAttribute("error", "割り当てられる有効なタスクはありません。");
-        } else {
-            redirectAttributes.addFlashAttribute("message", count + "件のタスクを割り当てました。");
+        try {
+            int count = assignmentService.assignAllActive(user, dueDate);
+            if (count == 0) {
+                redirectAttributes.addFlashAttribute("error", "割り当てられる有効なタスクはありません。");
+            } else {
+                redirectAttributes.addFlashAttribute("message", count + "件のタスクを割り当てました。");
+            }
+        } catch (AssignmentException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/users/" + id;
     }
@@ -370,6 +383,23 @@ public class UserPageController {
 
     private boolean isSelf(AppUserDetails me, Long userId) {
         return me != null && userId.equals(me.getUserId());
+    }
+
+    /**
+     * Saves the user, or reports a duplicate e-mail address when another request registered the same
+     * address after the check above (two administrators at the same time): the database decides.
+     */
+    private boolean saveUnlessEmailIsTaken(User user, BindingResult bindingResult) {
+        try {
+            userRepository.saveAndFlush(user);
+            return true;
+        } catch (DataIntegrityViolationException e) {
+            if (!String.valueOf(e.getMostSpecificCause().getMessage()).contains("email")) {
+                throw e;
+            }
+            rejectDuplicateEmail(bindingResult);
+            return false;
+        }
     }
 
     private void rejectDuplicateEmail(BindingResult bindingResult) {

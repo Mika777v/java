@@ -17,6 +17,15 @@
 | 次に何をやるか、既知の課題 | `docs/ai/backlog.md` |
 | 人間向けの画面説明・現状の詳細 | `docs/current-status.md` |
 
+## スキル(`.claude/skills/`)
+
+| スキル | 使う場面 |
+|---|---|
+| `project-memory-manager` | 現状調査・ドキュメント更新・次のタスク提案(実装の前に必ず) |
+| `spring-boot-architect` | 設計レビュー(コードは変えない) |
+| `feature-builder` | 新機能の実装 |
+| `review-and-refactor` | 動きを変えないコード整理 |
+
 ## 特に守ること(詳細は上のファイル)
 
 - `master` に直接 push しない。作業ブランチで変更し、オーナーが「PRを作って」と言ったら PR を作る

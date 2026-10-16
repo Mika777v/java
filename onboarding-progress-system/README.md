@@ -49,7 +49,8 @@ Then open http://localhost:8080/ and log in as `admin@example.com` with `APP_ADM
 - API (administrators, HTTP Basic): `curl -u admin@example.com:<password> http://localhost:8080/api/tasks`
 - Health check (no login): http://localhost:8080/actuator/health → `{"status":"UP"}`
   (`DOWN` with HTTP 503 when, for example, the database cannot be reached)
-- PostgreSQL: localhost:5432
+- PostgreSQL: localhost:5432 (published on localhost only, not to the network)
+- To print the SQL the app runs (for learning or debugging), start with `SPRING_JPA_SHOW_SQL=true`
 
 ### Run on GitHub Codespaces
 
@@ -169,5 +170,9 @@ The database schema is managed by Flyway (`src/main/resources/db/migration`).
 | `users` | New employees / mid-career hires and administrators (role, password hash, personal link hash and expiry) |
 | `task_assignments` | Which task is assigned to which user, its status (未着手 / 対応中 / 完了), due date and completion time |
 
-Sample data (5 tasks, 3 users and their assignments) is inserted on the first start.
+Sample data (6 tasks, 3 users and their assignments) is inserted on the first start.
 Deleting a user or a task also deletes its assignments.
+E-mail addresses are unique regardless of case (`Taro@example.com` and `taro@example.com` are the same).
+
+If the app is pointed by mistake at a database that has other tables but no Flyway history,
+it stops with an error instead of changing that database (`baseline-on-migrate` is off).

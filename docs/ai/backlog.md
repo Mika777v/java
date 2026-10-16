@@ -1,7 +1,37 @@
 # バックログ(AI 向け)
 
-最終更新: 2026-10-16(要件定義書・設計書を追加)。
+最終更新: 2026-10-16(コードレビューの指摘を修正。残りをオーナー判断待ちとして記録)。
 完了したら行を「完了済み」へ移し、`docs/current-status.md` も更新してください。
+このファイルが **ロードマップ** を兼ねます。更新の手順は `.claude/skills/project-memory-manager/SKILL.md`。
+
+## ロードマップ(次にやることの推奨順)
+
+不具合・セキュリティ → オーナーが頼んだもの → 次の機能追加の邪魔になる技術的負債 → 未実装の機能、の順に並べています。
+
+| 順 | 項目 | なぜこの順か | 規模 |
+|---|---|---|---|
+| 1 | 技術的負債 D1: `TaskService` の導入 | 画面と API で同じ登録処理を 2 か所に書いている。機能を足す前に 1 か所にまとめると、以後の変更が楽になる | 小(2 クラス) |
+| 2 | 技術的負債 D2: `UserService` の導入(D6 も一緒に) | ユーザーの業務ルールが Controller に散らばっている。ユーザーの API やメール送信を作るなら先に必要 | 中 |
+| 3 | 未実装: 専用URLのメール送信 | 公開されたサーバーで使い始めるときに必要。SMTP の準備が前提 | 中 |
+| 4 | 技術的負債 D3〜D5 | 見た目・読みやすさの改善。急がない | 小 |
+
+不具合・セキュリティの問題は、今は見つかっていません(2026-10-16 時点)。
+
+## 技術的負債
+
+`spring-boot-architect` の `layer-check.sh` と `review-and-refactor` の `find-duplicates.py` で見つけたもの。
+詳しい直し方は `.claude/skills/review-and-refactor/refactoring-catalog.md`(R 番号)。
+
+| # | 種類 | 場所 | 困ること | 対応案 | 優先度 |
+|---|---|---|---|---|---|
+| D1 | レイヤー | `TaskPageController`, `TaskController` が `TaskRepository` を直接使う | 登録のルールが 2 か所にあり、片方だけ直すと画面と API で動きがずれる | `TaskService` を作る(R1) | 中 |
+| D2 | レイヤー | `UserPageController` が `UserRepository` を直接使い、業務ルール(メール重複・パスワード変更必須・専用URLの削除)も持つ | ユーザーの API などを作るときに、同じルールをもう一度書くことになる | `UserService` を作る(R2) | 中 |
+| D3 | 大きすぎるクラス | `UserPageController`(約 380 行) | どこを直せばよいか探しにくい | URL は変えずに、割り当て・専用URLの Controller に分ける(R3、D2 の後) | 低 |
+| D4 | 重複 | `my-page.html` と `user-detail.html` の割り当ての表 | 表示を変えるとき 2 か所直す | Thymeleaf の部品にする(R4) | 低 |
+| D5 | API | `TaskController` が Entity をそのまま JSON で返す(受け取りは `TaskRequest` に変更済み) | Entity に項目を足すと、意図せず API に出る | 出力も DTO にする。`createdAt` などを出すかはオーナーと相談(R5) | 低 |
+| D8 | 設定 | `spring.jpa.open-in-view` が既定の true(起動時に WARN) | 画面の表示中に気づかないまま DB を読む(N+1 の原因になりうる) | false にする。画面で関連を読む箇所を `@EntityGraph` で読んでおく必要があるので、全画面の確認とセットで(D2 と一緒に) | 低 |
+| D6 | レイヤー | `MyPageController` のパスワード変更が `UserRepository` を直接使う | D2 と同じ | D2 と一緒に `UserService` へ(R7) | 低 |
+| D7 | 性能 | `DashboardService` が全ユーザーを読んでから管理者を除く | 今の規模では問題なし | `findByRole(Role.MEMBER)`(R6) | 低 |
 
 ## 未実装の機能
 
@@ -22,6 +52,15 @@
 | 専用URLを無効化してもログイン中のセッションは残る | セッションが切れる(既定 30 分操作なし)かログアウトするまで使える。公開しない前提なので影響は小さく、**対応しない**(オーナー判断) |
 | Codespaces では新入社員が専用URLを開けない | ポート 8080 は初期設定で非公開。Public にするか、どこかのサーバーに置く必要がある |
 | Codespaces のホストネットワーク回避策 | Docker 29 のコンテナ間通信の問題が直れば `docker-compose.codespaces.yml` は不要になる |
+
+## オーナー判断待ち(コードレビューで指摘されたが、今回は直していないもの)
+
+| 指摘 | 確認した事実 | 直さなかった理由 |
+|---|---|---|
+| サンプルデータ(V2・V4・V9)が本番の DB にも入る | 新しい DB で起動すると、架空の 3 人・6 タスク・10 件の割り当てが入る(確認済み) | 本番で使うかどうか未定。分けるなら `db/sample/` + 開発用プロファイル。テストと Codespaces の前提が変わる大きな変更 |
+| タスクを削除すると、全員の割り当てと完了記録も消える | `DELETE /api/tasks/{id}` 1 回で消える(テスト `deleteRemovesTask` のとおり) | FR-04 の要件どおりの動き。履歴を残すなら「割り当てがあるタスクは削除不可(無効にする)」に仕様を変える必要がある |
+| 最初の管理者(`APP_ADMIN_PASSWORD`)にも初回のパスワード変更を求める | 今は変更を求めていない | Codespaces と CI のスモークテストのログイン手順が変わる。設計(design-diagrams.md 4.3)でも「通常」としている |
+| ユーザーの登録・更新を `UserService` に移す | Controller が Repository を直接呼んでいる | 技術的負債 D2 として記録済み。動きは変わらない整理なので別の PR で |
 
 ## 完了済み(主なもの)
 
@@ -54,3 +93,4 @@
 | タスクの説明欄の URL をリンクにする(SSO などへの案内用) | #28 |
 | テストのサンプルデータの件数・id を `SampleData` にまとめる(サンプルデータを変えたときの修正箇所を減らす) | #29 |
 | 要件定義書・設計書(人向け `docs/requirements.md` / `docs/design.md`、AI 向け `docs/ai/spec.md`)、図と定義表(`docs/design-diagrams.md`、spec.md 6.5 章に状態遷移の表) | #30 |
+| コードレビューの指摘の修正(削除・役割変更されたユーザーのログアウト、メールの大文字小文字の重複を DB でも拒否、二度押しで 500 にしない、API の PUT で `active` を省略しても今の値のまま・201 に Location、Flyway の baseline を既定 false、SQL のログを既定で出さない、DB ポートを localhost だけに、Docker を root 以外で実行・HEALTHCHECK、Actions の権限を読み取りだけに、最初の管理者のパスワードの長さチェック) | (第25版) |

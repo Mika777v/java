@@ -14,6 +14,7 @@
 
 ## Java
 
+- 新しいコードは Controller → Service → Repository の順に呼ぶ(Controller から Repository を直接呼ばない。既存の箇所は技術的負債として `backlog.md` に記録済み)
 - コンストラクタインジェクションを使う(`@Autowired` フィールドは本体コードでは使わない。テストでは可)
 - Lombok は使っていない。getter / setter は手で書く
 - コメントは「なぜそうするか」を短く書く。何をしているかが明らかなコードには書かない

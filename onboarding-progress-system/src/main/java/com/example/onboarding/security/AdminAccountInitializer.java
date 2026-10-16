@@ -27,6 +27,10 @@ public class AdminAccountInitializer implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(AdminAccountInitializer.class);
 
+    // Same rule as the password forms (BCrypt uses only the first 72 bytes)
+    private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final int MAX_PASSWORD_LENGTH = 72;
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final String email;
@@ -62,6 +66,11 @@ public class AdminAccountInitializer implements ApplicationRunner {
                     + "to create one on startup.");
             return;
         }
+        if (!hasValidLength(password)) {
+            log.error("No administrator was created: APP_ADMIN_PASSWORD must be {}-{} characters.",
+                    MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH);
+            return;
+        }
 
         User admin = userRepository.findByEmailIgnoreCase(email).orElseGet(() -> {
             User user = new User();
@@ -80,6 +89,11 @@ public class AdminAccountInitializer implements ApplicationRunner {
             log.warn("APP_ADMIN_PASSWORD_RESET is set, but APP_ADMIN_PASSWORD is empty: nothing was reset.");
             return;
         }
+        if (!hasValidLength(password)) {
+            log.error("APP_ADMIN_PASSWORD_RESET is set, but APP_ADMIN_PASSWORD must be {}-{} characters: "
+                    + "nothing was reset.", MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH);
+            return;
+        }
         userRepository.findByEmailIgnoreCase(email).ifPresentOrElse(user -> {
             if (!user.isAdmin()) {
                 log.warn("APP_ADMIN_PASSWORD_RESET is set, but {} is not an administrator: nothing was reset.", email);
@@ -91,5 +105,9 @@ public class AdminAccountInitializer implements ApplicationRunner {
             log.warn("The password of administrator {} was reset to APP_ADMIN_PASSWORD. Log in, change it, "
                     + "and then remove APP_ADMIN_PASSWORD_RESET (otherwise it is reset on every start).", email);
         }, () -> log.warn("APP_ADMIN_PASSWORD_RESET is set, but no user {} exists: nothing was reset.", email));
+    }
+
+    private static boolean hasValidLength(String password) {
+        return password.length() >= MIN_PASSWORD_LENGTH && password.length() <= MAX_PASSWORD_LENGTH;
     }
 }
