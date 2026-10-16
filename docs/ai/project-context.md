@@ -32,14 +32,15 @@
 
 ```
 /                                  … ルート(学習用リポジトリ。サブプロジェクトは 1 つ)
+├─ CLAUDE.md                       … Claude Code が自動で読む入口(docs/ai/ への案内)
 ├─ .devcontainer/                  … Codespaces 設定。起動時に start-app.sh がアプリを立ち上げる
+├─ .github/copilot-instructions.md … GitHub Copilot が自動で読む入口(docs/ai/ への案内)
 ├─ .github/workflows/
 │   ├─ onboarding-progress-system-ci.yml   … PR・master への push で実行(test ジョブ + smoke 呼び出し)
 │   └─ reusable-docker-smoke.yml           … Docker で起動して curl で画面・API を確認
 ├─ docs/
 │   ├─ current-status.md           … 人間向けの現状レポート(機能・画面・URL の一覧)
 │   └─ ai/                         … このフォルダ
-├─ wait-test.sh                    … 用途不明の残りファイル(backlog.md 参照)
 └─ onboarding-progress-system/     … アプリ本体(Maven プロジェクト。コマンドはここで実行)
     ├─ Dockerfile, docker-compose.yml, docker-compose.codespaces.yml
     └─ src/main/java/com/example/onboarding/…   … 詳細は architecture.md
