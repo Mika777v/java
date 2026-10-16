@@ -1,7 +1,7 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-16(第12版)
-- 対象: PR #17 までの内容に、自分のパスワード変更機能を加えた状態
+- 調査日: 2026-10-16(第13版)
+- 対象: PR #18 までの内容に、新入社員の専用URL(パスワードなしのログイン)を加えた状態
 - デフォルトブランチは `main` から `master` に変更されています
 - 対象プロジェクト: `onboarding-progress-system`(新入社員・中途入社者のオンボーディング進捗管理)
 - 調査方法: ソースコードの確認、自動テストの実行、アプリを実際に起動してブラウザで操作
@@ -24,7 +24,8 @@
 | #14 | Codespaces でアプリの準備ができてからブラウザを開く |
 | #15 | **ログイン機能**: 管理者 / 新入社員の役割、マイページ、権限のない画面は 403 |
 | #16, #17 | AI 向け開発メモ(`docs/ai/`、`CLAUDE.md`、`.github/copilot-instructions.md`)、不要な `wait-test.sh` の削除 |
-| (第12版) | **自分のパスワード変更**(`/me/password`)。管理者も新入社員も使える |
+| #18 | **自分のパスワード変更**(`/me/password`) |
+| (第13版) | **新入社員の専用URL**: 管理者が発行したリンクを開くだけでマイページへ。パスワードでのログインは設定(`APP_MEMBER_LOGIN`)で切り替え可能 |
 
 ---
 
@@ -67,6 +68,7 @@ java/
         │   │   ├── controller/
         │   │   │   ├── DashboardController.java      … ダッシュボード(トップページ。新入社員は /me へ)
         │   │   │   ├── LoginController.java          … ログイン画面
+        │   │   │   ├── JoinController.java           … 専用URL(/join/…)でのログイン
         │   │   │   ├── MyPageController.java         … マイページ(自分のタスク)
         │   │   │   ├── TaskController.java           … タスクの REST API(JSON)
         │   │   │   ├── TaskPageController.java       … タスクの画面
@@ -85,6 +87,7 @@ java/
         │   │   │   ├── UserRepository.java
         │   │   │   └── TaskAssignmentRepository.java
         │   │   ├── service/
+        │   │   │   ├── AccessLinkService.java        … 専用URLの発行・確認・無効化
         │   │   │   ├── AssignmentService.java        … 割り当てのルール
         │   │   │   ├── AssignmentException.java      … 割り当てできないときのエラー
         │   │   │   ├── Dashboard.java / DashboardService.java   … ダッシュボードの数字と一覧
@@ -94,6 +97,7 @@ java/
         │   │   ├── security/
         │   │   │   ├── SecurityConfig.java           … ログイン・権限の設定(どの画面を誰が開けるか)
         │   │   │   ├── AppUserDetails.java / AppUserDetailsService.java   … ログイン中のユーザー
+        │   │   │   ├── LoginSettings.java            … 新入社員のログイン方法(専用URL / パスワード)
         │   │   │   └── AdminAccountInitializer.java  … 最初の管理者を起動時に作成
         │   │   └── web/
         │   │       ├── DateTimeDisplay.java          … 画面用の日時表示・期限切れ判定
@@ -106,17 +110,18 @@ java/
         │       │   ├── V3__create_users_and_task_assignments.sql
         │       │   ├── V4__insert_sample_users_and_assignments.sql
         │       │   ├── V5__add_sort_order_to_tasks.sql
-        │       │   └── V6__add_login_to_users.sql
+        │       │   ├── V6__add_login_to_users.sql
+        │       │   └── V7__add_access_link_to_users.sql
         │       ├── static/css/app.css
         │       └── templates/
         │           ├── fragments/nav.html            … 共通メニュー・メッセージ表示
         │           ├── fragments/error.html          … エラー画面の共通部分
         │           ├── error/403.html / 404.html / 4xx.html / 5xx.html   … エラー画面
         │           ├── dashboard.html
-        │           ├── login.html / my-page.html / password-form.html
+        │           ├── login.html / my-page.html / password-form.html / join-invalid.html
         │           ├── tasks.html / task-form.html
         │           └── users.html / user-form.html / user-detail.html
-        └── test/java/com/example/onboarding/          … 自動テスト(130 件)
+        └── test/java/com/example/onboarding/          … 自動テスト(147 件)
 ```
 
 まだ存在しないもの:
@@ -136,14 +141,15 @@ java/
 | 進捗管理 | 割り当てごとに 未着手 / 対応中 / 完了 を変更。完了にすると完了日時を記録、戻すと消去 |
 | 進捗の確認 | ユーザー一覧に「完了数 / 割り当て数」と完了率のバー、期限切れ件数(赤いラベル)。詳細画面でも期限切れを表示 |
 | 絞り込み | ユーザー一覧を部署と進捗(未完了あり / 期限切れあり / すべて完了 / 未割り当て)で絞り込み。条件は URL に入るのでブックマーク可能 |
-| ログイン | メールアドレスとパスワードでログイン。管理者はすべての画面、新入社員はマイページだけ(12 章) |
+| ログイン | 管理者はメールアドレスとパスワード、新入社員は専用URL(または設定でパスワード)でログイン。管理者はすべての画面、新入社員はマイページだけ(12 章) |
+| 専用URL | 管理者がユーザー詳細画面で新入社員ごとのリンクを発行・再発行・無効化。有効期限 60 日 |
 | マイページ | 新入社員が自分のタスクの進捗を確認し、状態を変更する(`/me`) |
-| パスワード変更 | ログイン中の人が自分のパスワードを変更する(`/me/password`)。現在のパスワードの入力が必要 |
+| パスワード変更 | パスワードでログインする人が自分のパスワードを変更する(`/me/password`)。現在のパスワードの入力が必要 |
 | 共通メニュー | 全画面の上部にメニューとログイン中の名前・「ログアウト」。管理者は「ダッシュボード | タスク | ユーザー」、新入社員は「マイページ」 |
 | Codespaces | Codespace を開くと DB とアプリが自動で起動し、8080 番ポートが転送される |
 | サンプルデータ | タスク 5 件、ユーザー 3 人、割り当て 10 件(進み具合がばらばら) |
 | エラー画面 | 404・その他 4xx・5xx を日本語の画面で表示。API は JSON のまま |
-| 自動テスト | 130 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
+| 自動テスト | 147 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
 | CI | PR の作成・更新時と `master` へのマージ後に、自動テストと Docker での動作確認を実行 |
 
 ### 割り当てのルール
@@ -188,6 +194,8 @@ java/
 | `joined_on` | `DATE` | 可 | | 入社日 |
 | `password_hash` | `VARCHAR(100)` | 可 | | パスワード(BCrypt でハッシュ化。NULL ならログイン不可。V6) |
 | `role` | `VARCHAR(20)` | 不可 | `'MEMBER'` | `ADMIN`(管理者)/ `MEMBER`(新入社員)(`CHECK` 制約。V6) |
+| `access_token_hash` | `VARCHAR(64)` | 可 | | 専用URLの鍵の SHA-256 ハッシュ(`UNIQUE`。NULL なら未発行。V7) |
+| `access_token_expires_at` | `TIMESTAMPTZ` | 可 | | 専用URLの有効期限(V7) |
 | `created_at` / `updated_at` | `TIMESTAMPTZ` | 不可 | `now()` | 作成・更新日時 |
 
 ### `task_assignments`(割り当て・進捗)— V3
@@ -296,7 +304,8 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 | `GET` | `/` | ダッシュボード(新入社員は `/me` へ転送) |
 | `GET` | `/me` | マイページ(自分のタスク) |
 | `POST` | `/me/assignments/{aid}/status` | 自分のタスクの状態を変更(他人の割り当ては 404) |
-| `GET` | `/me/password` | パスワード変更画面(ログイン中なら誰でも) |
+| `GET` | `/join/{token}` | 専用URL。有効ならログインして `/me` へ。無効なら「このリンクは使えません」(404) |
+| `GET` | `/me/password` | パスワード変更画面(専用URLで入った新入社員は 404) |
 | `POST` | `/me/password` | パスワードを変更(現在のパスワード・新しいパスワード・確認用) |
 | `GET` | `/tasks` | タスク一覧(表示順) |
 | `GET` / `POST` | `/tasks/new` / `/tasks` | タスク登録 |
@@ -312,6 +321,8 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 | `POST` | `/users/{id}/assignments/all` | 有効なタスクをまとめて割り当て(`dueDate`) |
 | `POST` | `/users/{id}/assignments/{aid}/status` | 進捗の変更(`status`) |
 | `POST` | `/users/{id}/assignments/{aid}/delete` | 割り当て解除 |
+| `POST` | `/users/{id}/access-link` | 専用URLを発行・再発行(URL は次の画面に 1 回だけ表示) |
+| `POST` | `/users/{id}/access-link/delete` | 専用URLを無効化 |
 
 - 存在しないユーザー・タスク・割り当て、または別のユーザーの割り当てを指定した場合は 404(日本語のエラー画面。10 章)
 - 割り当てできない場合(未選択・重複・無効なタスク)は詳細画面に戻り、赤い枠でエラーを表示
@@ -355,8 +366,9 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 | 9 | Smoke test API | API(管理者の HTTP Basic)の登録・取得・削除、`/tasks` 画面、`/` のダッシュボード |
 | 10 | Smoke test screens | 画面からのタスク登録・入力エラー・編集・削除 |
 | 11 | Smoke test user screens | ユーザー一覧の進捗表示、詳細画面、タスクの割り当てと進捗への反映、期限切れでの絞り込み、日本語の 404 画面 |
-| 12 | Smoke test new employee login | 鈴木にパスワードを設定 → 鈴木でログイン → `/` から `/me` へ、`/tasks` は日本語の 403 画面 → 鈴木が自分のパスワードを変更 → 新しいパスワードでログインでき、古いパスワードでは失敗 |
-| 13〜14 | 後片付け | 失敗時のみ `docker compose logs`、最後に `docker compose down -v` |
+| 12 | Smoke test new employee personal link | 鈴木の専用URLを発行(1 回だけ表示)→ 開くと `/me` へ、`/tasks` は日本語の 403 画面 → でたらめな URL は 404 → 新入社員はパスワードではログインできない → 無効化すると開けない |
+| 13 | Smoke test administrator password change | 管理者が自分のパスワードを変更 → 新しいパスワードでログインでき、古いパスワードでは失敗 |
+| 14〜15 | 後片付け | 失敗時のみ `docker compose logs`、最後に `docker compose down -v` |
 
 使用しているアクション(すべて Node.js 24 で動作するバージョン):
 `actions/checkout@v5`、`actions/setup-java@v5`、`actions/upload-artifact@v6`、`docker/setup-buildx-action@v4`
@@ -377,7 +389,8 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 |---|---|---|
 | ログイン | `/login` | メールアドレス・パスワード。誤りがあると赤い枠で「メールアドレスまたはパスワードが正しくありません。」 |
 | マイページ(新入社員) | `/me` | 自分の進捗(バー・期限切れ件数)と、割り当てられたタスクの表。状態をプルダウンで変更 |
-| パスワード変更 | `/me/password` | 現在のパスワード・新しいパスワード(8 文字以上)・確認用。メニュー右側の「パスワード変更」から開く |
+| パスワード変更 | `/me/password` | 現在のパスワード・新しいパスワード(8 文字以上)・確認用。メニュー右側の「パスワード変更」から開く(専用URLで入った新入社員には表示しない) |
+| 専用URL(ユーザー詳細の下部) | `/users/{id}` | 「専用URLを発行」→ 黄色の枠に URL を 1 回だけ表示。発行済みなら有効期限、期限切れなら赤いラベル。「再発行」「無効にする」 |
 | ダッシュボード(管理者) | `/` | 下記 |
 | タスク一覧 | `/tasks` | タスクの表(表示順)、「新規登録」、各行の「↑」「↓」「編集」「削除」 |
 | タスク登録・編集 | `/tasks/new`, `/tasks/{id}/edit` | タイトル(必須)・説明・有効 |
@@ -521,8 +534,12 @@ URL: /users/999
 - 権限のない画面を開くと、日本語の 403 画面「このページを表示する権限がありません」(新入社員には「マイページへ」ボタン)
 - パスワードは BCrypt でハッシュ化して保存。パスワードが未設定のユーザーはログインできない
 - 最初の管理者は、管理者が 1 人もいないときに起動時に作成(`APP_ADMIN_EMAIL` / `APP_ADMIN_PASSWORD`)。コードにパスワードは書かない
-- 新入社員の初期パスワードは、管理者がユーザー登録・編集画面で設定(8 文字以上)
-- ログイン中の人は、メニュー右側の「パスワード変更」(`/me/password`)で自分のパスワードを変えられる。現在のパスワードの入力が必要で、新しいパスワードは 8〜72 文字・確認用と一致・現在と別のもの(第12版)
+- 新入社員のログイン方法は `APP_MEMBER_LOGIN` で切り替える(第13版):
+  - `link`(初期値): 管理者がユーザー詳細画面で専用URLを発行して本人に渡す。開くだけでログインし `/me` へ。URL は発行直後に 1 回だけ表示(DB には SHA-256 ハッシュだけを保存)。有効期限は `APP_ACCESS_LINK_VALID_DAYS`(初期値 60 日)。再発行すると古い URL は使えなくなる。無効化も可能。すでにログイン中の画面は、ログアウトするかセッションが切れるまで使える
+  - `password`: 新入社員の初期パスワードは、管理者がユーザー登録・編集画面で設定(8 文字以上)し、`/login` でログイン
+- 管理者はどちらの設定でもパスワードでログインする。管理者には専用URLを発行できない(新入社員を管理者に変えると専用URLは消える)
+- Codespaces のポート 8080 は初期設定では本人(GitHub にログインした持ち主)しか開けない。新入社員に専用URLを開いてもらうには、ポートを Public にする必要がある
+- パスワードでログインする人は、メニュー右側の「パスワード変更」(`/me/password`)で自分のパスワードを変えられる。現在のパスワードの入力が必要で、新しいパスワードは 8〜72 文字・確認用と一致・現在と別のもの(第12版)
 - 管理者は自分の役割を新入社員に変えたり、自分を削除したりできない(締め出し防止)
 - 画面のフォームは CSRF トークンで保護。REST API は HTTP Basic(管理者のみ)
 - ユーザー一覧には「役割」列と「(ログイン不可)」の表示。進捗の絞り込みとダッシュボードの人数は新入社員だけが対象

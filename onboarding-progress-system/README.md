@@ -45,7 +45,7 @@ Then open http://localhost:8080/ and log in as `admin@example.com` with `APP_ADM
 - Dashboard (top page, administrators): http://localhost:8080/
 - Task list page (reorder with ↑ / ↓): http://localhost:8080/tasks
 - User list and progress page: http://localhost:8080/users
-- My page (new employees): http://localhost:8080/me
+- My page (new employees, opened with their personal link): http://localhost:8080/me
 - API (administrators, HTTP Basic): `curl -u admin@example.com:<password> http://localhost:8080/api/tasks`
 - PostgreSQL: localhost:5432
 
@@ -68,6 +68,12 @@ What happens on start (`.devcontainer/start-app.sh`):
   The administrator login is printed at the end (`cat onboarding-progress-system/.env` shows it again).
 - `docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up -d --build` is run,
   then the script waits until the app answers (up to 5 minutes) and prints "Ready".
+- `APP_BASE_URL` is set to the codespace address, so personal links point to the codespace.
+
+Port 8080 of a codespace is **private** by default: only you (logged in to GitHub) can open it.
+To let new employees open their personal links, change the port visibility to **Public**
+in the Ports tab (anyone with the address can then reach the login page; administrator pages
+still need the password and personal links cannot be guessed).
   In Codespaces the app container cannot reach the `db` container over the compose network,
   so the override file runs the app on the host network and connects via `localhost:5432`.
 
@@ -101,6 +107,8 @@ mvn test
 | `controller/TaskOrderTest` | Task display order (↑ / ↓, new tasks at the end, order of assignments) |
 | `controller/DashboardTest` | Dashboard numbers, follow-up users, tasks due within 7 days |
 | `controller/SecurityTest` | Login, logout, who can open which page, my page, passwords and roles |
+| `controller/AccessLinkTest` | Personal links: issuing (shown once, hash only), logging in, expiry, reissue, revoke, no password login for new employees |
+| `controller/AccessLinkBaseUrlTest` | Personal links use `app.base-url` when it is set |
 | `controller/PasswordChangeTest` | Changing one's own password (`/me/password`): checks, login with the new password |
 | `form/TaskFormTest` | `TaskForm` conversion (trimming the title, blank description to null) |
 | `entity/TaskAssignmentTest` | Progress rules (completion time, overdue check) |
@@ -113,15 +121,23 @@ mvn test
 | 管理者 (`ADMIN`) | Everything: dashboard, tasks, users, assignments, REST API | `/` (dashboard) |
 | 新入社員 (`MEMBER`) | See their own tasks and change their status | `/me` (my page) |
 
-- Log in on `/login` with the email address and password. Passwords are stored as BCrypt hashes.
+- **Administrators** log in on `/login` with the email address and password. Passwords are stored as BCrypt hashes.
 - **First administrator**: created on startup when no administrator exists, from
   `APP_ADMIN_EMAIL` (default `admin@example.com`) and `APP_ADMIN_PASSWORD`. Nothing is created
   without `APP_ADMIN_PASSWORD`, and an existing administrator is never overwritten.
-- **New employees**: an administrator sets the initial password on the user registration / edit
-  screen (8 characters or more). Users without a password cannot log in; the sample users
-  (山田, 佐藤, 鈴木) have no password at first.
-- **Own password**: every logged-in user can change their own password on `/me/password`
+- **New employees** log in in one of two ways, chosen with `APP_MEMBER_LOGIN`:
+  - `link` (default): no password. An administrator issues a **personal link** on the user
+    detail page (専用URL → 発行) and gives it to the employee. Opening it logs them in and shows `/me`.
+    The link is shown only once (only a hash is stored), expires after `APP_ACCESS_LINK_VALID_DAYS`
+    days (default 60), and can be reissued (the old one stops working) or revoked at any time.
+    A session that is already logged in stays until it times out or the employee logs out.
+  - `password`: an administrator sets the initial password on the user registration / edit
+    screen (8 characters or more), and the employee logs in on `/login`.
+  Users without a password (or link) cannot log in; the sample users (山田, 佐藤, 鈴木) have neither at first.
+- **Own password**: users who log in with a password can change it on `/me/password`
   (link "パスワード変更" in the menu). The current password is required.
+- `APP_BASE_URL` (e.g. `https://onboarding.example.com`) sets the address shown in personal links;
+  when empty, the address the administrator's browser used is shown.
 - An administrator cannot remove their own administrator role or delete themselves.
 - Forms are protected against CSRF. The REST API uses HTTP Basic and is for administrators only.
 
@@ -132,7 +148,7 @@ The database schema is managed by Flyway (`src/main/resources/db/migration`).
 | Table | Contents |
 |---|---|
 | `tasks` | Onboarding tasks shared by everyone (the template list) |
-| `users` | New employees / mid-career hires and administrators (role, password hash) |
+| `users` | New employees / mid-career hires and administrators (role, password hash, personal link hash and expiry) |
 | `task_assignments` | Which task is assigned to which user, its status (未着手 / 対応中 / 完了), due date and completion time |
 
 Sample data (5 tasks, 3 users and their assignments) is inserted on the first start.

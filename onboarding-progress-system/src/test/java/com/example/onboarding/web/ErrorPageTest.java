@@ -34,7 +34,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * (MockMvc does not go through the error page mechanism).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {"app.admin.email=" + ErrorPageTest.ADMIN_EMAIL, "app.admin.password=" + ErrorPageTest.ADMIN_PASSWORD})
+        properties = {"app.admin.email=" + ErrorPageTest.ADMIN_EMAIL, "app.admin.password=" + ErrorPageTest.ADMIN_PASSWORD,
+                "app.member-login=password"})
 @Import({TestcontainersConfiguration.class, TestClockConfiguration.class, ErrorPageTest.FailingPageConfiguration.class})
 class ErrorPageTest {
 

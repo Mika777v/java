@@ -6,6 +6,7 @@ import com.example.onboarding.entity.User;
 import com.example.onboarding.form.PasswordChangeForm;
 import com.example.onboarding.repository.UserRepository;
 import com.example.onboarding.security.AppUserDetails;
+import com.example.onboarding.security.LoginSettings;
 import com.example.onboarding.service.AssignmentService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -34,13 +35,16 @@ public class MyPageController {
     private final UserRepository userRepository;
     private final AssignmentService assignmentService;
     private final PasswordEncoder passwordEncoder;
+    private final LoginSettings loginSettings;
 
     public MyPageController(UserRepository userRepository,
                             AssignmentService assignmentService,
-                            PasswordEncoder passwordEncoder) {
+                            PasswordEncoder passwordEncoder,
+                            LoginSettings loginSettings) {
         this.userRepository = userRepository;
         this.assignmentService = assignmentService;
         this.passwordEncoder = passwordEncoder;
+        this.loginSettings = loginSettings;
     }
 
     @GetMapping("/me")
@@ -72,7 +76,8 @@ public class MyPageController {
     }
 
     @GetMapping("/me/password")
-    public String passwordForm(Model model) {
+    public String passwordForm(@AuthenticationPrincipal AppUserDetails me, Model model) {
+        checkUsesPassword(currentUser(me));
         model.addAttribute("passwordForm", new PasswordChangeForm());
         return "password-form";
     }
@@ -83,6 +88,7 @@ public class MyPageController {
                                  BindingResult bindingResult,
                                  RedirectAttributes redirectAttributes) {
         User user = currentUser(me);
+        checkUsesPassword(user);
         // The current password is asked again, so that someone else cannot change it on a computer left logged in
         if (!bindingResult.hasFieldErrors("currentPassword")
                 && !passwordEncoder.matches(form.getCurrentPassword(), user.getPasswordHash())) {
@@ -106,6 +112,13 @@ public class MyPageController {
 
         redirectAttributes.addFlashAttribute("message", "パスワードを変更しました。");
         return user.isAdmin() ? "redirect:/" : "redirect:/me";
+    }
+
+    /** New employees who log in with personal links have no password to change. */
+    private void checkUsesPassword(User user) {
+        if (!user.isAdmin() && loginSettings.isLinkMode()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Password is not used");
+        }
     }
 
     private User currentUser(AppUserDetails me) {

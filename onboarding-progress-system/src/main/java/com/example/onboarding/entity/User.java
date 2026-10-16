@@ -32,6 +32,13 @@ public class User {
     @Column(nullable = false, length = 20)
     private Role role = Role.MEMBER;
 
+    /** SHA-256 hash of the personal link token (/join/{token}). null means no link. */
+    @Column(name = "access_token_hash", length = 64)
+    private String accessTokenHash;
+
+    @Column(name = "access_token_expires_at")
+    private Instant accessTokenExpiresAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -116,6 +123,32 @@ public class User {
 
     public boolean isAdmin() {
         return role == Role.ADMIN;
+    }
+
+    public String getAccessTokenHash() {
+        return accessTokenHash;
+    }
+
+    public Instant getAccessTokenExpiresAt() {
+        return accessTokenExpiresAt;
+    }
+
+    public void setAccessLink(String tokenHash, Instant expiresAt) {
+        this.accessTokenHash = tokenHash;
+        this.accessTokenExpiresAt = expiresAt;
+    }
+
+    public void clearAccessLink() {
+        setAccessLink(null, null);
+    }
+
+    public boolean hasAccessLink() {
+        return accessTokenHash != null;
+    }
+
+    /** True when a personal link exists and has not expired yet. */
+    public boolean hasValidAccessLink(Instant now) {
+        return accessTokenHash != null && accessTokenExpiresAt != null && now.isBefore(accessTokenExpiresAt);
     }
 
     public Instant getCreatedAt() {

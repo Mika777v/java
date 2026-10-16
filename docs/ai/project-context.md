@@ -12,7 +12,7 @@
 | 役割 | できること |
 |---|---|
 | 管理者(`ADMIN`) | ダッシュボード、タスクの登録・並べ替え、ユーザー登録、タスクの割り当て、進捗の変更、REST API |
-| 新入社員(`MEMBER`) | マイページ(`/me`)で自分のタスクの状態を変更するだけ |
+| 新入社員(`MEMBER`) | マイページ(`/me`)で自分のタスクの状態を変更するだけ。管理者が発行した **専用URL** を開いてログインする(パスワードなし。設定でパスワード方式にも切り替え可) |
 
 画面の文言・メッセージはすべて日本語です。コード中の識別子とコメントは英語です。
 
@@ -87,6 +87,9 @@ Codespaces では `.devcontainer/start-app.sh` が自動で起動し、`.env`(gi
 | `APP_ADMIN_PASSWORD` | Docker 起動時は必須 | 管理者が 1 人もいないとき、起動時に作る管理者のパスワード |
 | `APP_ADMIN_EMAIL` | 任意 | 上記管理者のメールアドレス(既定 `admin@example.com`) |
 | `APP_ADMIN_NAME` | 任意 | 上記管理者の名前(既定 `管理者`) |
+| `APP_MEMBER_LOGIN` | 任意 | 新入社員のログイン方法。`link`(既定。専用URL)または `password` |
+| `APP_ACCESS_LINK_VALID_DAYS` | 任意 | 専用URLの有効日数(既定 60) |
+| `APP_BASE_URL` | 任意 | 専用URLに表示するアプリのアドレス。空なら管理者のブラウザが使ったアドレス。Codespaces では start-app.sh が自動設定 |
 | `APP_TIME_ZONE` | 任意 | 「今日」や完了日時の表示に使うタイムゾーン(既定 `Asia/Tokyo`) |
 | `SPRING_DATASOURCE_URL` | 任意 | 既定 `jdbc:postgresql://localhost:5432/onboarding_db` |
 

@@ -17,4 +17,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByRole(Role role);
 
     long countByRole(Role role);
+
+    Optional<User> findByAccessTokenHash(String accessTokenHash);
 }

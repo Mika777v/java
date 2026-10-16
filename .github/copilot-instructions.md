@@ -13,6 +13,7 @@ Java 21 / Spring Boot 3.3 / Thymeleaf / Spring Security / Spring Data JPA / Post
 - 画面の入力は `form/` のクラスで受ける(Entity に直接バインドしない)。更新は POST + リダイレクト、結果は flash 属性 `message` / `error`
 - 新しい画面は、何もしなければ管理者(`ADMIN`)専用になる。新入社員向けは `/me/**` の下に作る
 - 新入社員が触るデータは、ログイン中のユーザーのものかをクエリ条件で確認する(例: `findByIdAndUserId`)
+- 新入社員は既定で専用URL(`/join/{token}`、`AccessLinkService`)でログインし、パスワードは使わない(`app.member-login=password` で切り替え)。管理者は常にパスワード
 - パスワード・認証情報をコード・テスト・ログに書かない。パスワードは `PasswordEncoder`(BCrypt)でハッシュ化する
 
 ## データベース

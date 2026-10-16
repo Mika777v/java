@@ -31,7 +31,8 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | `config` | `TimeConfig` | `Clock` Bean(`app.time-zone`)。「今日」は必ずこの `Clock` から取る |
 | `controller` | `DashboardController` | `GET /`。新入社員は `/me` へリダイレクト |
 | | `LoginController` | `GET /login` |
-| | `MyPageController` | `/me`、自分の割り当ての状態変更(他人の割り当ては 404)、自分のパスワード変更(`/me/password`) |
+| | `JoinController` | `GET /join/{token}`。専用URLが有効ならログイン状態にして `/me` へ。無効なら `join-invalid.html`(404) |
+| | `MyPageController` | `/me`、自分の割り当ての状態変更(他人の割り当ては 404)、自分のパスワード変更(`/me/password`。専用URL方式の新入社員は 404) |
 | | `TaskController` | REST API `/api/tasks`(JSON) |
 | | `TaskPageController` | `/tasks` 画面の CRUD と並べ替え(↑↓) |
 | | `UserPageController` | `/users` 画面の CRUD、絞り込み、詳細、割り当て、状態変更 |
@@ -44,9 +45,11 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | | `UserRepository` | メールの重複確認(大文字小文字を区別しない)、役割での存在確認 |
 | | `TaskAssignmentRepository` | ユーザーごとの集計 `countProgressByUser`、状態ごとの件数、期限が近い割り当て |
 | `security` | `SecurityConfig` | 2 つの `SecurityFilterChain`(下記) |
-| | `AppUserDetails`, `AppUserDetailsService` | ログインユーザー(`userId`, `displayName` を持つ)。パスワード未設定のユーザーはログイン不可 |
+| | `AppUserDetails`, `AppUserDetailsService` | ログインユーザー(`userId`, `displayName` を持つ)。パスワード未設定のユーザーはログイン不可。専用URL方式では、パスワードでログインできるのは管理者だけ |
+| | `LoginSettings` | `@Component("loginSettings")`。新入社員のログイン方法(`app.member-login` = `link` / `password`)。テンプレートでは `${@loginSettings.linkMode}` |
 | | `AdminAccountInitializer` | 起動時、管理者が 0 人なら `APP_ADMIN_*` で作成(既存ユーザーなら昇格) |
-| `service` | `AssignmentService` | 割り当て・進捗のルール。失敗は `AssignmentException`(日本語メッセージ)を投げる |
+| `service` | `AccessLinkService` | 専用URLの発行(32 バイトの乱数 → URL 用 43 文字。DB には SHA-256 だけ保存)・確認(期限内か)・無効化 |
+| | `AssignmentService` | 割り当て・進捗のルール。失敗は `AssignmentException`(日本語メッセージ)を投げる |
 | | `TaskOrderService` | 並び順。`move()` で全タスクを 10 刻みに振り直す |
 | | `DashboardService`, `Dashboard` | ダッシュボード用の集計(管理者は対象外、期限が近い = 今日から 7 日) |
 | | `UserProgress`, `ProgressFilter` | 進捗(合計・完了・期限切れ・完了率)と一覧の絞り込み条件 |
@@ -58,12 +61,15 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | 対象 | 認証方式 | 権限 | CSRF |
 |---|---|---|---|
 | `/api/**`(`@Order(1)`) | HTTP Basic(`curl -u email:password`) | `ADMIN` のみ | 無効(セッションなし) |
-| `/login`, `/css/**`, `/error`, `/favicon.ico` | — | 誰でも | — |
+| `/login`, `/join/**`, `/css/**`, `/error`, `/favicon.ico` | — | 誰でも | — |
 | `/`, `/me`, `/me/**` | フォームログイン | ログイン済みなら誰でも | 有効 |
 | それ以外すべて | フォームログイン | `ADMIN` のみ | 有効 |
 
 - 新しい画面を追加すると、**何もしなければ管理者専用** になる(`anyRequest().hasRole("ADMIN")`)
 - 新入社員向けの画面を増やすときは `/me/**` の下に作るのが一番簡単
+- 新入社員のログインは、専用URL(既定)かパスワードか(`app.member-login`)。管理者は常にパスワード。
+  専用URLでのログインは `JoinController` が SecurityContext を自分でセッションに保存している(セッション ID も変更)
+- 専用URLを無効化しても、すでにログイン中のセッションはログアウトかタイムアウトまで有効
 - テンプレートでは `sec:authorize="hasRole('ADMIN')"` で表示を切り替える
 - 管理者は自分を新入社員に変更したり、自分を削除したりできない(`UserPageController` でチェック)
 
@@ -74,6 +80,7 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | メソッド | URL | 権限 | 内容 |
 |---|---|---|---|
 | GET | `/login` | 誰でも | ログイン画面(`POST /login` は Spring Security が処理) |
+| GET | `/join/{token}` | 誰でも | 専用URLでログイン → `/me`。`password` 方式では 404 |
 | POST | `/logout` | ログイン済み | ログアウト → `/login?logout` |
 | GET | `/` | ログイン済み | 管理者: ダッシュボード / 新入社員: `/me` へ |
 | GET | `/me` | ログイン済み | マイページ |
@@ -89,6 +96,8 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | POST | `/users/{id}/assignments/all` | ADMIN | 有効なタスクをすべて割り当て |
 | POST | `/users/{id}/assignments/{aid}/status` | ADMIN | 状態変更 |
 | POST | `/users/{id}/assignments/{aid}/delete` | ADMIN | 割り当て解除 |
+| POST | `/users/{id}/access-link` | ADMIN | 専用URLを発行・再発行(flash 属性 `accessLink` で次の画面に 1 回だけ表示)。`password` 方式では 404 |
+| POST | `/users/{id}/access-link/delete` | ADMIN | 専用URLを無効化 |
 
 画面の更新系はすべて **POST + リダイレクト**(PRG パターン)。結果は flash 属性 `message`(成功)/ `error`(失敗)で
 次の画面に渡し、`fragments/nav :: messages` が表示する。PUT / DELETE は画面では使わない。
@@ -121,6 +130,7 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | `fragments/error.html` | エラー画面の本文(権限に応じたボタン) |
 | `login.html`, `my-page.html`, `dashboard.html` | ログイン、マイページ、ダッシュボード |
 | `password-form.html` | 自分のパスワード変更 |
+| `join-invalid.html` | 専用URLが無効(期限切れ・再発行済み・無効化)のときの画面 |
 | `tasks.html`, `task-form.html` | タスク一覧、登録・編集(共用) |
 | `users.html`, `user-form.html`, `user-detail.html` | ユーザー一覧、登録・編集(共用)、詳細 |
 | `error/*.html` | エラー画面 |

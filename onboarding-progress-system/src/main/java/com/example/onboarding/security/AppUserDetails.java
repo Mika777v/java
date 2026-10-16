@@ -14,7 +14,8 @@ public class AppUserDetails extends org.springframework.security.core.userdetail
     private final String displayName;
 
     public AppUserDetails(User user) {
-        super(user.getEmail(), user.getPasswordHash(),
+        // Users who log in with their personal link may have no password
+        super(user.getEmail(), user.getPasswordHash() == null ? "" : user.getPasswordHash(),
                 List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())));
         this.userId = user.getId();
         this.displayName = user.getName();

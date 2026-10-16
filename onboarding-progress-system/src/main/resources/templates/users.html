@@ -62,7 +62,7 @@
         <td th:text="${user.joinedOn}">2026-04-01</td>
         <td>
             <span th:text="${user.role.label}">新入社員</span>
-            <span class="muted small" th:unless="${user.loginEnabled}">(ログイン不可)</span>
+            <span class="muted small" th:unless="${@loginSettings.canLogIn(user)}">(ログイン不可)</span>
         </td>
         <td class="progress-cell">
             <span th:if="${user.admin}" class="muted">-</span>

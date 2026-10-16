@@ -14,6 +14,7 @@
 | `V4__insert_sample_users_and_assignments.sql` | サンプルユーザー 3 人と割り当て 10 件 |
 | `V5__add_sort_order_to_tasks.sql` | `tasks.sort_order` 追加(既存は `id * 10`) |
 | `V6__add_login_to_users.sql` | `users.password_hash`, `users.role` 追加 |
+| `V7__add_access_link_to_users.sql` | `users.access_token_hash`, `users.access_token_expires_at` 追加(専用URL) |
 
 ### マイグレーションのルール
 
@@ -49,6 +50,8 @@
 | `joined_on` | DATE | | |
 | `password_hash` | VARCHAR(100) | | BCrypt。NULL = ログインできない |
 | `role` | VARCHAR(20) | NOT NULL DEFAULT 'MEMBER', CHECK IN ('ADMIN','MEMBER') | |
+| `access_token_hash` | VARCHAR(64) | UNIQUE | 専用URLの鍵の SHA-256(16 進)。NULL = 未発行。鍵そのものは保存しない |
+| `access_token_expires_at` | TIMESTAMPTZ | | 専用URLの有効期限 |
 | `created_at`, `updated_at` | TIMESTAMPTZ | NOT NULL | |
 
 ### `task_assignments`(誰にどのタスクを割り当てたか、と進捗)
@@ -93,7 +96,7 @@
 | 2 | 佐藤 花子 | 営業部 | 2026-04-01 | 1,2 完了、3 対応中、4 未着手(2/4)。3,4 は期限 2026-04-10 で **期限切れ** |
 | 3 | 鈴木 一郎 | 開発部 | 2026-10-01 | 1 対応中(期限 10-20)、2 未着手(期限 10-31)(0/2)。3,4 は未割り当て |
 
-- 3 人とも役割は `MEMBER`、パスワードなし(ログイン不可)
+- 3 人とも役割は `MEMBER`、パスワードも専用URLもなし(ログイン不可)
 - 管理者は起動時に `AdminAccountInitializer` が作る(id は 4 以降。テストでは作られない場合がある)
 - テストの「今日」は `TestClockConfiguration` で **2026-10-15** に固定
 
