@@ -1,6 +1,6 @@
 # バックログ(AI 向け)
 
-最終更新: 2026-10-16(コードレビューの指摘を修正。残りをオーナー判断待ちとして記録)。
+最終更新: 2026-10-16(Codespaces の土台を軽いイメージに変更)。
 完了したら行を「完了済み」へ移し、`docs/current-status.md` も更新してください。
 このファイルが **ロードマップ** を兼ねます。更新の手順は `.claude/skills/project-memory-manager/SKILL.md`。
 
@@ -93,4 +93,5 @@
 | タスクの説明欄の URL をリンクにする(SSO などへの案内用) | #28 |
 | テストのサンプルデータの件数・id を `SampleData` にまとめる(サンプルデータを変えたときの修正箇所を減らす) | #29 |
 | 要件定義書・設計書(人向け `docs/requirements.md` / `docs/design.md`、AI 向け `docs/ai/spec.md`)、図と定義表(`docs/design-diagrams.md`、spec.md 6.5 章に状態遷移の表) | #30 |
-| コードレビューの指摘の修正(削除・役割変更されたユーザーのログアウト、メールの大文字小文字の重複を DB でも拒否、二度押しで 500 にしない、API の PUT で `active` を省略しても今の値のまま・201 に Location、Flyway の baseline を既定 false、SQL のログを既定で出さない、DB ポートを localhost だけに、Docker を root 以外で実行・HEALTHCHECK、Actions の権限を読み取りだけに、最初の管理者のパスワードの長さチェック) | (第25版) |
+| コードレビューの指摘の修正(削除・役割変更されたユーザーのログアウト、メールの大文字小文字の重複を DB でも拒否、二度押しで 500 にしない、API の PUT で `active` を省略しても今の値のまま・201 に Location、Flyway の baseline を既定 false、SQL のログを既定で出さない、DB ポートを localhost だけに、Docker を root 以外で実行・HEALTHCHECK、Actions の権限を読み取りだけに、最初の管理者のパスワードの長さチェック) | #31 |
+| Codespaces の土台を `universal:2` から `devcontainers/java:1-21-bookworm` + Maven・Docker に変更(準備が終わらず開けなくなったため) | (第26版) |

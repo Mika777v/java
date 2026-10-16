@@ -5,8 +5,19 @@
   // actually listening, so the page is never opened while the app is starting.
   "name": "onboarding-progress-system",
 
-  // Default Codespaces image: includes Java 21, Maven and Docker
-  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  // Java 21 only (about 2 GB). The former "universal" image includes many languages and is
+  // over 10 GB, which made the codespace slow to build (and sometimes it never finished).
+  "image": "mcr.microsoft.com/devcontainers/java:1-21-bookworm",
+
+  // Added on top of the image: Maven (for building and testing from the terminal)
+  // and Docker (to run the DB and the app with Docker Compose)
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "none",
+      "installMaven": "true"
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
 
   "portsAttributes": {
     "8080": {

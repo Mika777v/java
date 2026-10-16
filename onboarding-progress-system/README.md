@@ -59,7 +59,8 @@ codespace **the DB and the app start automatically**:
 
 1. Create a codespace (Code → Codespaces → Create codespace on master).
    For an existing codespace, run "Codespaces: Rebuild Container" once from the command palette.
-2. Wait 2-3 minutes for the first build. When the app is ready, port 8080 is
+2. Wait for the first build (a few minutes: the codespace uses a Java 21 image with Maven and
+   Docker added, not the large "universal" image). When the app is ready, port 8080 is
    forwarded and the dashboard opens in the browser automatically.
 3. If the browser does not open, open port 8080 from the **Ports** tab
    (the globe icon). If you see 401 or 502, wait a moment and open it again from the Ports tab.
