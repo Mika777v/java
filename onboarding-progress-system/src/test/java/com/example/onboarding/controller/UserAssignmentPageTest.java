@@ -31,8 +31,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Tests for the user detail screen: assigning tasks and changing their progress.
- * Sample data: 鈴木 (user 3) has tasks 1 (対応中) and 2 (未着手); tasks 3 and 4 are not assigned to him.
- * Task 5 is inactive.
+ * Sample data: 鈴木 (user 3) has tasks 1 (対応中) and 2 (未着手); tasks 3, 4 and 6 are not assigned to him.
+ * Task 5 is inactive. Task 6 is the sample task with a link (V9), not assigned to anyone.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -61,10 +61,10 @@ class UserAssignmentPageTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("user-detail"))
                 .andExpect(model().attribute("assignments", hasSize(2)))
-                .andExpect(model().attribute("assignableTasks", hasSize(2)))
+                .andExpect(model().attribute("assignableTasks", hasSize(3)))
                 .andExpect(content().string(containsString("鈴木 一郎 さんの進捗")))
                 .andExpect(content().string(containsString("0 / 2 完了(0%)")))
-                .andExpect(content().string(containsString("有効なタスクをすべて割り当てる(2件)")));
+                .andExpect(content().string(containsString("有効なタスクをすべて割り当てる(3件)")));
     }
 
     @Test
@@ -121,16 +121,18 @@ class UserAssignmentPageTest {
     void assignAllAddsEveryActiveTaskNotYetAssigned() throws Exception {
         mockMvc.perform(post("/users/3/assignments/all").param("dueDate", "2026-11-30"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(flash().attribute("message", "2件のタスクを割り当てました。"));
+                .andExpect(flash().attribute("message", "3件のタスクを割り当てました。"));
 
         List<TaskAssignment> assignments = assignmentsOf(SUZUKI);
-        assertThat(assignments).extracting(a -> a.getTask().getId()).containsExactly(1L, 2L, 3L, 4L);
-        assertThat(assignments.get(3).getDueDate()).isEqualTo(LocalDate.of(2026, 11, 30));
+        assertThat(assignments).extracting(a -> a.getTask().getId()).containsExactly(1L, 2L, 3L, 4L, 6L);
+        assertThat(assignments.get(4).getDueDate()).isEqualTo(LocalDate.of(2026, 11, 30));
     }
 
     @Test
     void assignAllShowsErrorWhenNothingIsLeft() throws Exception {
-        // 山田 (user 1) already has every active task
+        // 山田 (user 1) has every active task except the sample task 6; after assigning it, nothing is left
+        mockMvc.perform(post("/users/1/assignments").param("taskId", "6"))
+                .andExpect(status().is3xxRedirection());
         mockMvc.perform(post("/users/1/assignments/all"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("error", "割り当てられる有効なタスクはありません。"));

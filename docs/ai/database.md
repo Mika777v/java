@@ -16,6 +16,7 @@
 | `V6__add_login_to_users.sql` | `users.password_hash`, `users.role` 追加 |
 | `V7__add_access_link_to_users.sql` | `users.access_token_hash`, `users.access_token_expires_at` 追加(専用URL) |
 | `V8__add_password_change_required_to_users.sql` | `users.password_change_required` 追加(初回ログイン時のパスワード変更) |
+| `V9__insert_sample_link_task.sql` | サンプルタスク「Google を開く(リンクの確認用)」を一覧の最後に追加(誰にも割り当てない) |
 
 ### マイグレーションのルール
 
@@ -80,7 +81,7 @@
 | ユーザー・タスクを削除すると割り当ても消える | DB の `ON DELETE CASCADE` |
 | 管理者は進捗の集計・絞り込み・ダッシュボードの人数に含めない | `UserPageController`, `DashboardService` |
 
-## サンプルデータ(V2・V4)
+## サンプルデータ(V2・V4・V9)
 
 テストはこのデータを前提に書かれています。**値を変えるとテストが壊れます**(変えるなら新しいマイグレーションで)。
 
@@ -91,6 +92,7 @@
 | 3 | 就業規則の確認 | true |
 | 4 | チームメンバーとの顔合わせ | true |
 | 5 | 旧オリエンテーション資料の確認 | **false** |
+| 6 | サンプル: Google を開く(リンクの確認用)— V9。説明に `https://www.google.com/` | true(誰にも割り当てなし) |
 
 | ユーザー id | 氏名 | 部署 | 入社日 | 割り当て |
 |---|---|---|---|---|
