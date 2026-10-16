@@ -59,8 +59,9 @@ jobs:
       - name: Wait for app to be ready
         run: |
           cd "${{ inputs.project_dir }}"
+          # The health check answers {"status":"UP"} when the app and its database connection work
           for i in {1..36}; do
-            if curl -sf -o /dev/null http://localhost:8080/login; then
+            if curl -sf http://localhost:8080/actuator/health | grep -q '"status":"UP"'; then
               echo "App is ready"
               exit 0
             fi

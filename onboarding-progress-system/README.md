@@ -47,6 +47,8 @@ Then open http://localhost:8080/ and log in as `admin@example.com` with `APP_ADM
 - User list and progress page: http://localhost:8080/users
 - My page (new employees, opened with their personal link): http://localhost:8080/me
 - API (administrators, HTTP Basic): `curl -u admin@example.com:<password> http://localhost:8080/api/tasks`
+- Health check (no login): http://localhost:8080/actuator/health → `{"status":"UP"}`
+  (`DOWN` with HTTP 503 when, for example, the database cannot be reached)
 - PostgreSQL: localhost:5432
 
 ### Run on GitHub Codespaces
@@ -108,6 +110,7 @@ mvn test
 | `controller/DashboardTest` | Dashboard numbers, follow-up users, tasks due within 7 days |
 | `controller/SecurityTest` | Login, logout, who can open which page, my page, passwords and roles |
 | `controller/FirstLoginPasswordChangeTest` | Password set by an administrator must be changed first (redirects, API 403, unlock after change) |
+| `web/HealthCheckTest` | Health check is open and shows only UP / DOWN; other actuator endpoints are not published |
 | `controller/AccessLinkTest` | Personal links: issuing (shown once, hash only), logging in, expiry, reissue, revoke, no password login for new employees |
 | `controller/AccessLinkBaseUrlTest` | Personal links use `app.base-url` when it is set |
 | `controller/PasswordChangeTest` | Changing one's own password (`/me/password`): checks, login with the new password |

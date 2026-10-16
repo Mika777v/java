@@ -1,7 +1,7 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-16(第14版)
-- 対象: PR #19 までの内容に、初回ログイン時のパスワード変更を加えた状態
+- 調査日: 2026-10-16(第15版)
+- 対象: PR #20 までの内容に、ヘルスチェック(`/actuator/health`)を加えた状態
 - デフォルトブランチは `main` から `master` に変更されています
 - 対象プロジェクト: `onboarding-progress-system`(新入社員・中途入社者のオンボーディング進捗管理)
 - 調査方法: ソースコードの確認、自動テストの実行、アプリを実際に起動してブラウザで操作
@@ -26,7 +26,8 @@
 | #16, #17 | AI 向け開発メモ(`docs/ai/`、`CLAUDE.md`、`.github/copilot-instructions.md`)、不要な `wait-test.sh` の削除 |
 | #18 | **自分のパスワード変更**(`/me/password`) |
 | #19 | **新入社員の専用URL**: 管理者が発行したリンクを開くだけでマイページへ。パスワードでのログインは設定(`APP_MEMBER_LOGIN`)で切り替え可能 |
-| (第14版) | **初回ログイン時のパスワード変更**: 管理者がほかの人に設定したパスワードは、本人が最初に変更するまで他の画面を開けない |
+| #20 | **初回ログイン時のパスワード変更**: 管理者がほかの人に設定したパスワードは、本人が最初に変更するまで他の画面を開けない |
+| (第15版) | **ヘルスチェック**: `/actuator/health` で稼働状態(DB 接続を含む)を確認。CI と Codespaces の起動待ちに使用 |
 
 ---
 
@@ -123,7 +124,7 @@ java/
         │           ├── login.html / my-page.html / password-form.html / join-invalid.html
         │           ├── tasks.html / task-form.html
         │           └── users.html / user-form.html / user-detail.html
-        └── test/java/com/example/onboarding/          … 自動テスト(156 件)
+        └── test/java/com/example/onboarding/          … 自動テスト(159 件)
 ```
 
 まだ存在しないもの:
@@ -151,7 +152,7 @@ java/
 | Codespaces | Codespace を開くと DB とアプリが自動で起動し、8080 番ポートが転送される |
 | サンプルデータ | タスク 5 件、ユーザー 3 人、割り当て 10 件(進み具合がばらばら) |
 | エラー画面 | 404・その他 4xx・5xx を日本語の画面で表示。API は JSON のまま |
-| 自動テスト | 156 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
+| 自動テスト | 159 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
 | CI | PR の作成・更新時と `master` へのマージ後に、自動テストと Docker での動作確認を実行 |
 
 ### 割り当てのルール
@@ -167,8 +168,9 @@ java/
 
 | 機能 | 補足 |
 |---|---|
-| ユーザー・割り当ての REST API | 今回は画面のみ |
-| ヘルスチェック | Spring Boot Actuator は未導入 |
+| ユーザー・割り当ての REST API | 保留。人事システム・チャット通知・集計ツールなどと連携することになったら検討 |
+| パスワードを忘れたときの再設定 | 次に対応予定(ほかの管理者によるリセット、起動時の設定による最初の管理者のリセット) |
+| 専用URLのメール送信 | 候補。送信用メールサーバーの設定が必要 |
 
 ---
 
@@ -326,6 +328,7 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 | `POST` | `/users/{id}/assignments/{aid}/delete` | 割り当て解除 |
 | `POST` | `/users/{id}/access-link` | 専用URLを発行・再発行(URL は次の画面に 1 回だけ表示) |
 | `POST` | `/users/{id}/access-link/delete` | 専用URLを無効化 |
+| `GET` | `/actuator/health` | ヘルスチェック(誰でも開ける)。正常なら `{"status":"UP"}`(200)、DB に接続できないなどの異常時は `{"status":"DOWN"}`(503)。詳細は出さない。ほかの Actuator の機能は公開しない |
 
 - 存在しないユーザー・タスク・割り当て、または別のユーザーの割り当てを指定した場合は 404(日本語のエラー画面。10 章)
 - 割り当てできない場合(未選択・重複・無効なタスク)は詳細画面に戻り、赤い枠でエラーを表示
@@ -363,7 +366,7 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 | # | ステップ | 内容 |
 |---|---|---|
 | 1〜4 | 準備・起動 | チェックアウト、ランダムな DB パスワードと管理者パスワードの生成(ログでは `***`)、`docker compose up -d --build` |
-| 5〜6 | 起動待ち | DB(`pg_isready`)とアプリ(`/login`)の応答を待つ |
+| 5〜6 | 起動待ち | DB(`pg_isready`)とアプリ(`/actuator/health` が `UP`)を待つ |
 | 7 | Write test helpers | ログイン(Cookie 保存・CSRF トークン取得)用の共通関数を用意 |
 | 8 | Smoke test login | 未ログインはログイン画面へ転送、API は認証なしで 401、誤ったパスワードは失敗、管理者でログイン |
 | 9 | Smoke test API | API(管理者の HTTP Basic)の登録・取得・削除、`/tasks` 画面、`/` のダッシュボード |

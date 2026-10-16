@@ -36,7 +36,7 @@ docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up -d --bu
 # Wait until the app answers, so that "ready" really means ready (up to 5 minutes)
 echo "Waiting for the app to start..."
 for i in $(seq 1 60); do
-  if curl -sf -o /dev/null http://localhost:8080/; then
+  if curl -sf http://localhost:8080/actuator/health | grep -q '"status":"UP"'; then
     echo
     echo "Ready: the app is running on port 8080."
     echo "The browser opens automatically; otherwise open port 8080 from the Ports tab."
