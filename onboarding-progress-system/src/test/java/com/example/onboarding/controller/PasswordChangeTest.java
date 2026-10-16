@@ -38,7 +38,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Changing one's own password (/me/password).
  * 佐藤 (user 2, new employee) and an administrator get a password before each test.
  */
-@SpringBootTest
+// New employees log in with a password here (with personal links they have no password)
+@SpringBootTest(properties = "app.member-login=password")
 @AutoConfigureMockMvc
 @Import({TestcontainersConfiguration.class, TestClockConfiguration.class})
 @Transactional

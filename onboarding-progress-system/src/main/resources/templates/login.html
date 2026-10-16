@@ -28,6 +28,9 @@
         </div>
         <button type="submit" class="button">ログイン</button>
     </form>
+    <p class="muted small" th:if="${@loginSettings.linkMode}">
+        新入社員の方は、管理者から受け取った専用URLを開いてください(ここでのログインは管理者用です)。
+    </p>
 </div>
 </body>
 </html>

@@ -7,11 +7,14 @@ import com.example.onboarding.entity.User;
 import com.example.onboarding.form.UserForm;
 import com.example.onboarding.repository.UserRepository;
 import com.example.onboarding.security.AppUserDetails;
+import com.example.onboarding.security.LoginSettings;
+import com.example.onboarding.service.AccessLinkService;
 import com.example.onboarding.service.AssignmentException;
 import com.example.onboarding.service.AssignmentService;
 import com.example.onboarding.service.ProgressFilter;
 import com.example.onboarding.service.UserProgress;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -26,6 +29,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
@@ -39,13 +43,22 @@ public class UserPageController {
     private final UserRepository userRepository;
     private final AssignmentService assignmentService;
     private final PasswordEncoder passwordEncoder;
+    private final AccessLinkService accessLinkService;
+    private final LoginSettings loginSettings;
+    private final String baseUrl;
 
     public UserPageController(UserRepository userRepository,
                               AssignmentService assignmentService,
-                              PasswordEncoder passwordEncoder) {
+                              PasswordEncoder passwordEncoder,
+                              AccessLinkService accessLinkService,
+                              LoginSettings loginSettings,
+                              @Value("${app.base-url:}") String baseUrl) {
         this.userRepository = userRepository;
         this.assignmentService = assignmentService;
         this.passwordEncoder = passwordEncoder;
+        this.accessLinkService = accessLinkService;
+        this.loginSettings = loginSettings;
+        this.baseUrl = baseUrl;
     }
 
     // --- users ---
@@ -156,6 +169,10 @@ public class UserPageController {
 
         form.applyTo(user);
         applyPassword(form, user);
+        // Administrators log in with a password, so a personal link is no longer needed
+        if (user.isAdmin()) {
+            user.clearAccessLink();
+        }
         userRepository.save(user);
 
         redirectAttributes.addFlashAttribute("message", "ユーザーを更新しました。");
@@ -190,6 +207,47 @@ public class UserPageController {
         model.addAttribute("assignableTasks", assignmentService.findAssignableTasks(id));
         model.addAttribute("statuses", AssignmentStatus.values());
         return "user-detail";
+    }
+
+    // --- personal link (when new employees log in with links) ---
+
+    /** Issues a new personal link. The link is shown only once, on the next page. */
+    @PostMapping("/users/{id}/access-link")
+    public String issueAccessLink(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        User user = findUserForAccessLink(id);
+        if (user.isAdmin()) {
+            redirectAttributes.addFlashAttribute("error", "管理者には専用URLを発行できません(管理者はパスワードでログインします)。");
+            return "redirect:/users/" + id;
+        }
+        String token = accessLinkService.issue(user);
+
+        redirectAttributes.addFlashAttribute("accessLink", appBaseUrl() + "/join/" + token);
+        redirectAttributes.addFlashAttribute("message", "専用URLを発行しました。");
+        return "redirect:/users/" + id;
+    }
+
+    @PostMapping("/users/{id}/access-link/delete")
+    public String revokeAccessLink(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        User user = findUserForAccessLink(id);
+        accessLinkService.revoke(user);
+
+        redirectAttributes.addFlashAttribute("message", "専用URLを無効にしました。");
+        return "redirect:/users/" + id;
+    }
+
+    private User findUserForAccessLink(Long id) {
+        if (!loginSettings.isLinkMode()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Personal links are not used");
+        }
+        return findUser(id);
+    }
+
+    /** e.g. https://example.com, without a trailing slash */
+    private String appBaseUrl() {
+        String url = baseUrl.isBlank()
+                ? ServletUriComponentsBuilder.fromCurrentContextPath().toUriString()
+                : baseUrl.strip();
+        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
     }
 
     @PostMapping("/users/{id}/assignments")

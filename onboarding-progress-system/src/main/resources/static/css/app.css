@@ -382,3 +382,27 @@ h2 {
     max-width: 24rem;
     margin: 3rem auto;
 }
+
+/* Personal link on the user detail page */
+.toolbar form {
+    display: inline;
+}
+
+.access-link {
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e0b252;
+    border-radius: 4px;
+    background: #fff8e6;
+}
+
+.access-link p {
+    margin-top: 0;
+}
+
+.access-link-url {
+    width: 100%;
+    max-width: 48rem;
+    padding: 0.4rem;
+    font-family: monospace;
+}

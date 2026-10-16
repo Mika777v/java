@@ -42,7 +42,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * In each test: an administrator (admin@example.com) and 佐藤 (user 2, new employee) can log in;
  * 鈴木 (user 3) has no password.
  */
-@SpringBootTest
+// New employees log in with a password here; personal links are tested in AccessLinkTest
+@SpringBootTest(properties = "app.member-login=password")
 @AutoConfigureMockMvc
 @Import({TestcontainersConfiguration.class, TestClockConfiguration.class})
 @Transactional
@@ -291,5 +292,17 @@ class SecurityTest {
     void progressFiltersLeaveOutAdministrators() throws Exception {
         mockMvc.perform(get("/users").param("status", "UNASSIGNED").with(user(new AppUserDetails(admin))))
                 .andExpect(content().string(containsString("条件に一致するユーザーはいません。")));
+    }
+
+    // --- personal links are not used in this mode ---
+
+    @Test
+    void personalLinksAreNotAvailableWithPasswordLogin() throws Exception {
+        mockMvc.perform(get("/join/some-token"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(post("/users/3/access-link").with(user(new AppUserDetails(admin))))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/users/3").with(user(new AppUserDetails(admin))))
+                .andExpect(content().string(not(containsString("専用URL"))));
     }
 }

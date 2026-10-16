@@ -29,3 +29,12 @@ app:
     email: ${APP_ADMIN_EMAIL:admin@example.com}
     password: ${APP_ADMIN_PASSWORD:}
     name: ${APP_ADMIN_NAME:管理者}
+  # How new employees log in: "link" (personal link issued by an administrator, no password)
+  # or "password" (email address and password). Administrators always use a password.
+  member-login: ${APP_MEMBER_LOGIN:link}
+  access-link:
+    # How long a personal link can be used after it is issued
+    valid-days: ${APP_ACCESS_LINK_VALID_DAYS:60}
+  # Address of the app as seen from the browser, used to show personal links
+  # (e.g. https://example.com). When empty, the address of the current request is used.
+  base-url: ${APP_BASE_URL:}

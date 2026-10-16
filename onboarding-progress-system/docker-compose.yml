@@ -28,6 +28,10 @@ services:
       # First administrator (created on startup if none exists)
       APP_ADMIN_EMAIL: ${APP_ADMIN_EMAIL:-admin@example.com}
       APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:?APP_ADMIN_PASSWORD is not set}
+      # How new employees log in: "link" (personal link, default) or "password"
+      APP_MEMBER_LOGIN: ${APP_MEMBER_LOGIN:-link}
+      # Address shown in personal links (empty: the address the browser used)
+      APP_BASE_URL: ${APP_BASE_URL:-}
     depends_on:
       db:
         condition: service_healthy

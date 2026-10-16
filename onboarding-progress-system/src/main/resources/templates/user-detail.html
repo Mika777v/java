@@ -39,6 +39,35 @@
     <a class="button button-secondary" th:href="@{/users}">一覧に戻る</a>
 </div>
 
+<!-- Personal link: only when new employees log in with links (app.member-login=link) -->
+<th:block th:if="${@loginSettings.linkMode and !user.admin}">
+    <h2>専用URL</h2>
+
+    <div class="access-link" th:if="${accessLink}">
+        <p><strong>この URL は今だけ表示されます。</strong>コピーして本人に渡してください(あとから表示することはできません)。</p>
+        <input type="text" class="access-link-url" readonly th:value="${accessLink}"
+               aria-label="専用URL" onfocus="this.select()">
+    </div>
+
+    <p th:if="${!user.hasAccessLink()}">まだ発行していません。発行すると、本人はパスワードなしでこの URL からマイページを開けます。</p>
+    <p th:if="${user.hasAccessLink() and @loginSettings.hasValidLink(user)}"
+       th:text="'発行済み(有効期限 ' + ${@dates.format(user.accessTokenExpiresAt)} + ')'">発行済み(有効期限 2026-12-14 09:00)</p>
+    <p th:if="${user.hasAccessLink() and !@loginSettings.hasValidLink(user)}">
+        <span class="badge-overdue">期限切れ</span> 再発行してください。
+    </p>
+
+    <div class="toolbar">
+        <form th:action="@{/users/{id}/access-link(id=${user.id})}" method="post"
+              th:attr="onsubmit=${user.hasAccessLink()} ? 'return confirm(\'再発行すると、今の URL は使えなくなります。よろしいですか?\');' : null">
+            <button type="submit" class="button" th:text="${user.hasAccessLink()} ? '専用URLを再発行' : '専用URLを発行'">専用URLを発行</button>
+        </form>
+        <form th:if="${user.hasAccessLink()}" th:action="@{/users/{id}/access-link/delete(id=${user.id})}" method="post"
+              onsubmit="return confirm('専用URLを無効にしますか?本人はこの URL で開けなくなります。');">
+            <button type="submit" class="button button-danger">無効にする</button>
+        </form>
+    </div>
+</th:block>
+
 <h2>割り当てられたタスク</h2>
 
 <p th:if="${#lists.isEmpty(assignments)}">まだタスクが割り当てられていません。下のフォームから割り当ててください。</p>

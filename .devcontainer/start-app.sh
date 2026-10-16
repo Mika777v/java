@@ -26,6 +26,11 @@ if ! grep -q '^APP_ADMIN_PASSWORD=' .env; then
   echo "Created a random administrator password in onboarding-progress-system/.env"
 fi
 
+# Personal links for new employees should use the codespace address, not localhost
+if [ -n "${CODESPACE_NAME:-}" ]; then
+  export APP_BASE_URL="https://${CODESPACE_NAME}-8080.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}"
+fi
+
 docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up -d --build
 
 # Wait until the app answers, so that "ready" really means ready (up to 5 minutes)
@@ -41,6 +46,10 @@ for i in $(seq 1 60); do
     echo "  email:    ${admin_email:-admin@example.com}"
     echo "  password: $(grep '^APP_ADMIN_PASSWORD=' .env | cut -d= -f2-)"
     echo "(shown again with: cat onboarding-progress-system/.env)"
+    echo
+    echo "New employees open the personal link issued on their user page."
+    echo "Port 8080 is private by default: only you can open it. To let others open"
+    echo "their links, set the port visibility to Public in the Ports tab."
     exit 0
   fi
   sleep 5

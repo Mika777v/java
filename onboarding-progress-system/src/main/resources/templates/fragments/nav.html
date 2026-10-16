@@ -13,7 +13,8 @@
        th:classappend="${current == 'me'} ? 'nav-current'">マイページ</a>
     <span class="nav-user" sec:authorize="isAuthenticated()">
         <span th:text="${currentUserName}">山田 太郎</span>
-        <a th:href="@{/me/password}" th:classappend="${current == 'password'} ? 'nav-current'">パスワード変更</a>
+        <!-- New employees who log in with personal links have no password -->
+        <a sec:authorize="hasRole('ADMIN') or !@loginSettings.linkMode" th:href="@{/me/password}" th:classappend="${current == 'password'} ? 'nav-current'">パスワード変更</a>
         <form th:action="@{/logout}" method="post">
             <button type="submit" class="nav-logout">ログアウト</button>
         </form>

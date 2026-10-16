@@ -280,25 +280,28 @@ jobs:
           check_status 404 "$STATUS"
           grep -q "ページが見つかりません" "$RUNNER_TEMP/404.html" || { echo "Japanese 404 page not shown"; exit 1; }
 
-      - name: Smoke test new employee login
+      - name: Smoke test new employee personal link
         run: |
           set -e
           . "$RUNNER_TEMP/helpers.sh"
           MEMBER_JAR="$RUNNER_TEMP/member-cookies.txt"
-          MEMBER_PASSWORD="$(openssl rand -hex 8)"
-          echo "::add-mask::$MEMBER_PASSWORD"
 
-          echo "Give 鈴木 (user 3) a password"
-          STATUS=$(admin_post /users/3/edit /users/3 \
-            --data-urlencode "name=鈴木 一郎" -d "email=suzuki@example.com" --data-urlencode "department=開発部" \
-            -d "joinedOn=2026-10-01" -d "role=MEMBER" --data-urlencode "password=$MEMBER_PASSWORD")
+          echo "Issue a personal link for 鈴木 (user 3)"
+          STATUS=$(admin_post /users/3 /users/3/access-link)
           echo "HTTP status: $STATUS"
           check_status 302 "$STATUS"
 
-          echo "Log in as 鈴木"
-          RESULT=$(login "$MEMBER_JAR" "suzuki@example.com" "$MEMBER_PASSWORD")
+          echo "The link is shown once on the user page"
+          LINK=$(admin_get -sS $BASE/users/3 | grep -o 'http[^"]*/join/[A-Za-z0-9_-]\{43\}' | head -n 1)
+          [ -n "$LINK" ] || { echo "Personal link not shown"; exit 1; }
+          echo "::add-mask::${LINK##*/}"
+          echo "Link: $LINK"
+          if admin_get -sS $BASE/users/3 | grep -q "${LINK##*/}"; then echo "The link is shown again"; exit 1; fi
+
+          echo "Open the link as 鈴木 (logs in and redirects to /me)"
+          RESULT=$(curl -sS -o /dev/null -b "$MEMBER_JAR" -c "$MEMBER_JAR" -w "%{http_code} %{redirect_url}" "$LINK")
           echo "$RESULT"
-          case "$RESULT" in 302\ */) ;; *) echo "Login of new employee failed"; exit 1 ;; esac
+          case "$RESULT" in 302\ */me) ;; *) echo "Opening the personal link failed"; exit 1 ;; esac
 
           echo "GET / as new employee (redirects to /me)"
           RESULT=$(curl -sS -o /dev/null -b "$MEMBER_JAR" -w "%{http_code} %{redirect_url}" $BASE/)
@@ -317,25 +320,50 @@ jobs:
           check_status 403 "$STATUS"
           grep -q "このページを表示する権限がありません" "$RUNNER_TEMP/403.html" || { echo "Japanese 403 page not shown"; exit 1; }
 
-          echo "Change own password as 鈴木"
-          NEW_MEMBER_PASSWORD="$(openssl rand -hex 8)"
-          echo "::add-mask::$NEW_MEMBER_PASSWORD"
-          TOKEN=$(csrf "$MEMBER_JAR" /me/password)
-          RESULT=$(curl -sS -o /dev/null -b "$MEMBER_JAR" -c "$MEMBER_JAR" -w "%{http_code} %{redirect_url}" -X POST \
-            --data-urlencode "currentPassword=$MEMBER_PASSWORD" \
-            --data-urlencode "newPassword=$NEW_MEMBER_PASSWORD" \
-            --data-urlencode "confirmPassword=$NEW_MEMBER_PASSWORD" \
-            --data-urlencode "_csrf=$TOKEN" "$BASE/me/password")
-          echo "$RESULT"
-          case "$RESULT" in 302\ */me) ;; *) echo "Password change failed"; exit 1 ;; esac
+          echo "An unknown link is rejected"
+          STATUS=$(curl -sS -o "$RUNNER_TEMP/join.html" -w "%{http_code}" "$BASE/join/$(openssl rand -hex 22)")
+          echo "HTTP status: $STATUS"
+          check_status 404 "$STATUS"
+          grep -q "このリンクは使えません" "$RUNNER_TEMP/join.html" || { echo "Invalid link page not shown"; exit 1; }
 
-          echo "Log in again with the new password (and not with the old one)"
-          rm -f "$MEMBER_JAR"
-          RESULT=$(login "$MEMBER_JAR" "suzuki@example.com" "$NEW_MEMBER_PASSWORD")
+          echo "New employees cannot log in with a password"
+          MEMBER_PASSWORD="$(openssl rand -hex 8)"
+          echo "::add-mask::$MEMBER_PASSWORD"
+          STATUS=$(admin_post /users/3/edit /users/3 \
+            --data-urlencode "name=鈴木 一郎" -d "email=suzuki@example.com" --data-urlencode "department=開発部" \
+            -d "joinedOn=2026-10-01" -d "role=MEMBER" --data-urlencode "password=$MEMBER_PASSWORD")
+          check_status 302 "$STATUS"
+          RESULT=$(login "$RUNNER_TEMP/member-password.txt" "suzuki@example.com" "$MEMBER_PASSWORD")
+          echo "$RESULT"
+          case "$RESULT" in *login\?error) ;; *) echo "Password login of new employee should fail"; exit 1 ;; esac
+
+          echo "Revoke the link (it stops working)"
+          STATUS=$(admin_post /users/3 /users/3/access-link/delete)
+          check_status 302 "$STATUS"
+          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" "$LINK")
+          echo "HTTP status: $STATUS"
+          check_status 404 "$STATUS"
+
+      - name: Smoke test administrator password change
+        run: |
+          set -e
+          . "$RUNNER_TEMP/helpers.sh"
+          NEW_ADMIN_PASSWORD="$(openssl rand -hex 8)"
+          echo "::add-mask::$NEW_ADMIN_PASSWORD"
+
+          echo "Change own password as administrator"
+          STATUS=$(admin_post /me/password /me/password \
+            --data-urlencode "currentPassword=$APP_ADMIN_PASSWORD" \
+            --data-urlencode "newPassword=$NEW_ADMIN_PASSWORD" \
+            --data-urlencode "confirmPassword=$NEW_ADMIN_PASSWORD")
+          echo "HTTP status: $STATUS"
+          check_status 302 "$STATUS"
+
+          echo "Log in with the new password (and not with the old one)"
+          RESULT=$(login "$RUNNER_TEMP/admin-new.txt" "$APP_ADMIN_EMAIL" "$NEW_ADMIN_PASSWORD")
           echo "$RESULT"
           case "$RESULT" in 302\ */) ;; *) echo "Login with the new password failed"; exit 1 ;; esac
-          rm -f "$MEMBER_JAR"
-          RESULT=$(login "$MEMBER_JAR" "suzuki@example.com" "$MEMBER_PASSWORD")
+          RESULT=$(login "$RUNNER_TEMP/admin-old.txt" "$APP_ADMIN_EMAIL" "$APP_ADMIN_PASSWORD")
           echo "$RESULT"
           case "$RESULT" in *login\?error) ;; *) echo "The old password still works"; exit 1 ;; esac
 

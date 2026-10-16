@@ -51,6 +51,9 @@
                                       : 'まだパスワードがありません。設定するとログインできるようになります(8文字以上)。'">
             変更する場合だけ入力してください。
         </div>
+        <div class="muted small" th:if="${@loginSettings.linkMode}">
+            新入社員はパスワードではなく、ユーザー詳細画面で発行する専用URLでログインします。パスワードが必要なのは管理者だけです。
+        </div>
         <div class="error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">パスワードは8文字以上で入力してください</div>
     </div>
 
