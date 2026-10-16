@@ -48,7 +48,8 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | `security` | `SecurityConfig` | 2 つの `SecurityFilterChain`(下記) |
 | | `AppUserDetails`, `AppUserDetailsService` | ログインユーザー(`userId`, `displayName` を持つ)。パスワード未設定のユーザーはログイン不可。専用URL方式では、パスワードでログインできるのは管理者だけ |
 | | `LoginSettings` | `@Component("loginSettings")`。新入社員のログイン方法(`app.member-login` = `link` / `password`)。テンプレートでは `${@loginSettings.linkMode}` |
-| | `AdminAccountInitializer` | 起動時、管理者が 0 人なら `APP_ADMIN_*` で作成(既存ユーザーなら昇格) |
+| | `AdminAccountInitializer` | 起動時、管理者が 0 人なら `APP_ADMIN_*` で作成(既存ユーザーなら昇格)。`app.admin.password-reset=true` なら、その管理者のパスワードを戻して変更必須にする |
+| | `TemporaryPasswords` | 仮パスワード(12 文字、紛らわしい文字を除く)を `SecureRandom` で生成 |
 | `service` | `AccessLinkService` | 専用URLの発行(32 バイトの乱数 → URL 用 43 文字。DB には SHA-256 だけ保存)・確認(期限内か)・無効化 |
 | | `AssignmentService` | 割り当て・進捗のルール。失敗は `AssignmentException`(日本語メッセージ)を投げる |
 | | `TaskOrderService` | 並び順。`move()` で全タスクを 10 刻みに振り直す |
@@ -102,6 +103,7 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | POST | `/users/{id}/assignments/all` | ADMIN | 有効なタスクをすべて割り当て |
 | POST | `/users/{id}/assignments/{aid}/status` | ADMIN | 状態変更 |
 | POST | `/users/{id}/assignments/{aid}/delete` | ADMIN | 割り当て解除 |
+| POST | `/users/{id}/password-reset` | ADMIN | 仮パスワードを発行(flash 属性 `temporaryPassword` で 1 回だけ表示、変更必須)。自分自身はエラー、専用URL方式の新入社員は 404 |
 | POST | `/users/{id}/access-link` | ADMIN | 専用URLを発行・再発行(flash 属性 `accessLink` で次の画面に 1 回だけ表示)。`password` 方式では 404 |
 | POST | `/users/{id}/access-link/delete` | ADMIN | 専用URLを無効化 |
 

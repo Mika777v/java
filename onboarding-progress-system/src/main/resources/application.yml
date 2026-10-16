@@ -41,6 +41,9 @@ app:
     email: ${APP_ADMIN_EMAIL:admin@example.com}
     password: ${APP_ADMIN_PASSWORD:}
     name: ${APP_ADMIN_NAME:管理者}
+    # true: on startup, set the password of the administrator above back to APP_ADMIN_PASSWORD
+    # (for when the only administrator forgot it). Remove after use.
+    password-reset: ${APP_ADMIN_PASSWORD_RESET:false}
   # How new employees log in: "link" (personal link issued by an administrator, no password)
   # or "password" (email address and password). Administrators always use a password.
   member-login: ${APP_MEMBER_LOGIN:link}

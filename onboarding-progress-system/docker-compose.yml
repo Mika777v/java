@@ -28,6 +28,8 @@ services:
       # First administrator (created on startup if none exists)
       APP_ADMIN_EMAIL: ${APP_ADMIN_EMAIL:-admin@example.com}
       APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:?APP_ADMIN_PASSWORD is not set}
+      # true: set the password of APP_ADMIN_EMAIL back to APP_ADMIN_PASSWORD on start (remove after use)
+      APP_ADMIN_PASSWORD_RESET: ${APP_ADMIN_PASSWORD_RESET:-false}
       # How new employees log in: "link" (personal link, default) or "password"
       APP_MEMBER_LOGIN: ${APP_MEMBER_LOGIN:-link}
       # Address shown in personal links (empty: the address the browser used)

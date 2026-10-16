@@ -39,6 +39,28 @@
     <a class="button button-secondary" th:href="@{/users}">一覧に戻る</a>
 </div>
 
+<!-- Password reset: for users who log in with a password (not for yourself: use the password change page) -->
+<th:block th:if="${(user.admin or !@loginSettings.linkMode) and !self}">
+    <h2>パスワード</h2>
+
+    <div class="access-link" th:if="${temporaryPassword}">
+        <p><strong>仮パスワードは今だけ表示されます。</strong>本人に伝えてください。本人はログイン後、自分のパスワードに変更します。</p>
+        <input type="text" id="temporary-password" class="access-link-url" readonly th:value="${temporaryPassword}"
+               aria-label="仮パスワード" onfocus="this.select()">
+    </div>
+
+    <p th:if="${!user.loginEnabled}">まだパスワードがありません。仮パスワードを発行すると、ログインできるようになります。</p>
+    <p th:if="${user.loginEnabled and user.passwordChangeRequired}">本人のパスワード変更待ちです(管理者が設定したパスワードのまま)。</p>
+    <p th:if="${user.loginEnabled and !user.passwordChangeRequired}">本人が設定したパスワードでログインしています。忘れた場合は、仮パスワードを発行してください。</p>
+
+    <div class="toolbar">
+        <form th:action="@{/users/{id}/password-reset(id=${user.id})}" method="post"
+              th:attr="onsubmit=${user.loginEnabled} ? 'return confirm(\'今のパスワードは使えなくなります。仮パスワードを発行しますか?\');' : null">
+            <button type="submit" class="button" th:text="${user.loginEnabled} ? 'パスワードをリセット' : '仮パスワードを発行'">パスワードをリセット</button>
+        </form>
+    </div>
+</th:block>
+
 <!-- Personal link: only when new employees log in with links (app.member-login=link) -->
 <th:block th:if="${@loginSettings.linkMode and !user.admin}">
     <h2>専用URL</h2>

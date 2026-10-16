@@ -1,7 +1,7 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-16(第15版)
-- 対象: PR #20 までの内容に、ヘルスチェック(`/actuator/health`)を加えた状態
+- 調査日: 2026-10-16(第16版)
+- 対象: PR #21 までの内容に、パスワードのリセット(忘れたとき)を加えた状態
 - デフォルトブランチは `main` から `master` に変更されています
 - 対象プロジェクト: `onboarding-progress-system`(新入社員・中途入社者のオンボーディング進捗管理)
 - 調査方法: ソースコードの確認、自動テストの実行、アプリを実際に起動してブラウザで操作
@@ -27,7 +27,8 @@
 | #18 | **自分のパスワード変更**(`/me/password`) |
 | #19 | **新入社員の専用URL**: 管理者が発行したリンクを開くだけでマイページへ。パスワードでのログインは設定(`APP_MEMBER_LOGIN`)で切り替え可能 |
 | #20 | **初回ログイン時のパスワード変更**: 管理者がほかの人に設定したパスワードは、本人が最初に変更するまで他の画面を開けない |
-| (第15版) | **ヘルスチェック**: `/actuator/health` で稼働状態(DB 接続を含む)を確認。CI と Codespaces の起動待ちに使用 |
+| #21 | **ヘルスチェック**: `/actuator/health` で稼働状態(DB 接続を含む)を確認。CI と Codespaces の起動待ちに使用 |
+| (第16版) | **パスワードのリセット**: ほかの管理者が仮パスワードを発行。管理者が 1 人だけなら起動時の設定(`APP_ADMIN_PASSWORD_RESET`)で戻す |
 
 ---
 
@@ -124,7 +125,7 @@ java/
         │           ├── login.html / my-page.html / password-form.html / join-invalid.html
         │           ├── tasks.html / task-form.html
         │           └── users.html / user-form.html / user-detail.html
-        └── test/java/com/example/onboarding/          … 自動テスト(159 件)
+        └── test/java/com/example/onboarding/          … 自動テスト(171 件)
 ```
 
 まだ存在しないもの:
@@ -152,7 +153,7 @@ java/
 | Codespaces | Codespace を開くと DB とアプリが自動で起動し、8080 番ポートが転送される |
 | サンプルデータ | タスク 5 件、ユーザー 3 人、割り当て 10 件(進み具合がばらばら) |
 | エラー画面 | 404・その他 4xx・5xx を日本語の画面で表示。API は JSON のまま |
-| 自動テスト | 159 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
+| 自動テスト | 171 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
 | CI | PR の作成・更新時と `master` へのマージ後に、自動テストと Docker での動作確認を実行 |
 
 ### 割り当てのルール
@@ -169,7 +170,6 @@ java/
 | 機能 | 補足 |
 |---|---|
 | ユーザー・割り当ての REST API | 保留。人事システム・チャット通知・集計ツールなどと連携することになったら検討 |
-| パスワードを忘れたときの再設定 | 次に対応予定(ほかの管理者によるリセット、起動時の設定による最初の管理者のリセット) |
 | 専用URLのメール送信 | 候補。送信用メールサーバーの設定が必要 |
 
 ---
@@ -326,6 +326,7 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 | `POST` | `/users/{id}/assignments/all` | 有効なタスクをまとめて割り当て(`dueDate`) |
 | `POST` | `/users/{id}/assignments/{aid}/status` | 進捗の変更(`status`) |
 | `POST` | `/users/{id}/assignments/{aid}/delete` | 割り当て解除 |
+| `POST` | `/users/{id}/password-reset` | 仮パスワードを発行(12 文字のランダム。次の画面に 1 回だけ表示。本人はログイン後に変更が必要)。自分自身と、専用URL方式の新入社員は対象外 |
 | `POST` | `/users/{id}/access-link` | 専用URLを発行・再発行(URL は次の画面に 1 回だけ表示) |
 | `POST` | `/users/{id}/access-link/delete` | 専用URLを無効化 |
 | `GET` | `/actuator/health` | ヘルスチェック(誰でも開ける)。正常なら `{"status":"UP"}`(200)、DB に接続できないなどの異常時は `{"status":"DOWN"}`(503)。詳細は出さない。ほかの Actuator の機能は公開しない |
@@ -375,7 +376,8 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 | 12 | Smoke test new employee personal link | 鈴木の専用URLを発行(1 回だけ表示)→ 開くと `/me` へ、`/tasks` は日本語の 403 画面 → でたらめな URL は 404 → 新入社員はパスワードではログインできない → 無効化すると開けない |
 | 13 | Smoke test administrator password change | 管理者が自分のパスワードを変更 → 新しいパスワードでログインでき、古いパスワードでは失敗 |
 | 14 | Smoke test first login password change | 2 人目の管理者を初期パスワード付きで登録 → その人でログイン → 他の画面は `/me/password` へ転送 → 変更すると通常どおり開ける |
-| 15〜16 | 後片付け | 失敗時のみ `docker compose logs`、最後に `docker compose down -v` |
+| 15 | Smoke test password reset | 2 人目の管理者のパスワードをリセット → 仮パスワードが 1 回だけ表示される → 仮パスワードでログインでき、パスワード変更画面へ転送 |
+| 16〜17 | 後片付け | 失敗時のみ `docker compose logs`、最後に `docker compose down -v` |
 
 使用しているアクション(すべて Node.js 24 で動作するバージョン):
 `actions/checkout@v5`、`actions/setup-java@v5`、`actions/upload-artifact@v6`、`docker/setup-buildx-action@v4`
@@ -545,6 +547,10 @@ URL: /users/999
   - `link`(初期値): 管理者がユーザー詳細画面で専用URLを発行して本人に渡す。開くだけでログインし `/me` へ。URL は発行直後に 1 回だけ表示(DB には SHA-256 ハッシュだけを保存)。有効期限は `APP_ACCESS_LINK_VALID_DAYS`(初期値 60 日)。再発行すると古い URL は使えなくなる。無効化も可能。すでにログイン中の画面は、ログアウトするかセッションが切れるまで使える
   - `password`: 新入社員の初期パスワードは、管理者がユーザー登録・編集画面で設定(8 文字以上)し、`/login` でログイン
 - 管理者がほかの人に設定したパスワード(登録・編集画面)は「変更が必要」になり、本人はログイン後、パスワード変更画面以外を開けない(REST API は 403)。変更すると解除。自分で自分に設定した場合と、起動時に作られる最初の管理者は対象外(第14版)
+- **パスワードを忘れたとき**(第16版):
+  - ほかの管理者がユーザー詳細画面の「パスワードをリセット」で仮パスワード(12 文字のランダム)を発行し、本人に伝える。仮パスワードは 1 回だけ表示。本人はログイン後に変更が必要
+  - 管理者が 1 人だけで忘れた場合: `APP_ADMIN_PASSWORD_RESET=true` を付けて再起動すると、`APP_ADMIN_EMAIL` の管理者のパスワードが `APP_ADMIN_PASSWORD` に戻る(ログイン後に変更が必要)。使ったら設定を外す(外さないと起動のたびに戻る。ログに警告を出す)。Codespaces では `.env` に 1 行足して `bash .devcontainer/start-app.sh`
+  - 新入社員(専用URL方式)は、専用URLを再発行すればよい
 - 管理者はどちらの設定でもパスワードでログインする。管理者には専用URLを発行できない(新入社員を管理者に変えると専用URLは消える)
 - Codespaces のポート 8080 は初期設定では本人(GitHub にログインした持ち主)しか開けない。新入社員に専用URLを開いてもらうには、ポートを Public にする必要がある
 - パスワードでログインする人は、メニュー右側の「パスワード変更」(`/me/password`)で自分のパスワードを変えられる。現在のパスワードの入力が必要で、新しいパスワードは 8〜72 文字・確認用と一致・現在と別のもの(第12版)

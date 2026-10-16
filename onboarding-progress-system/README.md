@@ -110,6 +110,8 @@ mvn test
 | `controller/DashboardTest` | Dashboard numbers, follow-up users, tasks due within 7 days |
 | `controller/SecurityTest` | Login, logout, who can open which page, my page, passwords and roles |
 | `controller/FirstLoginPasswordChangeTest` | Password set by an administrator must be changed first (redirects, API 403, unlock after change) |
+| `controller/PasswordResetTest` | Temporary password: random, shown once, must be changed; not for yourself or for new employees with links |
+| `security/AdminPasswordRecoveryTest` | Startup recovery with `APP_ADMIN_PASSWORD_RESET` (administrators only) |
 | `web/HealthCheckTest` | Health check is open and shows only UP / DOWN; other actuator endpoints are not published |
 | `controller/AccessLinkTest` | Personal links: issuing (shown once, hash only), logging in, expiry, reissue, revoke, no password login for new employees |
 | `controller/AccessLinkBaseUrlTest` | Personal links use `app.base-url` when it is set |
@@ -141,6 +143,14 @@ mvn test
 - **First login**: a password that an administrator set for someone else must be changed by that
   person first: until then every page leads to `/me/password` (the API answers 403).
   Not required for a password you set for yourself or for the first administrator from `APP_ADMIN_PASSWORD`.
+- **Forgotten password**:
+  - Another administrator opens the user's detail page and presses "パスワードをリセット".
+    A random temporary password (12 characters) is shown once; the user must change it after logging in.
+  - If the only administrator forgot it: start once with `APP_ADMIN_PASSWORD_RESET=true`. The password of
+    `APP_ADMIN_EMAIL` is set back to `APP_ADMIN_PASSWORD` (to be changed after logging in). Remove the setting
+    afterwards; otherwise it is set back on every start. In a codespace, add the line to
+    `onboarding-progress-system/.env` and run `bash .devcontainer/start-app.sh`.
+  - New employees with personal links just get a new link.
 - **Own password**: users who log in with a password can change it on `/me/password`
   (link "パスワード変更" in the menu). The current password is required.
 - `APP_BASE_URL` (e.g. `https://onboarding.example.com`) sets the address shown in personal links;
