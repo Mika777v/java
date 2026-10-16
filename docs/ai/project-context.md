@@ -33,6 +33,7 @@
 ```
 /                                  … ルート(学習用リポジトリ。サブプロジェクトは 1 つ)
 ├─ CLAUDE.md                       … Claude Code が自動で読む入口(docs/ai/ への案内)
+├─ .claude/skills/                 … Claude Code のスキル(現状調査・設計レビュー・機能追加・リファクタリング)
 ├─ .devcontainer/                  … Codespaces 設定。起動時に start-app.sh がアプリを立ち上げる
 ├─ .github/copilot-instructions.md … GitHub Copilot が自動で読む入口(docs/ai/ への案内)
 ├─ .github/workflows/
@@ -110,4 +111,15 @@ Codespaces では `.devcontainer/start-app.sh` が自動で起動し、`.env`(gi
 | [backlog.md](backlog.md) | 未実装の機能、既知の課題 |
 | [../codespaces-check.md](../codespaces-check.md) | Codespaces での動作確認手順(オーナーが PR マージ後に使う。画面や機能を変えたらチェックリストも更新する) |
 | [../java-guide.md](../java-guide.md) | オーナー向けの Java 教科書(このリポジトリのコードが教材)。説明するときに章を案内すると伝わりやすい。コードの例を変えたら合わせて更新する |
-| [prompt-templates.md](prompt-templates.md) | AI に頼むときの依頼文のひな形 |
+| [prompt-templates.md](prompt-templates.md) | AI に頼むときの依頼文のひな形(スキルの呼び方も) |
+
+## Claude Code のスキル(`.claude/skills/`)
+
+| スキル | 使う場面 | 変更するもの |
+|---|---|---|
+| `project-memory-manager` | 現状調査、`current-status.md` とロードマップ(`backlog.md`)の更新、技術的負債と次のタスクの提案。**実装の前に必ず** | ドキュメントだけ |
+| `spring-boot-architect` | Entity・Service・API・Flyway・レイヤー構造のレビュー | なし(報告だけ) |
+| `feature-builder` | 新機能の実装(要件分析 → 方針の確認 → 実装 → テスト → ドキュメント → 要約) | コード・テスト・ドキュメント |
+| `review-and-refactor` | 動きを変えないコード整理(重複・Service 層・命名・性能)。理由を説明する | コード(了承を得てから) |
+
+おすすめの順番: `project-memory-manager` → `spring-boot-architect` → `feature-builder` / `review-and-refactor` → `project-memory-manager`(ドキュメントの更新)

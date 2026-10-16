@@ -18,8 +18,12 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 
 - **Controller は薄く保つ。** 複数テーブルにまたがる処理や業務ルールは `service/` に置く
   (例: 割り当ての重複チェック・無効タスクの禁止は `AssignmentService`)
-- 単純な 1 テーブルの CRUD(タスク・ユーザー)は Controller から Repository を直接呼んでいる。
-  新しいコードもこの既存スタイルに合わせてよい(無理にサービス層を挟まない)
+- **目指す構成は Controller → Service → Repository → DB。** 新しいコードは Service を通す
+- 既存の単純な CRUD(タスク・ユーザー)は Controller から Repository を直接呼んでいる
+  (`TaskPageController`, `TaskController`, `UserPageController`, `MyPageController`)。
+  これは **改善候補(技術的負債)** として扱う。直すときは機能追加と混ぜず、別の PR で行う
+  (候補と直し方: `.claude/skills/review-and-refactor/refactoring-catalog.md`、一覧: `backlog.md` の技術的負債)
+- `security/`・`web/` が `UserRepository` を使うのは、ログイン処理・共通処理での検索だけなので対象外
 - 画面のフォームは `form/` のクラスで受け取り、Entity に直接バインドしない(`id` などを書き換えられないように)。
   REST API(`TaskController`)だけは Entity `Task` をそのまま受け取り、`id` を `null` にしてから保存している
 

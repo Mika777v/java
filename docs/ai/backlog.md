@@ -1,7 +1,36 @@
 # バックログ(AI 向け)
 
-最終更新: 2026-10-16(要件定義書・設計書を追加)。
+最終更新: 2026-10-16(Claude Code のスキルを追加。ロードマップと技術的負債の表を追加)。
 完了したら行を「完了済み」へ移し、`docs/current-status.md` も更新してください。
+このファイルが **ロードマップ** を兼ねます。更新の手順は `.claude/skills/project-memory-manager/SKILL.md`。
+
+## ロードマップ(次にやることの推奨順)
+
+不具合・セキュリティ → オーナーが頼んだもの → 次の機能追加の邪魔になる技術的負債 → 未実装の機能、の順に並べています。
+
+| 順 | 項目 | なぜこの順か | 規模 |
+|---|---|---|---|
+| 1 | 技術的負債 D1: `TaskService` の導入 | 画面と API で同じ登録処理を 2 か所に書いている。機能を足す前に 1 か所にまとめると、以後の変更が楽になる | 小(2 クラス) |
+| 2 | 技術的負債 D2: `UserService` の導入(D6 も一緒に) | ユーザーの業務ルールが Controller に散らばっている。ユーザーの API やメール送信を作るなら先に必要 | 中 |
+| 3 | 未実装: 専用URLのメール送信 | 公開されたサーバーで使い始めるときに必要。SMTP の準備が前提 | 中 |
+| 4 | 技術的負債 D3〜D5 | 見た目・読みやすさの改善。急がない | 小 |
+
+不具合・セキュリティの問題は、今は見つかっていません(2026-10-16 時点)。
+
+## 技術的負債
+
+`spring-boot-architect` の `layer-check.sh` と `review-and-refactor` の `find-duplicates.py` で見つけたもの。
+詳しい直し方は `.claude/skills/review-and-refactor/refactoring-catalog.md`(R 番号)。
+
+| # | 種類 | 場所 | 困ること | 対応案 | 優先度 |
+|---|---|---|---|---|---|
+| D1 | レイヤー | `TaskPageController`, `TaskController` が `TaskRepository` を直接使う | 登録のルールが 2 か所にあり、片方だけ直すと画面と API で動きがずれる | `TaskService` を作る(R1) | 中 |
+| D2 | レイヤー | `UserPageController` が `UserRepository` を直接使い、業務ルール(メール重複・パスワード変更必須・専用URLの削除)も持つ | ユーザーの API などを作るときに、同じルールをもう一度書くことになる | `UserService` を作る(R2) | 中 |
+| D3 | 大きすぎるクラス | `UserPageController`(約 380 行) | どこを直せばよいか探しにくい | URL は変えずに、割り当て・専用URLの Controller に分ける(R3、D2 の後) | 低 |
+| D4 | 重複 | `my-page.html` と `user-detail.html` の割り当ての表 | 表示を変えるとき 2 か所直す | Thymeleaf の部品にする(R4) | 低 |
+| D5 | API | `TaskController` が Entity をそのまま JSON で受け取る・返す | Entity に項目を足すと、意図せず API に出る | DTO(`record`)にする。JSON の形は変えない(R5) | 低 |
+| D6 | レイヤー | `MyPageController` のパスワード変更が `UserRepository` を直接使う | D2 と同じ | D2 と一緒に `UserService` へ(R7) | 低 |
+| D7 | 性能 | `DashboardService` が全ユーザーを読んでから管理者を除く | 今の規模では問題なし | `findByRole(Role.MEMBER)`(R6) | 低 |
 
 ## 未実装の機能
 

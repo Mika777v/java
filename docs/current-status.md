@@ -1,7 +1,7 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-16(第23版)
-- 対象: PR #29 までの内容(`master` の最新)に、要件定義書・設計書を加えた状態。Codespaces での動作確認(13 章)まで完了
+- 調査日: 2026-10-16(第24版)
+- 対象: PR #30 までの内容(`master` の最新)に、Claude Code のスキルを加えた状態。Codespaces での動作確認(13 章)まで完了
 - デフォルトブランチは `main` から `master` に変更されています
 - Codespaces での動作確認手順: [codespaces-check.md](codespaces-check.md)
 - Java の学習用教科書(このリポジトリのコードが教材): [java-guide.md](java-guide.md)
@@ -33,7 +33,8 @@
 | #22 | **パスワードのリセット**: ほかの管理者が仮パスワードを発行。管理者が 1 人だけなら起動時の設定(`APP_ADMIN_PASSWORD_RESET`)で戻す |
 | #23 | Codespaces での動作確認手順(`docs/codespaces-check.md`) |
 | #25 | このレポートを最新化(第18版) |
-| (第23版) | **要件定義書・設計書**を追加(人向け `docs/requirements.md` / `docs/design.md`、AI 向け `docs/ai/spec.md`。要件 ID とテストの対応表つき)。**図と定義表** `docs/design-diagrams.md`(ユースケース・業務フロー・画面遷移・状態遷移・ER・シーケンス・CRUD・画面項目・メッセージ・コード定義) |
+| #30 | **要件定義書・設計書**を追加(人向け `docs/requirements.md` / `docs/design.md`、AI 向け `docs/ai/spec.md`。要件 ID とテストの対応表つき)。**図と定義表** `docs/design-diagrams.md`(ユースケース・業務フロー・画面遷移・状態遷移・ER・シーケンス・CRUD・画面項目・メッセージ・コード定義) |
+| (第24版) | **Claude Code のスキル**を追加(`.claude/skills/`: 現状調査とドキュメント管理 `project-memory-manager`、設計レビュー `spring-boot-architect`、機能追加 `feature-builder`、コード整理 `review-and-refactor`)。`docs/ai/backlog.md` にロードマップ(推奨順)と技術的負債の表を追加。新しいコードは Controller → Service → Repository の順に呼ぶ決まりにした(既存の直接呼び出しは技術的負債として記録) |
 | #29 | **テストの整理**: サンプルデータの件数・id・並び順をテスト用の `SampleData` にまとめた。サンプルデータを変えても、直すのはほぼこのファイルだけ |
 | #28 | **タスクの説明欄の URL をリンクに**: `http://` / `https://` で始まる URL を新しいタブで開けるリンクとして表示(SSO のログイン画面への案内など)。確認用のサンプルタスク「Google を開く」を追加 |
 | #27 | **Java の教科書**(`docs/java-guide.md`)を追加。このレポートにフロントエンド(画面)の状況を追記(5 章) |
@@ -61,6 +62,7 @@ README に書かれた MVP の 4 機能はすべて画面から使えるよう�
 java/
 ├── README.md
 ├── CLAUDE.md                               … Claude Code が自動で読む入口(docs/ai/ への案内)
+├── .claude/skills/                         … Claude Code のスキル(現状調査・設計レビュー・機能追加・リファクタリング)
 ├── .github/copilot-instructions.md         … GitHub Copilot が自動で読む入口
 ├── .github/workflows/
 │   ├── onboarding-progress-system-ci.yml   … CI の呼び出し元(test ジョブ + 動作確認の呼び出し)
@@ -584,6 +586,7 @@ URL: /users/999
 
 | 区分 | 項目 | メモ |
 |---|---|---|
+| コードの整理 | 画面と API で同じ処理をまとめる(`TaskService` / `UserService` の導入など) | 動きは変わらない整理。次の機能を足しやすくするため。ロードマップと技術的負債の一覧は `docs/ai/backlog.md` |
 | 将来の候補 | 専用URLのメール送信 | 送信用メールサーバー(SMTP)の設定と認証情報、新入社員がリンクを開ける公開サーバーが必要。メールでのパスワード再設定もこれと一緒に検討 |
 | 将来の候補 | ユーザー一覧のページ分け | ユーザーが数百人規模になったら |
 | 将来の候補 | 画面の見た目・使い勝手 | CSS の整理・スマホ対応、専用URL・仮パスワードのコピーボタン(小さな JavaScript)。今は使い勝手に問題なし(オーナー確認済み) |
