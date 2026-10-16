@@ -1,11 +1,11 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-16(第17版)
-- 対象: PR #23 までの内容に、Codespaces で画面移動が localhost に飛ぶ不具合の修正を加えた状態
+- 調査日: 2026-10-16(第18版)
+- 対象: PR #24 までの内容(`master` の最新)。Codespaces での動作確認(13 章)まで完了
 - デフォルトブランチは `main` から `master` に変更されています
 - Codespaces での動作確認手順: [codespaces-check.md](codespaces-check.md)
 - 対象プロジェクト: `onboarding-progress-system`(新入社員・中途入社者のオンボーディング進捗管理)
-- 調査方法: ソースコードの確認、自動テストの実行、アプリを実際に起動してブラウザで操作
+- 調査方法: ソースコードの確認、自動テストの実行、アプリを実際に起動してブラウザで操作、Codespaces での動作確認(オーナー)
 
 ### これまでの主な変更
 
@@ -20,8 +20,7 @@
 | #10 | ユーザー一覧の絞り込み(部署・進捗)と期限切れ件数の表示を追加 |
 | #11 | 404・400・500 などのエラー画面を日本語化、PR の作成・更新時に CI を自動実行 |
 | #12 | タスク API の入力値の不具合を修正(`active: null` の 500 など) |
-| #13 | 後片付け: 古いワークフロー削除、compose の `version` 削除、Actions を Node.js 24 対応版へ更新、初期パスワード削除 |
-| #13 | 後片付け、Codespaces の自動起動、タスクの並び順(↑ / ↓)、ダッシュボード(トップページ) |
+| #13 | 後片付け(古いワークフロー・compose の `version`・初期パスワードの削除、Actions の更新)、Codespaces の自動起動、タスクの並び順(↑ / ↓)、ダッシュボード(トップページ) |
 | #14 | Codespaces でアプリの準備ができてからブラウザを開く |
 | #15 | **ログイン機能**: 管理者 / 新入社員の役割、マイページ、権限のない画面は 403 |
 | #16, #17 | AI 向け開発メモ(`docs/ai/`、`CLAUDE.md`、`.github/copilot-instructions.md`)、不要な `wait-test.sh` の削除 |
@@ -31,7 +30,7 @@
 | #21 | **ヘルスチェック**: `/actuator/health` で稼働状態(DB 接続を含む)を確認。CI と Codespaces の起動待ちに使用 |
 | #22 | **パスワードのリセット**: ほかの管理者が仮パスワードを発行。管理者が 1 人だけなら起動時の設定(`APP_ADMIN_PASSWORD_RESET`)で戻す |
 | #23 | Codespaces での動作確認手順(`docs/codespaces-check.md`) |
-| (第17版) | **不具合修正**: Codespaces で登録・発行などのボタンを押すと「localhost 接続が拒否されました」になる問題。画面移動の行き先をパスだけ(`/users/3` など)にした |
+| #24 | **不具合修正**: Codespaces で登録・発行などのボタンを押すと「localhost 接続が拒否されました」になる問題。画面移動の行き先をパスだけ(`/users/3` など)にした |
 
 ---
 
@@ -53,13 +52,18 @@ README に書かれた MVP の 4 機能はすべて画面から使えるよう�
 ```
 java/
 ├── README.md
+├── CLAUDE.md                               … Claude Code が自動で読む入口(docs/ai/ への案内)
+├── .github/copilot-instructions.md         … GitHub Copilot が自動で読む入口
 ├── .github/workflows/
 │   ├── onboarding-progress-system-ci.yml   … CI の呼び出し元(test ジョブ + 動作確認の呼び出し)
 │   └── reusable-docker-smoke.yml           … Docker で起動して API・画面を確認する本体
 ├── .devcontainer/
 │   ├── devcontainer.json                   … Codespaces の設定(8080 番の転送、起動時に start-app.sh)
-│   └── start-app.sh                        … DB とアプリを起動(DB パスワードは初回に自動生成)
-├── docs/current-status.md                  … このレポート
+│   └── start-app.sh                        … DB とアプリを起動(DB・管理者のパスワードは初回に自動生成して .env に保存)
+├── docs/
+│   ├── current-status.md                   … このレポート
+│   ├── codespaces-check.md                 … Codespaces での動作確認手順(チェックリスト)
+│   └── ai/                                 … AI(Claude / Copilot)向けの開発メモ
 └── onboarding-progress-system/
     ├── README.md
     ├── Dockerfile
@@ -70,7 +74,9 @@ java/
         ├── main/
         │   ├── java/com/example/onboarding/
         │   │   ├── OnboardingProgressSystemApplication.java
-        │   │   ├── config/TimeConfig.java            … 「今日」「現在時刻」のタイムゾーン設定
+        │   │   ├── config/
+        │   │   │   ├── TimeConfig.java               … 「今日」「現在時刻」のタイムゾーン設定
+        │   │   │   └── WebConfig.java                … 初回ログイン時のパスワード変更チェックを登録
         │   │   ├── controller/
         │   │   │   ├── DashboardController.java      … ダッシュボード(トップページ。新入社員は /me へ)
         │   │   │   ├── LoginController.java          … ログイン画面
@@ -83,7 +89,8 @@ java/
         │   │   │   ├── Task.java
         │   │   │   ├── User.java
         │   │   │   ├── TaskAssignment.java           … 割り当て・進捗
-        │   │   │   └── AssignmentStatus.java         … 進捗の種類(未着手 / 対応中 / 完了)
+        │   │   │   ├── AssignmentStatus.java         … 進捗の種類(未着手 / 対応中 / 完了)
+        │   │   │   └── Role.java                     … 役割(管理者 / 新入社員)
         │   │   ├── form/
         │   │   │   ├── PasswordChangeForm.java
         │   │   │   ├── TaskForm.java
@@ -104,10 +111,12 @@ java/
         │   │   │   ├── SecurityConfig.java           … ログイン・権限の設定(どの画面を誰が開けるか)
         │   │   │   ├── AppUserDetails.java / AppUserDetailsService.java   … ログイン中のユーザー
         │   │   │   ├── LoginSettings.java            … 新入社員のログイン方法(専用URL / パスワード)
-        │   │   │   └── AdminAccountInitializer.java  … 最初の管理者を起動時に作成
+        │   │   │   ├── TemporaryPasswords.java       … 仮パスワード(12 文字のランダム)の生成
+        │   │   │   └── AdminAccountInitializer.java  … 最初の管理者を起動時に作成(APP_ADMIN_PASSWORD_RESET での復旧も)
         │   │   └── web/
         │   │       ├── DateTimeDisplay.java          … 画面用の日時表示・期限切れ判定
-        │   │       └── CurrentUserAdvice.java        … メニューに出すログイン中の名前
+        │   │       ├── CurrentUserAdvice.java        … メニューに出すログイン中の名前
+        │   │       └── PasswordChangeRequiredInterceptor.java   … パスワード変更が必要な人を変更画面へ移動
         │   └── resources/
         │       ├── application.yml
         │       ├── db/migration/
@@ -133,7 +142,7 @@ java/
 
 まだ存在しないもの:
 
-- ユーザー・割り当て用の REST API(画面のみ)
+- ユーザー・割り当て用の REST API(画面のみ。3 章)
 
 ---
 
@@ -152,8 +161,11 @@ java/
 | 専用URL | 管理者がユーザー詳細画面で新入社員ごとのリンクを発行・再発行・無効化。有効期限 60 日 |
 | マイページ | 新入社員が自分のタスクの進捗を確認し、状態を変更する(`/me`) |
 | パスワード変更 | パスワードでログインする人が自分のパスワードを変更する(`/me/password`)。現在のパスワードの入力が必要 |
-| 共通メニュー | 全画面の上部にメニューとログイン中の名前・「ログアウト」。管理者は「ダッシュボード | タスク | ユーザー」、新入社員は「マイページ」 |
-| Codespaces | Codespace を開くと DB とアプリが自動で起動し、8080 番ポートが転送される |
+| 初回ログイン時のパスワード変更 | 管理者がほかの人に設定したパスワードは、本人が変更するまでほかの画面を開けない |
+| パスワードのリセット | 管理者がユーザー詳細画面で仮パスワードを発行(1 回だけ表示)。管理者が 1 人だけなら起動時の設定で復旧 |
+| ヘルスチェック | `/actuator/health` で稼働状態(DB 接続を含む)を確認。ログイン不要。CI と Codespaces の起動待ちに使用 |
+| 共通メニュー | 全画面の上部にメニュー。管理者は「ダッシュボード | タスク | ユーザー」、新入社員は「マイページ」。右端にログイン中の名前・「パスワード変更」(パスワードでログインする人だけ)・「ログアウト」 |
+| Codespaces | Codespace を開くと DB とアプリが自動で起動し、準備ができると 8080 番ポートが転送されてブラウザが開く。専用URLは Codespace のアドレスで表示 |
 | サンプルデータ | タスク 5 件、ユーザー 3 人、割り当て 10 件(進み具合がばらばら) |
 | エラー画面 | 404・その他 4xx・5xx を日本語の画面で表示。API は JSON のまま |
 | 自動テスト | 173 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
@@ -173,7 +185,8 @@ java/
 | 機能 | 補足 |
 |---|---|
 | ユーザー・割り当ての REST API | 保留。人事システム・チャット通知・集計ツールなどと連携することになったら検討 |
-| 専用URLのメール送信 | 候補。送信用メールサーバーの設定が必要 |
+| 専用URLのメール送信 | 候補。送信用メールサーバーの設定と、新入社員がリンクを開ける公開サーバーが必要 |
+| ユーザー一覧のページ分け | 候補。今は全件表示。ユーザーが数百人規模になったら検討 |
 
 ---
 
@@ -259,20 +272,30 @@ users 1 ──── * task_assignments * ──── 1 tasks
 | `ddl-auto` | `none` | テーブルは Flyway が作る |
 | `app.time-zone` | 環境変数 `APP_TIME_ZONE`(初期値 `Asia/Tokyo`) | 完了日時の表示と「今日」(期限切れ判定)に使用 |
 | `app.admin.*` | 環境変数 `APP_ADMIN_EMAIL`(初期値 `admin@example.com`)/ `APP_ADMIN_PASSWORD`(必須)/ `APP_ADMIN_NAME` | 最初の管理者。管理者が 1 人もいないときだけ起動時に作成 |
+| `app.admin.password-reset` | 環境変数 `APP_ADMIN_PASSWORD_RESET`(初期値 `false`) | `true` で起動すると、上の管理者のパスワードを `APP_ADMIN_PASSWORD` に戻す(忘れたとき用。使ったら外す) |
+| `app.member-login` | 環境変数 `APP_MEMBER_LOGIN`(初期値 `link`) | 新入社員のログイン方法。`link`(専用URL)/ `password` |
+| `app.access-link.valid-days` | 環境変数 `APP_ACCESS_LINK_VALID_DAYS`(初期値 `60`) | 専用URLの有効日数 |
+| `app.base-url` | 環境変数 `APP_BASE_URL`(初期値 空) | 専用URLに表示するアドレス。空なら管理者のブラウザが使ったアドレス。Codespaces では自動設定 |
+| `server.tomcat.use-relative-redirects` | `true` | 画面移動の行き先をパスだけにする(Codespaces で localhost に飛ばないように) |
+| `management.*` | `/actuator/health` だけ公開、詳細は出さない | ヘルスチェック |
 
 ### レイヤー構成
 
 ```
 全体:  すべてのリクエストは Spring Security(SecurityConfig)でログイン・権限を確認してから各 Controller へ
+       パスワード変更が必要な人は PasswordChangeRequiredInterceptor が /me/password へ移動させる
 画面:  ブラウザ → DashboardController → DashboardService → TaskAssignmentRepository / UserRepository → DB
        ブラウザ → TaskPageController → TaskOrderService → TaskRepository → DB
        ブラウザ → UserPageController → AssignmentService → TaskAssignmentRepository / TaskRepository → DB
+                                    ├→ AccessLinkService(専用URL)→ UserRepository → DB
                                     └→ UserRepository → DB
+       ブラウザ → MyPageController → AssignmentService / UserRepository → DB
+       ブラウザ → JoinController(専用URL)→ AccessLinkService → UserRepository → DB
 API:   クライアント → TaskController → TaskOrderService / TaskRepository → DB
 ```
 
 - 割り当てのルール(重複・無効タスクの禁止、完了日時の記録)は `AssignmentService` と `TaskAssignment` にまとめています。
-- フォームの値は `TaskForm` / `UserForm` で受け取り、`id` や作成日時を画面から書き換えられないようにしています。
+- フォームの値は `TaskForm` / `UserForm` / `PasswordChangeForm` で受け取り、`id` や作成日時を画面から書き換えられないようにしています。
 
 ---
 
@@ -281,7 +304,7 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 | Entity | テーブル | 主な項目・メソッド |
 |---|---|---|
 | `Task` | `tasks` | `title`, `description`, `active`, `sortOrder` |
-| `User` | `users` | `name`, `email`, `department`, `joinedOn`, `passwordHash`, `role` / `isLoginEnabled()`, `isAdmin()` |
+| `User` | `users` | `name`, `email`, `department`, `joinedOn`, `passwordHash`, `role`, `passwordChangeRequired`, `accessTokenHash`, `accessTokenExpiresAt` / `isLoginEnabled()`, `isAdmin()`, `hasValidAccessLink()` |
 | `Role`(enum) | — | `ADMIN`(管理者), `MEMBER`(新入社員) |
 | `TaskAssignment` | `task_assignments` | `user`(多対一), `task`(多対一), `status`, `dueDate`, `completedAt` / `changeStatus()`(完了日時の記録・消去), `isOverdue()`(期限切れ判定) |
 | `AssignmentStatus`(enum) | — | `NOT_STARTED`(未着手), `IN_PROGRESS`(対応中), `DONE`(完了) |
@@ -294,6 +317,7 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 |---|---|---|
 | `DashboardController` | `@Controller` | `/`(ダッシュボード。新入社員は `/me` へ転送) |
 | `LoginController` | `@Controller` | `/login` |
+| `JoinController` | `@Controller` | `/join/{token}`(専用URLでのログイン) |
 | `MyPageController` | `@Controller` | `/me` 配下(自分のタスク、自分のパスワード変更) |
 | `TaskController` | `@RestController` | `/api/tasks` 配下(JSON) |
 | `TaskPageController` | `@Controller` | `/tasks` 配下(画面) |
@@ -347,7 +371,7 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 | `PUT` | `/api/tasks/{id}` | 更新 |
 | `DELETE` | `/api/tasks/{id}` | 削除(204。割り当ても削除) |
 
-入力値の扱い(第8版で修正):
+入力値の扱い(#12 で修正):
 
 - `POST` で `"active": null` または省略 → 有効(`true`)として登録(以前は 500 エラー)
 - `POST` の本文に `id` や `createdAt` を含めても無視し、必ず新しいタスクとして登録(以前は既存タスクを上書きしていた)
@@ -358,11 +382,11 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 
 ## 9. GitHub Actions の内容
 
-**`onboarding-progress-system-ci.yml`**(`onboarding-progress-system/` 配下が変わった push と手動実行で起動)
+**`onboarding-progress-system-ci.yml`**(起動するタイミング: PR の作成・更新時(すべて)、`master` への push(アプリ・ワークフローが変わったとき)、手動実行。同じ PR で新しい push があると古い実行は止まる)
 
 | ジョブ | 内容 |
 |---|---|
-| `test` | Java 21 で `mvn -B test`(117 件)。失敗時はテスト結果を成果物として保存 |
+| `test` | Java 21 で `mvn -B test`(173 件)。失敗時はテスト結果を成果物として保存 |
 | `call-reusable` | 下の `reusable-docker-smoke.yml` を呼ぶ |
 
 **`reusable-docker-smoke.yml`**
@@ -382,6 +406,8 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 | 15 | Smoke test password reset | 2 人目の管理者のパスワードをリセット → 仮パスワードが 1 回だけ表示される → 仮パスワードでログインでき、パスワード変更画面へ転送 |
 | 16〜17 | 後片付け | 失敗時のみ `docker compose logs`、最後に `docker compose down -v` |
 
+2 つのジョブ(`test`、`call-reusable / run-smoke`)は、`master` のルールセットで「マージ前に必須」になっています。
+
 使用しているアクション(すべて Node.js 24 で動作するバージョン):
 `actions/checkout@v5`、`actions/setup-java@v5`、`actions/upload-artifact@v6`、`docker/setup-buildx-action@v4`
 
@@ -390,24 +416,24 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 ## 10. ブラウザで確認できる画面
 
 起動方法: `export POSTGRES_PASSWORD=<任意>` と `export APP_ADMIN_PASSWORD=<任意>` → `docker compose up -d --build`
-(Codespaces では自動で起動し、管理者のパスワードはターミナルと `onboarding-progress-system/.env` に表示・保存されます)
+(Codespaces では自動で起動し、管理者のパスワードはターミナルと `onboarding-progress-system/.env` に表示・保存されます。確認手順は [codespaces-check.md](codespaces-check.md))
 
-どの画面もログインが必要です。ログインしていないと `/login` に移動します。
+ログイン画面・専用URL・ヘルスチェック以外は、ログインが必要です。ログインしていないと `/login` に移動します。
 
 全画面の上部に濃い紺色のメニューバーがあり、今いる画面に下線が付きます。管理者には「ダッシュボード | タスク | ユーザー」、新入社員には「マイページ」が表示され、右端にログイン中の名前、「パスワード変更」リンク、「ログアウト」ボタンがあります。
 登録・更新・削除などの直後は、緑の枠でメッセージ(エラーは赤い枠)が表示されます。
 
 | 画面 | URL | 主な内容 |
 |---|---|---|
-| ログイン | `/login` | メールアドレス・パスワード。誤りがあると赤い枠で「メールアドレスまたはパスワードが正しくありません。」 |
+| ログイン | `/login` | メールアドレス・パスワード。誤りがあると赤い枠で「メールアドレスまたはパスワードが正しくありません。」。下に「新入社員の方は、管理者から受け取った専用URLを開いてください」 |
+| 専用URLが使えない | `/join/{token}` | 「このリンクは使えません」(期限切れ・再発行済み・無効化)。管理者に再発行を依頼するよう案内 |
 | マイページ(新入社員) | `/me` | 自分の進捗(バー・期限切れ件数)と、割り当てられたタスクの表。状態をプルダウンで変更 |
-| パスワード変更 | `/me/password` | 現在のパスワード・新しいパスワード(8 文字以上)・確認用。メニュー右側の「パスワード変更」から開く(専用URLで入った新入社員には表示しない) |
-| 専用URL(ユーザー詳細の下部) | `/users/{id}` | 「専用URLを発行」→ 黄色の枠に URL を 1 回だけ表示。発行済みなら有効期限、期限切れなら赤いラベル。「再発行」「無効にする」 |
+| パスワード変更 | `/me/password` | 現在のパスワード・新しいパスワード(8 文字以上)・確認用。メニュー右側の「パスワード変更」から開く(専用URLで入った新入社員には表示しない)。変更が必要な人には赤い枠で理由を表示し、「戻る」は出さない |
 | ダッシュボード(管理者) | `/` | 下記 |
 | タスク一覧 | `/tasks` | タスクの表(表示順)、「新規登録」、各行の「↑」「↓」「編集」「削除」 |
 | タスク登録・編集 | `/tasks/new`, `/tasks/{id}/edit` | タイトル(必須)・説明・有効 |
 | ユーザー一覧 | `/users` | 下記 |
-| ユーザー登録・編集 | `/users/new`, `/users/{id}/edit` | 氏名(必須)・メールアドレス(必須)・部署・役割(管理者 / 新入社員)・パスワード(8 文字以上。編集時は空欄なら変更なし)・入社日 |
+| ユーザー登録・編集 | `/users/new`, `/users/{id}/edit` | 氏名(必須)・メールアドレス(必須)・部署・役割(管理者 / 新入社員)・パスワード(8 文字以上。編集時は空欄なら変更なし。ほかの人に設定すると本人は初回ログイン時に変更)・入社日 |
 | ユーザー詳細 | `/users/{id}` | 下記 |
 
 ### ダッシュボード(`/`)
@@ -439,19 +465,22 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 │ 部署 [すべて ▼]  進捗 [すべて ▼]  [絞り込む]  条件をクリア     │
 └──────────────────────────────────────────────────────────────┘
 (絞り込み中は「3 人中 1 人を表示しています。」と表示)
-┌──┬──────────┬──────┬──────────┬────────────────────┬──────────────────┐
-│ID│ 氏名     │ 部署 │ 入社日   │ 進捗               │ 操作             │
-├──┼──────────┼──────┼──────────┼────────────────────┼──────────────────┤
-│1 │ 山田 太郎│開発部│2026-04-01│ ██████████         │[詳細][編集][削除]│
-│  │          │      │          │ 4 / 4 完了(100%)  │                  │
-│2 │ 佐藤 花子│営業部│2026-04-01│ █████░░░░░         │[詳細][編集][削除]│
-│  │          │      │          │ 2 / 4 完了(50%) 期限切れ 2件 │        │
-│3 │ 鈴木 一郎│開発部│2026-10-01│ ░░░░░░░░░░         │[詳細][編集][削除]│
-│  │          │      │          │ 0 / 2 完了(0%)    │                  │
-└──┴──────────┴──────┴──────────┴────────────────────┴──────────────────┘
+┌──┬──────────┬──────┬──────────┬──────────────────────┬────────────────────┬──────────────────┐
+│ID│ 氏名     │ 部署 │ 入社日   │ 役割                 │ 進捗               │ 操作             │
+├──┼──────────┼──────┼──────────┼──────────────────────┼────────────────────┼──────────────────┤
+│1 │ 山田 太郎│開発部│2026-04-01│新入社員(ログイン不可)│ ██████████         │[詳細][編集][削除]│
+│  │          │      │          │                      │ 4 / 4 完了(100%)  │                  │
+│2 │ 佐藤 花子│営業部│2026-04-01│新入社員(ログイン不可)│ █████░░░░░         │[詳細][編集][削除]│
+│  │          │      │          │                      │ 2 / 4 完了(50%) 期限切れ 2件 │        │
+│3 │ 鈴木 一郎│開発部│2026-10-01│新入社員              │ ░░░░░░░░░░         │[詳細][編集][削除]│
+│  │          │      │          │                      │ 0 / 2 完了(0%)    │                  │
+│4 │ 管理者   │      │          │管理者                │ -                  │[詳細][編集][削除]│
+└──┴──────────┴──────┴──────────┴──────────────────────┴────────────────────┴──────────────────┘
+(例: 鈴木さんだけ専用URLを発行済み)
 ```
 
-- 進捗は緑のバーと「完了数 / 割り当て数 完了(完了率)」で表示。期限切れがある人は赤いラベル「期限切れ N件」。割り当てがない人は「未割り当て」
+- 役割の横の「(ログイン不可)」は、まだログインできない人(専用URL未発行・期限切れ、またはパスワード未設定)
+- 進捗は緑のバーと「完了数 / 割り当て数 完了(完了率)」で表示。期限切れがある人は赤いラベル「期限切れ N件」。割り当てがない人は「未割り当て」。管理者は「-」
 - 上部のフォームで部署・進捗を選んで「絞り込む」。条件に合う人がいないときは「条件に一致するユーザーはいません。」
 - 氏名をクリックすると詳細画面へ
 
@@ -464,6 +493,14 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 入社日          2026-04-01
 進捗            █████░░░░░ 2 / 4 完了(50%)
 [ユーザー情報を編集] [一覧に戻る]
+
+パスワード(管理者、またはパスワード方式の新入社員のとき。自分自身には出ない)
+本人が設定したパスワードでログインしています。忘れた場合は、仮パスワードを発行してください。
+[パスワードをリセット]   → 黄色の枠に仮パスワードを 1 回だけ表示
+
+専用URL(専用URL方式の新入社員のとき)
+発行済み(有効期限 2026-12-14 09:00)
+[専用URLを再発行] [無効にする]   → 発行・再発行すると黄色の枠に URL を 1 回だけ表示
 
 割り当てられたタスク
 ┌────────────────────┬──────────────┬─────────────────────┬────────────────┬────────────┐
@@ -500,8 +537,10 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 ページが見つかりません
 お探しのページは存在しないか、削除された可能性があります。URL に誤りがないか確認してください。
 URL: /users/999
-[タスク一覧へ] [ユーザー一覧へ]
+[ダッシュボードへ] [タスク一覧へ] [ユーザー一覧へ]
 ```
+
+- ボタンは見ている人に合わせて変わります(管理者: 上の 3 つ / 新入社員: 「マイページへ」/ ログインしていない: 「ログイン画面へ」)
 
 - エラーの詳しい内容(例外のメッセージなど)は画面に出しません(情報漏えい対策)。
 - REST API(`/api/...`)に JSON で問い合わせた場合は、これまでどおり JSON でエラーを返します。
@@ -510,53 +549,41 @@ URL: /users/999
 
 ## 11. 次に実装すべき内容
 
-### 優先度 高
+これまで候補に挙げたものは、ほぼすべて対応しました。残りは急ぎではないものだけです(詳細は `docs/ai/backlog.md`)。
 
-1. ~~**検索・絞り込み**~~ → 対応済み(部署・進捗で絞り込み、期限切れ件数を表示)
-2. ~~**エラー画面の整備**~~ → 対応済み(404・4xx・5xx の日本語画面)
-3. ~~**`active: null` の 500 エラー修正**~~ → 対応済み(あわせて `id` 上書き・長いタイトルの 500 も修正)
+| 区分 | 項目 | メモ |
+|---|---|---|
+| 将来の候補 | 専用URLのメール送信 | 送信用メールサーバー(SMTP)の設定と認証情報、新入社員がリンクを開ける公開サーバーが必要。メールでのパスワード再設定もこれと一緒に検討 |
+| 将来の候補 | ユーザー一覧のページ分け | ユーザーが数百人規模になったら |
+| 保留 | ユーザー・割り当ての REST API | 人事システム・チャット通知・集計ツールなどと連携することになったら |
+| 対応しない | 専用URLを無効化したら、ログイン中の画面もすぐ使えなくする | 公開しない前提なので影響が小さい(オーナー判断)。今はログアウトかセッション切れ(30 分)まで使える |
 
-### 優先度 中
-
-4. **ユーザー・割り当ての REST API**: 他のシステムと連携する場合に追加
-5. ~~**ログイン・権限管理**~~ → 対応済み(第11版)
-6. ~~**新入社員によるパスワード変更**~~ → 対応済み(第12版。管理者も使える)
-7. **パスワードを忘れたときの再設定**: 今は管理者が編集画面で設定し直す
-6. ~~**タスクの並び順**~~ → 対応済み(↑ / ↓ ボタン)
-- ~~**Codespaces の自動起動**~~ → 対応済み(`.devcontainer/`)
-- ~~**ダッシュボード**~~ → 対応済み(トップページ)
-
-### 優先度 低(整理)— すべて対応済み
-
-7. ~~実行されないワークフロー `onboarding-progress-system/.github/workflows/ci-docker-smoke.yml` を削除する~~
-8. ~~`docker-compose.yml` から `version: "3.8"` を削除して警告を消す~~
-9. ~~Actions のバージョンを上げて Node.js 20 の警告を消す~~
-10. ~~`application.yml` の初期パスワード `pass` を削除する~~(DB パスワードは必ず環境変数で渡す)
+対応済みの主なもの: 検索・絞り込み、エラー画面、API の 500 エラー修正、タスクの並び順、ダッシュボード、Codespaces の自動起動、ログイン・権限、パスワード変更、専用URL、初回ログイン時のパスワード変更、ヘルスチェック、パスワードのリセット、後片付け(古いワークフロー・不要ファイル・初期パスワードの削除、Actions の更新)
 
 ---
 
-## 12. ログインと権限(第11版で追加)
+## 12. ログインと権限
 
 | 役割 | 開ける画面 | ログイン後の行き先 |
 |---|---|---|
 | 管理者(`ADMIN`) | すべて(ダッシュボード、タスク、ユーザー、割り当て、REST API) | `/`(ダッシュボード) |
 | 新入社員(`MEMBER`) | マイページ(`/me`)だけ。自分のタスクの状態を変更できる | `/me` |
-| ログインしていない | ログイン画面と CSS だけ | — |
+| ログインしていない | ログイン画面、専用URL(`/join/...`)、ヘルスチェック、CSS だけ | — |
 
 - 権限のない画面を開くと、日本語の 403 画面「このページを表示する権限がありません」(新入社員には「マイページへ」ボタン)
 - パスワードは BCrypt でハッシュ化して保存。パスワードが未設定のユーザーはログインできない
 - 最初の管理者は、管理者が 1 人もいないときに起動時に作成(`APP_ADMIN_EMAIL` / `APP_ADMIN_PASSWORD`)。コードにパスワードは書かない
-- 新入社員のログイン方法は `APP_MEMBER_LOGIN` で切り替える(第13版):
+- 新入社員のログイン方法は `APP_MEMBER_LOGIN` で切り替える:
   - `link`(初期値): 管理者がユーザー詳細画面で専用URLを発行して本人に渡す。開くだけでログインし `/me` へ。URL は発行直後に 1 回だけ表示(DB には SHA-256 ハッシュだけを保存)。有効期限は `APP_ACCESS_LINK_VALID_DAYS`(初期値 60 日)。再発行すると古い URL は使えなくなる。無効化も可能。すでにログイン中の画面は、ログアウトするかセッションが切れるまで使える
   - `password`: 新入社員の初期パスワードは、管理者がユーザー登録・編集画面で設定(8 文字以上)し、`/login` でログイン
-- 管理者がほかの人に設定したパスワード(登録・編集画面)は「変更が必要」になり、本人はログイン後、パスワード変更画面以外を開けない(REST API は 403)。変更すると解除。自分で自分に設定した場合と、起動時に作られる最初の管理者は対象外(第14版)
-- **パスワードを忘れたとき**(第16版):
+- 管理者がほかの人に設定したパスワード(登録・編集画面)は「変更が必要」になり、本人はログイン後、パスワード変更画面以外を開けない(REST API は 403)。変更すると解除。自分で自分に設定した場合と、起動時に作られる最初の管理者は対象外
+- **パスワードを忘れたとき**:
   - ほかの管理者がユーザー詳細画面の「パスワードをリセット」で仮パスワード(12 文字のランダム)を発行し、本人に伝える。仮パスワードは 1 回だけ表示。本人はログイン後に変更が必要
   - 管理者が 1 人だけで忘れた場合: `APP_ADMIN_PASSWORD_RESET=true` を付けて再起動すると、`APP_ADMIN_EMAIL` の管理者のパスワードが `APP_ADMIN_PASSWORD` に戻る(ログイン後に変更が必要)。使ったら設定を外す(外さないと起動のたびに戻る。ログに警告を出す)。Codespaces では `.env` に 1 行足して `bash .devcontainer/start-app.sh`
   - 新入社員(専用URL方式)は、専用URLを再発行すればよい
 - 管理者はどちらの設定でもパスワードでログインする。管理者には専用URLを発行できない(新入社員を管理者に変えると専用URLは消える)
 - Codespaces のポート 8080 は初期設定では本人(GitHub にログインした持ち主)しか開けない。新入社員に専用URLを開いてもらうには、ポートを Public にする必要がある
-- パスワードでログインする人は、メニュー右側の「パスワード変更」(`/me/password`)で自分のパスワードを変えられる。現在のパスワードの入力が必要で、新しいパスワードは 8〜72 文字・確認用と一致・現在と別のもの(第12版)
+- パスワードでログインする人は、メニュー右側の「パスワード変更」(`/me/password`)で自分のパスワードを変えられる。現在のパスワードの入力が必要で、新しいパスワードは 8〜72 文字・確認用と一致・現在と別のもの
 - 管理者は自分の役割を新入社員に変えたり、自分を削除したりできない(締め出し防止)
 - 画面のフォームは CSRF トークンで保護。REST API は HTTP Basic(管理者のみ)
 - ユーザー一覧には「役割」列と「(ログイン不可)」の表示。進捗の絞り込みとダッシュボードの人数は新入社員だけが対象
@@ -567,7 +594,34 @@ URL: /users/999
 │ メールアドレス   │           佐藤 花子 さんのタスク
 │ [              ] │           進捗 █████░░░░░ 2 / 4 完了(50%) 期限切れ 2件
 │ パスワード       │           │ タスク │ 状態 [対応中▼][変更] │ 期限 │ 完了日時 │
-│ [              ] │
+│ [              ] │           (専用URLで入った新入社員には「パスワード変更」は表示されない)
 │ [ログイン]       │
+│ 新入社員の方は…  │
 └──────────────────┘
 ```
+
+---
+
+## 13. Codespaces での動作確認(2026-10-16)
+
+[codespaces-check.md](codespaces-check.md) のチェックリスト 12 項目を、オーナーが Codespaces で実施し、すべて期待どおりに動くことを確認しました。
+
+| # | 確認内容 | 結果 |
+|---|---|---|
+| 1 | ヘルスチェック(`/actuator/health` → `{"status":"UP"}`) | ✅ |
+| 2 | 管理者でログイン → ダッシュボード | ✅ |
+| 3 | タスクの登録・編集・並べ替え・削除 | ✅ |
+| 4 | タスクの割り当てと状態の変更 | ✅ |
+| 5〜6 | 専用URLの発行(1 回だけ表示)→ プライベートウィンドウで開くとマイページ | ✅ |
+| 7 | 再発行すると古い URL は「このリンクは使えません」 | ✅ |
+| 8〜10 | 管理者を初期パスワード付きで追加 → 初回ログインでパスワード変更画面 → 変更後はダッシュボード | ✅ |
+| 11〜12 | パスワードのリセット(仮パスワードを 1 回だけ表示)→ 仮パスワードでログインすると変更画面 | ✅ |
+
+確認の途中で見つかった問題と対応:
+
+| 問題 | 対応 |
+|---|---|
+| ボタンを押すと「localhost 接続が拒否されました」になる | #24 で修正(画面移動の行き先をパスだけにした) |
+| ログから管理者のメールアドレスをコピーすると時刻が混ざってログインできない | 手入力で解決。`codespaces-check.md` に注意を追記 |
+| 8080 を開くと「One second, just getting your codespace ready」のまま進まないことがある | Codespaces 側の転送の問題。開き直しで解決。`codespaces-check.md` に対処を追記 |
+| 専用URLが「このリンクは使えません」になった | 不具合の影響で発行を複数回押し、古い URL を開いていたため。#24 の修正後、1 回だけ発行して解決 |
