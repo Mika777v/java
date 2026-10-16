@@ -20,6 +20,18 @@ spring:
 server:
   port: 8080
 
+# Health check: only /actuator/health is published, and it only says UP or DOWN
+# (it also checks the database connection). Other actuator endpoints are not published.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+
 app:
   # Time zone used for "today" (overdue check) and for showing completion times
   time-zone: ${APP_TIME_ZONE:Asia/Tokyo}

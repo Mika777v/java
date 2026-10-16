@@ -64,6 +64,7 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 |---|---|---|---|
 | `/api/**`(`@Order(1)`) | HTTP Basic(`curl -u email:password`) | `ADMIN` のみ | 無効(セッションなし) |
 | `/login`, `/join/**`, `/css/**`, `/error`, `/favicon.ico` | — | 誰でも | — |
+| `/actuator/health` | — | 誰でも(`UP` / `DOWN` だけを返す) | — |
 | `/`, `/me`, `/me/**` | フォームログイン | ログイン済みなら誰でも | 有効 |
 | それ以外すべて | フォームログイン | `ADMIN` のみ | 有効 |
 
@@ -84,6 +85,7 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | メソッド | URL | 権限 | 内容 |
 |---|---|---|---|
 | GET | `/login` | 誰でも | ログイン画面(`POST /login` は Spring Security が処理) |
+| GET | `/actuator/health` | 誰でも | ヘルスチェック。正常 200 `{"status":"UP"}`、異常 503 `DOWN`。CI・Codespaces の起動待ちに使う。ほかの Actuator は非公開(`management.endpoints.web.exposure.include: health`) |
 | GET | `/join/{token}` | 誰でも | 専用URLでログイン → `/me`。`password` 方式では 404 |
 | POST | `/logout` | ログイン済み | ログアウト → `/login?logout` |
 | GET | `/` | ログイン済み | 管理者: ダッシュボード / 新入社員: `/me` へ |

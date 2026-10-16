@@ -18,6 +18,7 @@ import org.springframework.security.web.SecurityFilterChain;
  *   <li>Screens: log in on /login (or, for new employees, with a personal link /join/{token}).
  *       "/" and "/me" for every logged-in user (new employees are sent from "/" to "/me");
  *       everything else for administrators only</li>
+ *   <li>Health check (/actuator/health): everyone</li>
  * </ul>
  */
 @Configuration
@@ -47,6 +48,8 @@ public class SecurityConfig {
         return http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login", "/join/**", "/css/**", "/error", "/favicon.ico").permitAll()
+                        // Health check for Docker, CI and monitoring: only says UP or DOWN
+                        .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/", "/me", "/me/**").authenticated()
                         .anyRequest().hasRole("ADMIN"))
                 .formLogin(form -> form
