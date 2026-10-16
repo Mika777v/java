@@ -69,6 +69,7 @@
 | 環境変数の追加 | `application.yml`、`docker-compose.yml`、CI(`reusable-docker-smoke.yml`)、`.devcontainer/start-app.sh`、README |
 | 機能の完了・追加 | `docs/ai/backlog.md` |
 | 画面・操作の追加や変更 | `docs/codespaces-check.md` のチェックリスト |
+| `docs/java-guide.md` に引用しているコードの変更 | `docs/java-guide.md` の該当箇所 |
 
 ## Git / PR
 
