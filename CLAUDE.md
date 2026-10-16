@@ -11,6 +11,7 @@
 
 | 作業 | 読むファイル |
 |---|---|
+| 機能の追加・変更(要件 ID・壊してはいけないルール・テストとの対応) | `docs/ai/spec.md` |
 | 画面・URL・クラス・権限の変更 | `docs/ai/architecture.md` |
 | テーブル・マイグレーション・サンプルデータ・テストデータ | `docs/ai/database.md` |
 | 次に何をやるか、既知の課題 | `docs/ai/backlog.md` |
@@ -23,4 +24,4 @@
 - 修正は最小限。大きな変更は先に原因と方針を説明して了承をもらう
 - ユーザーへの説明は日本語で、専門用語を使いすぎない
 - push 前に `cd onboarding-progress-system && mvn -B test` を通す
-- 機能やテーブルを変えたら `docs/ai/` と `docs/current-status.md` も更新する
+- 機能やテーブルを変えたら `docs/ai/`(特に `spec.md`)、`docs/current-status.md`、`docs/requirements.md` / `docs/design.md` も更新する

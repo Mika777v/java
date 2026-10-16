@@ -2,7 +2,8 @@
 
 このリポジトリはオンボーディング進捗管理システム(`onboarding-progress-system/`)です。
 Java 21 / Spring Boot 3.3 / Thymeleaf / Spring Security / Spring Data JPA / PostgreSQL 15 / Flyway / Maven。
-詳しい前提は `docs/ai/` にあります(`project-context.md`, `architecture.md`, `database.md`, `conventions.md`)。
+詳しい前提は `docs/ai/` にあります(`project-context.md`, `spec.md`, `architecture.md`, `database.md`, `conventions.md`)。
+機能を変えるときは `docs/ai/spec.md` の要件 ID と「壊してはいけないルール(INV)」を確認してください。
 
 ## コードを書くときの決まり
 
