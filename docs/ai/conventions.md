@@ -68,6 +68,7 @@
 | テーブル変更 | 新しい `V*.sql`、Entity、`docs/ai/database.md`、`docs/current-status.md` の表 |
 | 環境変数の追加 | `application.yml`、`docker-compose.yml`、CI(`reusable-docker-smoke.yml`)、`.devcontainer/start-app.sh`、README |
 | 機能の完了・追加 | `docs/ai/backlog.md` |
+| 画面・操作の追加や変更 | `docs/codespaces-check.md` のチェックリスト |
 
 ## Git / PR
 
