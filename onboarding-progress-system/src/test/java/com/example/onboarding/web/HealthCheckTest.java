@@ -12,7 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -39,7 +39,7 @@ class HealthCheckTest {
         for (String path : new String[] {"/actuator/env", "/actuator/configprops", "/actuator/beans"}) {
             mockMvc.perform(get(path))
                     .andExpect(status().is3xxRedirection())
-                    .andExpect(redirectedUrlPattern("**/login"));
+                    .andExpect(redirectedUrl("/login"));
         }
     }
 

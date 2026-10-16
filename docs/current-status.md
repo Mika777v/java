@@ -1,7 +1,7 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-16(第16版)
-- 対象: PR #21 までの内容に、パスワードのリセット(忘れたとき)を加えた状態
+- 調査日: 2026-10-16(第17版)
+- 対象: PR #23 までの内容に、Codespaces で画面移動が localhost に飛ぶ不具合の修正を加えた状態
 - デフォルトブランチは `main` から `master` に変更されています
 - Codespaces での動作確認手順: [codespaces-check.md](codespaces-check.md)
 - 対象プロジェクト: `onboarding-progress-system`(新入社員・中途入社者のオンボーディング進捗管理)
@@ -29,7 +29,9 @@
 | #19 | **新入社員の専用URL**: 管理者が発行したリンクを開くだけでマイページへ。パスワードでのログインは設定(`APP_MEMBER_LOGIN`)で切り替え可能 |
 | #20 | **初回ログイン時のパスワード変更**: 管理者がほかの人に設定したパスワードは、本人が最初に変更するまで他の画面を開けない |
 | #21 | **ヘルスチェック**: `/actuator/health` で稼働状態(DB 接続を含む)を確認。CI と Codespaces の起動待ちに使用 |
-| (第16版) | **パスワードのリセット**: ほかの管理者が仮パスワードを発行。管理者が 1 人だけなら起動時の設定(`APP_ADMIN_PASSWORD_RESET`)で戻す |
+| #22 | **パスワードのリセット**: ほかの管理者が仮パスワードを発行。管理者が 1 人だけなら起動時の設定(`APP_ADMIN_PASSWORD_RESET`)で戻す |
+| #23 | Codespaces での動作確認手順(`docs/codespaces-check.md`) |
+| (第17版) | **不具合修正**: Codespaces で登録・発行などのボタンを押すと「localhost 接続が拒否されました」になる問題。画面移動の行き先をパスだけ(`/users/3` など)にした |
 
 ---
 
@@ -126,7 +128,7 @@ java/
         │           ├── login.html / my-page.html / password-form.html / join-invalid.html
         │           ├── tasks.html / task-form.html
         │           └── users.html / user-form.html / user-detail.html
-        └── test/java/com/example/onboarding/          … 自動テスト(171 件)
+        └── test/java/com/example/onboarding/          … 自動テスト(173 件)
 ```
 
 まだ存在しないもの:
@@ -154,7 +156,7 @@ java/
 | Codespaces | Codespace を開くと DB とアプリが自動で起動し、8080 番ポートが転送される |
 | サンプルデータ | タスク 5 件、ユーザー 3 人、割り当て 10 件(進み具合がばらばら) |
 | エラー画面 | 404・その他 4xx・5xx を日本語の画面で表示。API は JSON のまま |
-| 自動テスト | 171 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
+| 自動テスト | 173 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
 | CI | PR の作成・更新時と `master` へのマージ後に、自動テストと Docker での動作確認を実行 |
 
 ### 割り当てのルール

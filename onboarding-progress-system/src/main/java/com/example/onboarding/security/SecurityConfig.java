@@ -8,7 +8,12 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.RedirectStrategy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+
+import java.net.URI;
 
 /**
  * Who may open which page.
@@ -54,11 +59,41 @@ public class SecurityConfig {
                         .anyRequest().hasRole("ADMIN"))
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .defaultSuccessUrl("/", false)
+                        .successHandler(loginSuccessHandler())
                         .permitAll())
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(redirectToLoginPage()))
                 .logout(logout -> logout
                         .logoutSuccessUrl("/login?logout")
                         .permitAll())
                 .build();
+    }
+
+    // Redirects below say only the path (e.g. "/login"), never "http://localhost:8080/login":
+    // behind a proxy such as GitHub Codespaces the app is reached as localhost:8080,
+    // and a full address would send the browser to localhost.
+
+    /** Not logged in: go to the login page. */
+    private static AuthenticationEntryPoint redirectToLoginPage() {
+        return (request, response, exception) -> response.sendRedirect(request.getContextPath() + "/login");
+    }
+
+    /** After logging in: back to the page that was asked for, otherwise "/". */
+    private static SavedRequestAwareAuthenticationSuccessHandler loginSuccessHandler() {
+        SavedRequestAwareAuthenticationSuccessHandler handler = new SavedRequestAwareAuthenticationSuccessHandler();
+        handler.setDefaultTargetUrl("/");
+        handler.setRedirectStrategy(pathOnlyRedirects());
+        return handler;
+    }
+
+    /** The page that was asked for is remembered as a full address; only its path and query are used. */
+    private static RedirectStrategy pathOnlyRedirects() {
+        return (request, response, url) -> {
+            URI uri = URI.create(url);
+            String target = uri.isAbsolute()
+                    ? uri.getRawPath() + (uri.getRawQuery() == null ? "" : "?" + uri.getRawQuery())
+                    : request.getContextPath() + url;
+            response.sendRedirect(response.encodeRedirectURL(target));
+        };
     }
 }

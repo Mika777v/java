@@ -19,6 +19,11 @@ spring:
 
 server:
   port: 8080
+  tomcat:
+    # Redirects say only the path (e.g. "/users/3"), and the browser keeps the address it is using.
+    # Behind a proxy such as GitHub Codespaces, the app itself is reached as localhost:8080,
+    # so a full address would send the browser to localhost and fail.
+    use-relative-redirects: true
 
 # Health check: only /actuator/health is published, and it only says UP or DOWN
 # (it also checks the database connection). Other actuator endpoints are not published.
