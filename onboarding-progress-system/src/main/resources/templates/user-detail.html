@@ -108,7 +108,7 @@
     <tr th:each="a : ${assignments}">
         <td>
             <div th:text="${a.task.title}">PCのセットアップ</div>
-            <div class="muted small" th:text="${a.task.description}">説明</div>
+            <div class="muted small" th:utext="${@links.linkify(a.task.description)}">説明</div>
         </td>
         <td>
             <form class="inline-form"

@@ -31,6 +31,7 @@
 - 更新系フォームは `method="post"` + `th:action`(CSRF トークンが自動で入る)。削除は `onsubmit="return confirm('...')"`
 - ボタンのクラスは `button` / `button-secondary` / `button-danger`、補足文は `muted small`
 - 日時の表示は `${@dates.format(...)}`、期限切れ判定は `${@dates.isOverdue(...)}`
+- 利用者が入力した文字は `th:text`(エスケープあり)で表示する。`th:utext` はエスケープ済みの HTML を返す `${@links.linkify(...)}` にだけ使う
 - スタイルは `static/css/app.css` に追記する(インライン style は進捗バーの幅など値が変わるものだけ)
 - JavaScript は使っていない。追加する場合は事前にオーナーに相談
 

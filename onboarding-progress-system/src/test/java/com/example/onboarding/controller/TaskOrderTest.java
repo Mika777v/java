@@ -53,7 +53,7 @@ class TaskOrderTest {
 
     @Test
     void sampleTasksKeepTheirOriginalOrder() {
-        assertThat(displayedTaskIds()).containsExactly(1L, 2L, 3L, 4L, 5L);
+        assertThat(displayedTaskIds()).containsExactly(1L, 2L, 3L, 4L, 5L, 6L);
     }
 
     @Test
@@ -63,7 +63,7 @@ class TaskOrderTest {
                 .andExpect(redirectedUrl("/tasks"))
                 .andExpect(flash().attribute("message", "「PCのセットアップ」を下に移動しました。"));
 
-        assertThat(displayedTaskIds()).containsExactly(2L, 1L, 3L, 4L, 5L);
+        assertThat(displayedTaskIds()).containsExactly(2L, 1L, 3L, 4L, 5L, 6L);
     }
 
     @Test
@@ -71,7 +71,7 @@ class TaskOrderTest {
         mockMvc.perform(post("/tasks/4/move-up"))
                 .andExpect(flash().attribute("message", "「チームメンバーとの顔合わせ」を上に移動しました。"));
 
-        assertThat(displayedTaskIds()).containsExactly(1L, 2L, 4L, 3L, 5L);
+        assertThat(displayedTaskIds()).containsExactly(1L, 2L, 4L, 3L, 5L, 6L);
     }
 
     @Test
@@ -79,10 +79,10 @@ class TaskOrderTest {
         mockMvc.perform(post("/tasks/1/move-up"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attributeCount(0));
-        mockMvc.perform(post("/tasks/5/move-down"))
+        mockMvc.perform(post("/tasks/6/move-down"))
                 .andExpect(flash().attributeCount(0));
 
-        assertThat(displayedTaskIds()).containsExactly(1L, 2L, 3L, 4L, 5L);
+        assertThat(displayedTaskIds()).containsExactly(1L, 2L, 3L, 4L, 5L, 6L);
     }
 
     @Test
@@ -106,7 +106,7 @@ class TaskOrderTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\": \"API task\"}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.sortOrder").value(60));
+                .andExpect(jsonPath("$.sortOrder").value(70));
     }
 
     @Test
@@ -129,12 +129,12 @@ class TaskOrderTest {
 
     @Test
     void userAssignmentsAndAssignableTasksFollowDisplayOrder() throws Exception {
-        // 鈴木 (user 3) has tasks 1 and 2; tasks 3 and 4 can still be assigned
+        // 鈴木 (user 3) has tasks 1 and 2; tasks 3, 4 and 6 (the sample link task) can still be assigned
         mockMvc.perform(post("/tasks/2/move-up"));
         mockMvc.perform(post("/tasks/4/move-up"));
 
         List<TaskAssignment> assignments = assignmentService.findAssignments(3L);
         assertThat(assignments).extracting(a -> a.getTask().getId()).containsExactly(2L, 1L);
-        assertThat(assignmentService.findAssignableTasks(3L)).extracting(Task::getId).containsExactly(4L, 3L);
+        assertThat(assignmentService.findAssignableTasks(3L)).extracting(Task::getId).containsExactly(4L, 3L, 6L);
     }
 }

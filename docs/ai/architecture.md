@@ -57,6 +57,7 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | | `UserProgress`, `ProgressFilter` | 進捗(合計・完了・期限切れ・完了率)と一覧の絞り込み条件 |
 | `web` | `PasswordChangeRequiredInterceptor` | 「変更が必要」のユーザーを `/me/password` へ転送(API は 403)。毎回 DB を見るので再ログイン不要 |
 | | `CurrentUserAdvice` | 全画面に `${currentUserName}` を渡す |
+| | `LinkText` | `@Component("links")`。`${@links.linkify(text)}` + `th:utext` で、`http(s)://` の URL だけをリンク(新しいタブ、`rel="noopener noreferrer"`)にし、ほかは HTML エスケープ。タスクの説明の表示に使用 |
 | | `DateTimeDisplay` | `@Component("dates")`。テンプレートで `${@dates...}` として日時を表示 |
 
 ## セキュリティ(`security/SecurityConfig`)

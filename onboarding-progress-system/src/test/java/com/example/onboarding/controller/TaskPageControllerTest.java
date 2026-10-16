@@ -49,7 +49,7 @@ class TaskPageControllerTest {
         mockMvc.perform(get("/tasks"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("tasks"))
-                .andExpect(model().attribute("tasks", hasSize(5)))
+                .andExpect(model().attribute("tasks", hasSize(6)))
                 .andExpect(content().string(containsString("PCのセットアップ")))
                 .andExpect(content().string(containsString("新規登録")));
     }
@@ -89,7 +89,7 @@ class TaskPageControllerTest {
                 .andExpect(model().attributeHasFieldErrors("taskForm", "title"))
                 .andExpect(content().string(containsString("タイトルを入力してください")));
 
-        assertThat(taskRepository.count()).isEqualTo(5);
+        assertThat(taskRepository.count()).isEqualTo(6);
     }
 
     @Test
@@ -100,7 +100,7 @@ class TaskPageControllerTest {
                 .andExpect(view().name("task-form"))
                 .andExpect(content().string(containsString("タイトルは200文字以内で入力してください")));
 
-        assertThat(taskRepository.count()).isEqualTo(5);
+        assertThat(taskRepository.count()).isEqualTo(6);
     }
 
     @Test
@@ -110,7 +110,7 @@ class TaskPageControllerTest {
                         .param("title", "Should be a new task"))
                 .andExpect(status().is3xxRedirection());
 
-        assertThat(taskRepository.count()).isEqualTo(6);
+        assertThat(taskRepository.count()).isEqualTo(7);
         assertThat(taskRepository.findById(1L).orElseThrow().getTitle()).isEqualTo("PCのセットアップ");
     }
 
@@ -183,6 +183,22 @@ class TaskPageControllerTest {
     void deleteReturns404WhenTaskDoesNotExist() throws Exception {
         mockMvc.perform(post("/tasks/9999/delete"))
                 .andExpect(status().isNotFound());
+    }
+
+    // --- addresses in the description ---
+
+    @Test
+    void addressInDescriptionIsShownAsLinkAndHtmlIsNot() throws Exception {
+        Task task = taskRepository.findById(1L).orElseThrow();
+        task.setDescription("SSO: https://sso.example.com/login <b>bold</b>");
+        taskRepository.save(task);
+
+        mockMvc.perform(get("/tasks"))
+                .andExpect(content().string(containsString(
+                        "<a class=\"auto-link\" href=\"https://sso.example.com/login\" target=\"_blank\" rel=\"noopener noreferrer\">")))
+                .andExpect(content().string(containsString("&lt;b&gt;bold&lt;/b&gt;")));
+        mockMvc.perform(get("/users/1"))
+                .andExpect(content().string(containsString("href=\"https://sso.example.com/login\"")));
     }
 
     private Task findByTitle(String title) {

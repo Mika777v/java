@@ -48,7 +48,7 @@ class TaskControllerTest {
     void listReturnsSampleTasks() throws Exception {
         mockMvc.perform(get("/api/tasks"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(5)))
+                .andExpect(jsonPath("$", hasSize(6)))
                 .andExpect(jsonPath("$[*].title", hasItem("PCのセットアップ")));
     }
 
@@ -79,7 +79,7 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.title").value("Set up laptop"))
                 .andExpect(jsonPath("$.createdAt", notNullValue()));
 
-        assertThat(taskRepository.count()).isEqualTo(6);
+        assertThat(taskRepository.count()).isEqualTo(7);
     }
 
     @Test
@@ -91,7 +91,7 @@ class TaskControllerTest {
                                 """))
                 .andExpect(status().isBadRequest());
 
-        assertThat(taskRepository.count()).isEqualTo(5);
+        assertThat(taskRepository.count()).isEqualTo(6);
     }
 
     @Test
@@ -116,7 +116,7 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.id").value(not(1)))
                 .andExpect(jsonPath("$.createdAt").value(not(startsWith("2000"))));
 
-        assertThat(taskRepository.count()).isEqualTo(6);
+        assertThat(taskRepository.count()).isEqualTo(7);
         assertThat(taskRepository.findById(1L).orElseThrow().getTitle()).isEqualTo("PCのセットアップ");
     }
 
@@ -127,7 +127,7 @@ class TaskControllerTest {
                         .content("{\"title\": \"" + "a".repeat(201) + "\"}"))
                 .andExpect(status().isBadRequest());
 
-        assertThat(taskRepository.count()).isEqualTo(5);
+        assertThat(taskRepository.count()).isEqualTo(6);
     }
 
     @Test

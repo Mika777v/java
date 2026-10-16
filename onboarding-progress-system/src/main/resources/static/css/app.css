@@ -406,3 +406,8 @@ h2 {
     padding: 0.4rem;
     font-family: monospace;
 }
+
+/* Addresses in task descriptions shown as links (web/LinkText) */
+a.auto-link {
+    overflow-wrap: anywhere;
+}
