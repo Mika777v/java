@@ -99,6 +99,8 @@ Codespaces では `.devcontainer/start-app.sh` が自動で起動し、`.env`(gi
 | `APP_BASE_URL` | 任意 | 専用URLに表示するアプリのアドレス。空なら管理者のブラウザが使ったアドレス。Codespaces では start-app.sh が自動設定 |
 | `APP_TIME_ZONE` | 任意 | 「今日」や完了日時の表示に使うタイムゾーン(既定 `Asia/Tokyo`) |
 | `SPRING_DATASOURCE_URL` | 任意 | 既定 `jdbc:postgresql://localhost:5432/onboarding_db` |
+| `SPRING_JPA_SHOW_SQL` | 任意 | `true` で実行した SQL をログに出す(既定 `false`。学習・調査用) |
+| `SPRING_FLYWAY_BASELINE_ON_MIGRATE` | 任意 | 既定 `false`。Flyway の履歴がない既存 DB に途中から導入するときだけ一時的に `true` |
 
 ## 関連ドキュメント
 

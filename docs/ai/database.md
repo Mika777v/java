@@ -17,15 +17,17 @@
 | `V7__add_access_link_to_users.sql` | `users.access_token_hash`, `users.access_token_expires_at` 追加(専用URL) |
 | `V8__add_password_change_required_to_users.sql` | `users.password_change_required` 追加(初回ログイン時のパスワード変更) |
 | `V9__insert_sample_link_task.sql` | サンプルタスク「Google を開く(リンクの確認用)」を一覧の最後に追加(誰にも割り当てない) |
+| `V10__make_user_email_unique_ignoring_case.sql` | `users` に `lower(email)` の一意インデックス `uk_users_email_lower`(大文字小文字だけ違うメールアドレスを DB でも拒否) |
 
 ### マイグレーションのルール
 
 - **適用済みのファイルは絶対に書き換えない。** Flyway のチェックサムが合わなくなり、既存環境で起動に失敗する。
-  変更は必ず新しい番号のファイル(次は `V7__...sql`)で行う
+  変更は必ず新しい番号のファイル(次は `V11__...sql`)で行う
 - ファイル名は `V<番号>__<英語の説明(スネークケース)>.sql`
 - 列を追加したら、対応する Entity(`entity/`)の項目も追加する
 - 値の候補が決まっている列は `CHECK` 制約を付け、Java 側は `@Enumerated(EnumType.STRING)` の enum にする
 - 既存データがある前提で書く(`NOT NULL` 列の追加は `DEFAULT` を付けるか、`UPDATE` で埋めてから)
+- `baseline-on-migrate` は false(既定)。Flyway の履歴がない、ほかのテーブルがある DB につないだら、何もせずに起動を止める
 - **パスワード(ハッシュを含む)をマイグレーションに書かない。** サンプルユーザーは `password_hash` が `NULL`(ログイン不可)
 
 ## テーブル定義
@@ -47,7 +49,7 @@
 |---|---|---|---|
 | `id` | BIGSERIAL | PK | |
 | `name` | VARCHAR(100) | NOT NULL | |
-| `email` | VARCHAR(255) | NOT NULL UNIQUE | ログイン ID。重複チェックは大文字小文字を区別しない(アプリ側) |
+| `email` | VARCHAR(255) | NOT NULL UNIQUE、`lower(email)` も UNIQUE(V10) | ログイン ID。大文字小文字だけ違うものも重複(アプリの確認と DB の両方で拒否) |
 | `department` | VARCHAR(100) | | 空欄は NULL で保存 |
 | `joined_on` | DATE | | |
 | `password_hash` | VARCHAR(100) | | BCrypt。NULL = ログインできない |

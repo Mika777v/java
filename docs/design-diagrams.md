@@ -228,7 +228,7 @@ erDiagram
     users {
         BIGSERIAL id PK
         VARCHAR name "氏名(必須)"
-        VARCHAR email UK "メールアドレス(必須)"
+        VARCHAR email UK "メールアドレス(必須。大文字小文字を区別せず一意)"
         VARCHAR department "部署"
         DATE joined_on "入社日"
         VARCHAR password_hash "BCrypt。NULL=パスワードなし"

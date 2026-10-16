@@ -12,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -82,6 +83,20 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.createdAt", notNullValue()));
 
         assertThat(taskRepository.count()).isEqualTo(before + 1);
+    }
+
+    @Test
+    void createTellsWhereTheNewTaskIs() throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title": "Set up laptop"}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        Long id = taskRepository.findAll().stream().mapToLong(Task::getId).max().orElseThrow();
+        assertThat(result.getResponse().getHeader("Location")).isEqualTo("/api/tasks/" + id);
     }
 
     @Test
@@ -158,6 +173,23 @@ class TaskControllerTest {
         assertThat(task.getTitle()).isEqualTo("Updated title");
         assertThat(task.getDescription()).isEqualTo("Updated description");
         assertThat(task.getActive()).isFalse();
+    }
+
+    @Test
+    void updateKeepsActiveWhenItIsLeftOut() throws Exception {
+        Task task = taskRepository.findById(1L).orElseThrow();
+        task.setActive(false);
+        taskRepository.save(task);
+
+        mockMvc.perform(put("/api/tasks/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title": "Updated title"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(false));
+
+        assertThat(taskRepository.findById(1L).orElseThrow().getActive()).isFalse();
     }
 
     @Test

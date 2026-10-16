@@ -1,7 +1,7 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-16(第24版)
-- 対象: PR #30 までの内容(`master` の最新)に、Claude Code のスキルを加えた状態。Codespaces での動作確認(13 章)まで完了
+- 調査日: 2026-10-16(第25版)
+- 対象: PR #30 までの内容(`master` の最新)に、Claude Code のスキルとコードレビューの指摘の修正を加えた状態。Codespaces での動作確認(13 章)まで完了
 - デフォルトブランチは `main` から `master` に変更されています
 - Codespaces での動作確認手順: [codespaces-check.md](codespaces-check.md)
 - Java の学習用教科書(このリポジトリのコードが教材): [java-guide.md](java-guide.md)
@@ -35,6 +35,7 @@
 | #25 | このレポートを最新化(第18版) |
 | #30 | **要件定義書・設計書**を追加(人向け `docs/requirements.md` / `docs/design.md`、AI 向け `docs/ai/spec.md`。要件 ID とテストの対応表つき)。**図と定義表** `docs/design-diagrams.md`(ユースケース・業務フロー・画面遷移・状態遷移・ER・シーケンス・CRUD・画面項目・メッセージ・コード定義) |
 | (第24版) | **Claude Code のスキル**を追加(`.claude/skills/`: 現状調査とドキュメント管理 `project-memory-manager`、設計レビュー `spring-boot-architect`、機能追加 `feature-builder`、コード整理 `review-and-refactor`)。`docs/ai/backlog.md` にロードマップ(推奨順)と技術的負債の表を追加。新しいコードは Controller → Service → Repository の順に呼ぶ決まりにした(既存の直接呼び出しは技術的負債として記録) |
+| (第25版) | **コードレビューの指摘を修正**(すべて先に再現を確認): 削除された・役割を変えられた管理者のログイン中の画面を、次の操作でログアウトさせる / メールアドレスの大文字小文字だけ違う重複を DB でも拒否(V10)/ 「割り当て」の二度押しで 500 エラーにしない / API の `PUT` で `active` を省略しても今の値のまま、`POST` は `Location` を返す / Flyway の baseline を既定でしない / SQL のログを既定で出さない(`SPRING_JPA_SHOW_SQL=true` で表示)/ DB のポートを localhost だけに / アプリのコンテナを root 以外で実行、ヘルスチェック付き / GitHub Actions の権限を読み取りだけに / 最初の管理者のパスワードを 8〜72 文字でチェック |
 | #29 | **テストの整理**: サンプルデータの件数・id・並び順をテスト用の `SampleData` にまとめた。サンプルデータを変えても、直すのはほぼこのファイルだけ |
 | #28 | **タスクの説明欄の URL をリンクに**: `http://` / `https://` で始まる URL を新しいタブで開けるリンクとして表示(SSO のログイン画面への案内など)。確認用のサンプルタスク「Google を開く」を追加 |
 | #27 | **Java の教科書**(`docs/java-guide.md`)を追加。このレポートにフロントエンド(画面)の状況を追記(5 章) |
@@ -142,7 +143,8 @@ java/
         │       │   ├── V6__add_login_to_users.sql
         │       │   ├── V7__add_access_link_to_users.sql
         │       │   ├── V8__add_password_change_required_to_users.sql
-        │       │   └── V9__insert_sample_link_task.sql
+        │       │   ├── V9__insert_sample_link_task.sql
+        │       │   └── V10__make_user_email_unique_ignoring_case.sql
         │       ├── static/css/app.css
         │       └── templates/
         │           ├── fragments/nav.html            … 共通メニュー・メッセージ表示
@@ -152,7 +154,7 @@ java/
         │           ├── login.html / my-page.html / password-form.html / join-invalid.html
         │           ├── tasks.html / task-form.html
         │           └── users.html / user-form.html / user-detail.html
-        └── test/java/com/example/onboarding/          … 自動テスト(184 件)
+        └── test/java/com/example/onboarding/          … 自動テスト(196 件)
 ```
 
 まだ存在しないもの:
@@ -183,7 +185,7 @@ java/
 | Codespaces | Codespace を開くと DB とアプリが自動で起動し、準備ができると 8080 番ポートが転送されてブラウザが開く。専用URLは Codespace のアドレスで表示 |
 | サンプルデータ | タスク 6 件(うち 1 件はリンクの確認用)、ユーザー 3 人、割り当て 10 件(進み具合がばらばら) |
 | エラー画面 | 404・その他 4xx・5xx を日本語の画面で表示。API は JSON のまま |
-| 自動テスト | 184 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
+| 自動テスト | 196 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
 | CI | PR の作成・更新時と `master` へのマージ後に、自動テストと Docker での動作確認を実行 |
 
 ### 割り当てのルール
@@ -224,7 +226,7 @@ java/
 |---|---|---|---|---|
 | `id` | `BIGSERIAL` | 不可 | 自動採番 | 主キー |
 | `name` | `VARCHAR(100)` | 不可 | | 氏名 |
-| `email` | `VARCHAR(255)` | 不可 | | メールアドレス(`UNIQUE`) |
+| `email` | `VARCHAR(255)` | 不可 | | メールアドレス(`UNIQUE`。V10 で大文字小文字だけ違うものも重複として拒否) |
 | `department` | `VARCHAR(100)` | 可 | | 部署 |
 | `joined_on` | `DATE` | 可 | | 入社日 |
 | `password_hash` | `VARCHAR(100)` | 可 | | パスワード(BCrypt でハッシュ化。NULL ならログイン不可。V6) |
@@ -286,6 +288,8 @@ users 1 ──── * task_assignments * ──── 1 tasks
 | ポート | `8080` | |
 | DB 接続 | 環境変数 `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | Docker では `db:5432`、Codespaces では `localhost:5432`。パスワードに初期値はなく、必ず環境変数で渡す |
 | `ddl-auto` | `none` | テーブルは Flyway が作る |
+| `show-sql` | 環境変数 `SPRING_JPA_SHOW_SQL`(初期値 `false`) | `true` にすると実行した SQL をログに出す(学習・調査用) |
+| `flyway.baseline-on-migrate` | 環境変数 `SPRING_FLYWAY_BASELINE_ON_MIGRATE`(初期値 `false`) | 間違えてほかのアプリの DB につないだとき、何もせずに止まる |
 | `app.time-zone` | 環境変数 `APP_TIME_ZONE`(初期値 `Asia/Tokyo`) | 完了日時の表示と「今日」(期限切れ判定)に使用 |
 | `app.admin.*` | 環境変数 `APP_ADMIN_EMAIL`(初期値 `admin@example.com`)/ `APP_ADMIN_PASSWORD`(必須)/ `APP_ADMIN_NAME` | 最初の管理者。管理者が 1 人もいないときだけ起動時に作成 |
 | `app.admin.password-reset` | 環境変数 `APP_ADMIN_PASSWORD_RESET`(初期値 `false`) | `true` で起動すると、上の管理者のパスワードを `APP_ADMIN_PASSWORD` に戻す(忘れたとき用。使ったら外す) |
@@ -395,7 +399,7 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 |---|---|---|
 | `GET` | `/api/tasks` | タスク一覧 |
 | `GET` | `/api/tasks/{id}` | タスク 1 件 |
-| `POST` | `/api/tasks` | 登録(201) |
+| `POST` | `/api/tasks` | 登録(201。`Location` に新しいタスクのアドレス) |
 | `PUT` | `/api/tasks/{id}` | 更新 |
 | `DELETE` | `/api/tasks/{id}` | 削除(204。割り当ても削除) |
 
@@ -404,7 +408,7 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 - `POST` で `"active": null` または省略 → 有効(`true`)として登録(以前は 500 エラー)
 - `POST` の本文に `id` や `createdAt` を含めても無視し、必ず新しいタスクとして登録(以前は既存タスクを上書きしていた)
 - `title` が 200 文字を超える → 400(以前は DB エラーで 500)
-- `PUT` で `active` を省略すると `true` になります(従来どおり)
+- `PUT` で `active` や `sortOrder` を省略すると、今の値のまま(第25版で修正。以前は `active` が `true` に戻り、無効にしたタスクが有効になっていた)
 
 ---
 

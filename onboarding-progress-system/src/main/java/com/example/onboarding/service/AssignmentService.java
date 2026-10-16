@@ -6,6 +6,7 @@ import com.example.onboarding.entity.TaskAssignment;
 import com.example.onboarding.entity.User;
 import com.example.onboarding.repository.TaskAssignmentRepository;
 import com.example.onboarding.repository.TaskRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class AssignmentService {
+
+    private static final String ALREADY_ASSIGNED = "このタスクは既に割り当てられています。";
 
     private final TaskAssignmentRepository assignmentRepository;
     private final TaskRepository taskRepository;
@@ -86,16 +89,29 @@ public class AssignmentService {
             throw new AssignmentException("無効(Active: No)のタスクは割り当てられません。");
         }
         if (assignmentRepository.existsByUserIdAndTaskId(user.getId(), taskId)) {
-            throw new AssignmentException("このタスクは既に割り当てられています。");
+            throw new AssignmentException(ALREADY_ASSIGNED);
         }
-        return assignmentRepository.save(new TaskAssignment(user, task, dueDate));
+        return saveNew(new TaskAssignment(user, task, dueDate));
     }
 
     /** Assigns every active task the user does not have yet. Returns how many were added. */
     public int assignAllActive(User user, LocalDate dueDate) {
         List<Task> tasks = findAssignableTasks(user.getId());
-        tasks.forEach(task -> assignmentRepository.save(new TaskAssignment(user, task, dueDate)));
+        tasks.forEach(task -> saveNew(new TaskAssignment(user, task, dueDate)));
         return tasks.size();
+    }
+
+    /**
+     * Two requests at the same time (a double click, or two administrators) can both pass the
+     * "already assigned?" check. The unique constraint (user_id, task_id) then rejects the second one,
+     * which is shown as the usual message instead of an error page.
+     */
+    private TaskAssignment saveNew(TaskAssignment assignment) {
+        try {
+            return assignmentRepository.saveAndFlush(assignment);
+        } catch (DataIntegrityViolationException e) {
+            throw new AssignmentException(ALREADY_ASSIGNED);
+        }
     }
 
     public void changeStatus(TaskAssignment assignment, AssignmentStatus status) {
