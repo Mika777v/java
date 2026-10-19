@@ -163,6 +163,6 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | 環境 | 構成 |
 |---|---|
 | Docker Compose | `docker-compose.yml`: `db`(postgres:15、ヘルスチェックあり)と `app`(Dockerfile のマルチステージビルド) |
-| Codespaces | 土台は `mcr.microsoft.com/devcontainers/java:1-21-bookworm` + Maven・Docker の追加部品(`.devcontainer/devcontainer.json`)。以前の `universal:2`(10 GB 以上)は準備が終わらなくなったため変更。Compose は上に `docker-compose.codespaces.yml` を重ねる。`app` を `network_mode: host` にして DB へ `localhost:5432` で接続 (Codespaces の Docker 29 ではコンテナ間通信が失敗するための回避策) |
+| Codespaces | 土台は `mcr.microsoft.com/devcontainers/java:1-21-bookworm` + Maven・Docker の追加部品(`.devcontainer/devcontainer.json`)。以前の `universal:2`(10 GB 以上)は準備が終わらなくなったため変更。`.devcontainer/Dockerfile` でイメージに入っている Yarn の apt ソースを削除している(署名が確認できず、Docker の追加部品のインストールが失敗してリカバリーモードになるため)。Compose は上に `docker-compose.codespaces.yml` を重ねる。`app` を `network_mode: host` にして DB へ `localhost:5432` で接続 (Codespaces の Docker 29 ではコンテナ間通信が失敗するための回避策) |
 | GitHub Actions | `test` ジョブ(`mvn -B test`)と `call-reusable / run-smoke`(Docker で起動し curl で確認)。両方とも master のルールセットで必須チェック |
 | テスト | Testcontainers が PostgreSQL 15 を起動。Flyway のマイグレーションとサンプルデータがそのまま入る |

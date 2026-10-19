@@ -7,7 +7,10 @@
 
   // Java 21 only (about 2 GB). The former "universal" image includes many languages and is
   // over 10 GB, which made the codespace slow to build (and sometimes it never finished).
-  "image": "mcr.microsoft.com/devcontainers/java:1-21-bookworm",
+  // The Dockerfile uses the Java 21 image and removes a package source that breaks the features.
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
 
   // Added on top of the image: Maven (for building and testing from the terminal)
   // and Docker (to run the DB and the app with Docker Compose)
