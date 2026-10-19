@@ -246,6 +246,12 @@ jobs:
           echo "Updated task: $UPDATED"
           [ "$UPDATED" = "CI form task (edited)|false" ] || { echo "Task was not updated as expected"; exit 1; }
 
+          echo "POST /tasks/$FORM_ID/checklist (add a sub-item)"
+          STATUS=$(admin_post /tasks/$FORM_ID/edit /tasks/$FORM_ID/checklist --data-urlencode "label=CI sub-item")
+          echo "HTTP status: $STATUS"
+          check_status 302 "$STATUS"
+          admin_get $BASE/tasks/$FORM_ID/edit | grep -q "CI sub-item" || { echo "Sub-item not shown on the edit page"; exit 1; }
+
           echo "POST /tasks/$FORM_ID/delete (delete via form)"
           STATUS=$(admin_post /tasks /tasks/$FORM_ID/delete)
           echo "HTTP status: $STATUS"

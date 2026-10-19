@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Sub-items of one assignment (service/Checklist).
+  action: path the check buttons post to (e.g. "/me/assignments/5/checklist"), or null to only show the checks.
+-->
+<div class="checklist" th:fragment="checklist(checklist, action)"
+     th:unless="${checklist == null or checklist.isEmpty()}">
+    <div class="muted small" th:text="'サブ項目 ' + ${checklist.checked()} + ' / ' + ${checklist.total()}">サブ項目 1 / 3</div>
+    <ul class="checklist-items">
+        <li th:each="item : ${checklist.items()}" th:classappend="${item.checked()} ? 'checklist-checked'">
+            <form th:if="${action != null}" class="inline-form" th:action="@{${action + '/' + item.id()}}" method="post">
+                <input type="hidden" name="checked" th:value="${!item.checked()}">
+                <button type="submit" class="checklist-button"
+                        th:attr="aria-pressed=${item.checked()},title=${item.checked()} ? 'チェックを外す' : 'チェックする'">
+                    <span class="checklist-box" th:text="${item.checked()} ? '☑' : '☐'">☐</span>
+                    <span th:text="${item.label()}">Teams</span>
+                </button>
+            </form>
+            <th:block th:if="${action == null}">
+                <span class="checklist-box" th:text="${item.checked()} ? '☑' : '☐'">☐</span>
+                <span th:text="${item.label()}">Teams</span>
+            </th:block>
+        </li>
+    </ul>
+</div>
+</body>
+</html>

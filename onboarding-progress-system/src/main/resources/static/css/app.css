@@ -411,3 +411,49 @@ h2 {
 a.auto-link {
     overflow-wrap: anywhere;
 }
+
+/* Sub-items of a task (checklist): fragments/checklist.html and the task edit page */
+.checklist {
+    margin-top: 0.4rem;
+}
+
+.checklist-items {
+    list-style: none;
+    margin: 0.2rem 0 0.6rem;
+    padding: 0;
+}
+
+.checklist-items li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.1rem 0;
+}
+
+.checklist-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.1rem 0.2rem;
+    border: none;
+    background: none;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.checklist-box {
+    font-size: 1.2em;
+    line-height: 1;
+}
+
+.checklist-checked span:last-child {
+    color: #777;
+    text-decoration: line-through;
+}
+
+.checklist-add input[type="text"] {
+    width: 22rem;
+    max-width: 100%;
+    padding: 0.4rem;
+}

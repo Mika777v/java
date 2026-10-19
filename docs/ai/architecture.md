@@ -43,11 +43,14 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | | `TaskPageController` | `/tasks` 画面の CRUD と並べ替え(↑↓) |
 | | `UserPageController` | `/users` 画面の CRUD、絞り込み、詳細、割り当て、状態変更 |
 | `entity` | `Task`, `User`, `TaskAssignment` | JPA エンティティ。`created_at`/`updated_at` は `@PrePersist`/`@PreUpdate` で設定 |
+| | `TaskChecklistItem`, `AssignmentCheck` | タスクのサブ項目と、割り当てごとのチェック(V11) |
 | | `AssignmentStatus` | `NOT_STARTED`(未着手)/ `IN_PROGRESS`(対応中)/ `DONE`(完了)。`getLabel()` が日本語 |
 | | `Role` | `ADMIN`(管理者)/ `MEMBER`(新入社員) |
-| `form` | `TaskForm`, `UserForm` | 画面の入力値と検証。`UserForm` はパスワード(空欄 = 変更しない)を持つ |
+| `form` | `ChecklistItemForm` | サブ項目の追加フォーム(名前は必須・200 文字まで) |
+| | `TaskForm`, `UserForm` | 画面の入力値と検証。`UserForm` はパスワード(空欄 = 変更しない)を持つ |
 | | `PasswordChangeForm` | 自分のパスワード変更の入力値。DB が必要なチェック(現在のパスワード)は Controller で行う |
-| `repository` | `TaskRepository` | `findAllInDisplayOrder()`(`sortOrder`, `id` 順)、`findMaxSortOrder()` |
+| `repository` | `TaskChecklistItemRepository`, `AssignmentCheckRepository` | サブ項目(タスクごと・複数タスクまとめて)、チェックの付け外し(`check` は二度押しでも 1 行) |
+| | `TaskRepository` | `findAllInDisplayOrder()`(`sortOrder`, `id` 順)、`findMaxSortOrder()` |
 | | `UserRepository` | メールの重複確認(大文字小文字を区別しない)、役割での存在確認 |
 | | `TaskAssignmentRepository` | ユーザーごとの集計 `countProgressByUser`、状態ごとの件数、期限が近い割り当て |
 | `security` | `SecurityConfig` | 2 つの `SecurityFilterChain`(下記) |
@@ -55,7 +58,8 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | | `LoginSettings` | `@Component("loginSettings")`。新入社員のログイン方法(`app.member-login` = `link` / `password`)。テンプレートでは `${@loginSettings.linkMode}` |
 | | `AdminAccountInitializer` | 起動時、管理者が 0 人なら `APP_ADMIN_*` で作成(既存ユーザーなら昇格)。`app.admin.password-reset=true` なら、その管理者のパスワードを戻して変更必須にする |
 | | `TemporaryPasswords` | 仮パスワード(12 文字、紛らわしい文字を除く)を `SecureRandom` で生成 |
-| `service` | `AccessLinkService` | 専用URLの発行(32 バイトの乱数 → URL 用 43 文字。DB には SHA-256 だけ保存)・確認(期限内か)・無効化 |
+| `service` | `ChecklistService`, `Checklist` | サブ項目の追加・削除、チェックの付け外しと状態の自動変更(1 つ → 対応中、全部 → 完了)、画面用のチェック一覧(2 回のクエリでまとめて取得) |
+| | `AccessLinkService` | 専用URLの発行(32 バイトの乱数 → URL 用 43 文字。DB には SHA-256 だけ保存)・確認(期限内か)・無効化 |
 | | `AssignmentService` | 割り当て・進捗のルール。失敗は `AssignmentException`(日本語メッセージ)を投げる |
 | | `TaskOrderService` | 並び順。`move()` で全タスクを 10 刻みに振り直す |
 | | `DashboardService`, `Dashboard` | ダッシュボード用の集計(管理者は対象外、期限が近い = 今日から 7 日) |
@@ -107,10 +111,12 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | GET | `/` | ログイン済み | 管理者: ダッシュボード / 新入社員: `/me` へ |
 | GET | `/me` | ログイン済み | マイページ |
 | POST | `/me/assignments/{aid}/status` | ログイン済み | 自分の割り当ての状態変更 |
+| POST | `/me/assignments/{aid}/checklist/{itemId}` | ログイン済み | 自分の割り当てのサブ項目をチェック(`checked=true`)/ 外す(`false`)。他人の割り当て・別タスクの項目は 404 |
 | GET / POST | `/me/password` | ログイン済み | 自分のパスワード変更(成功後、管理者は `/`、新入社員は `/me` へ) |
 | GET | `/tasks`, `/tasks/new`, `/tasks/{id}/edit` | ADMIN | タスク一覧・登録・編集 |
 | POST | `/tasks`, `/tasks/{id}`, `/tasks/{id}/delete` | ADMIN | 登録・更新・削除 |
 | POST | `/tasks/{id}/move-up`, `/tasks/{id}/move-down` | ADMIN | 並べ替え |
+| POST | `/tasks/{id}/checklist`, `/tasks/{id}/checklist/{itemId}/delete` | ADMIN | サブ項目の追加(`label`)・削除。結果は編集画面に flash で表示 |
 | GET | `/users?department=&status=` | ADMIN | ユーザー一覧(`status` は `ProgressFilter`) |
 | GET | `/users/new`, `/users/{id}/edit`, `/users/{id}` | ADMIN | 登録・編集・詳細 |
 | POST | `/users`, `/users/{id}`, `/users/{id}/delete` | ADMIN | 登録・更新・削除 |
@@ -151,6 +157,7 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 |---|---|
 | `fragments/nav.html` | 上部メニュー `nav(current)` と結果メッセージ `messages` |
 | `fragments/error.html` | エラー画面の本文(権限に応じたボタン) |
+| `fragments/checklist.html` | 割り当てのサブ項目 `checklist(checklist, action)`。`action` があればチェックのボタン(マイページ)、`null` なら表示だけ(ユーザー詳細) |
 | `login.html`, `my-page.html`, `dashboard.html` | ログイン、マイページ、ダッシュボード |
 | `password-form.html` | 自分のパスワード変更 |
 | `join-invalid.html` | 専用URLが無効(期限切れ・再発行済み・無効化)のときの画面 |

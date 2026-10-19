@@ -1,6 +1,6 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-19(第30版)
+- 調査日: 2026-10-19(第31版)
 - 対象: PR #30 までの内容(`master` の最新)に、Claude Code のスキルとコードレビューの指摘の修正を加えた状態。Codespaces での動作確認(13 章)まで完了
 - デフォルトブランチは `main` から `master` に変更されています
 - Codespaces での動作確認手順: [codespaces-check.md](codespaces-check.md)
@@ -40,7 +40,8 @@
 | #33 | **Codespaces がリカバリーモードになる不具合を修正**: Java 21 のイメージに入っている Yarn の取得元の署名が確認できず、Docker の追加部品のインストールが失敗していた。`.devcontainer/Dockerfile` でその取得元を削除 |
 | #34 | Codespaces でポート 8080 を最初から「ポート」タブに出す(`forwardPorts`)。手で追加しなくてよくなった |
 | #35 | Codespaces での動作確認(2026-10-19)を 13 章に追記: コードレビューの修正(#31)と Codespaces の土台の変更(#32〜#34)の後も問題なし |
-| (第30版) | **AI 開発運用ルール**を `CLAUDE.md` に導入(完了後は PR まで作る、事前確認は DB・API 互換性・認証などに限定、コミット規約 `feat:` など)。作業ログ `DEVLOG.md`、引き継ぎ `SESSION_SUMMARY.md`、タスク一覧 `docs/TASKS.md` を追加 |
+| #36 | **AI 開発運用ルール**を `CLAUDE.md` に導入(完了後は PR まで作る、事前確認は DB・API 互換性・認証などに限定、コミット規約 `feat:` など)。作業ログ `DEVLOG.md`、引き継ぎ `SESSION_SUMMARY.md`、タスク一覧 `docs/TASKS.md` を追加 |
+| (第31版) | **タスクのサブ項目(チェックボックス)**: 管理者がタスクの編集画面でサブ項目(例: Teams、SSO ログインアプリ)を追加・削除し、新入社員がマイページでチェックする。1 つでもチェックで「対応中」、全部で「完了」に自動で変わる。管理者はユーザー詳細でチェック状況を見られる(V11、テーブル 2 つ追加) |
 | #29 | **テストの整理**: サンプルデータの件数・id・並び順をテスト用の `SampleData` にまとめた。サンプルデータを変えても、直すのはほぼこのファイルだけ |
 | #28 | **タスクの説明欄の URL をリンクに**: `http://` / `https://` で始まる URL を新しいタブで開けるリンクとして表示(SSO のログイン画面への案内など)。確認用のサンプルタスク「Google を開く」を追加 |
 | #27 | **Java の教科書**(`docs/java-guide.md`)を追加。このレポートにフロントエンド(画面)の状況を追記(5 章) |
@@ -112,19 +113,23 @@ java/
         │   │   │   ├── User.java
         │   │   │   ├── TaskAssignment.java           … 割り当て・進捗
         │   │   │   ├── AssignmentStatus.java         … 進捗の種類(未着手 / 対応中 / 完了)
+        │   │   │   ├── TaskChecklistItem.java / AssignmentCheck.java   … サブ項目とそのチェック
         │   │   │   └── Role.java                     … 役割(管理者 / 新入社員)
         │   │   ├── form/
+        │   │   │   ├── ChecklistItemForm.java        … サブ項目の追加
         │   │   │   ├── PasswordChangeForm.java
         │   │   │   ├── TaskForm.java
         │   │   │   └── UserForm.java
         │   │   ├── repository/
         │   │   │   ├── TaskRepository.java
         │   │   │   ├── UserRepository.java
-        │   │   │   └── TaskAssignmentRepository.java
+        │   │   │   ├── TaskAssignmentRepository.java
+        │   │   │   └── TaskChecklistItemRepository.java / AssignmentCheckRepository.java
         │   │   ├── service/
         │   │   │   ├── AccessLinkService.java        … 専用URLの発行・確認・無効化
         │   │   │   ├── AssignmentService.java        … 割り当てのルール
         │   │   │   ├── AssignmentException.java      … 割り当てできないときのエラー
+        │   │   │   ├── Checklist.java / ChecklistService.java   … サブ項目とチェック(全部チェックで完了)
         │   │   │   ├── Dashboard.java / DashboardService.java   … ダッシュボードの数字と一覧
         │   │   │   ├── TaskOrderService.java         … タスクの並び順(↑ / ↓)
         │   │   │   ├── ProgressFilter.java           … 一覧の絞り込み条件
@@ -152,7 +157,8 @@ java/
         │       │   ├── V7__add_access_link_to_users.sql
         │       │   ├── V8__add_password_change_required_to_users.sql
         │       │   ├── V9__insert_sample_link_task.sql
-        │       │   └── V10__make_user_email_unique_ignoring_case.sql
+        │       │   ├── V10__make_user_email_unique_ignoring_case.sql
+        │       │   └── V11__create_task_checklists.sql
         │       ├── static/css/app.css
         │       └── templates/
         │           ├── fragments/nav.html            … 共通メニュー・メッセージ表示
@@ -162,7 +168,7 @@ java/
         │           ├── login.html / my-page.html / password-form.html / join-invalid.html
         │           ├── tasks.html / task-form.html
         │           └── users.html / user-form.html / user-detail.html
-        └── test/java/com/example/onboarding/          … 自動テスト(196 件)
+        └── test/java/com/example/onboarding/          … 自動テスト(221 件)
 ```
 
 まだ存在しないもの:
@@ -193,7 +199,7 @@ java/
 | Codespaces | Codespace を開くと DB とアプリが自動で起動し、準備ができると 8080 番ポートが転送されてブラウザが開く。専用URLは Codespace のアドレスで表示 |
 | サンプルデータ | タスク 6 件(うち 1 件はリンクの確認用)、ユーザー 3 人、割り当て 10 件(進み具合がばらばら) |
 | エラー画面 | 404・その他 4xx・5xx を日本語の画面で表示。API は JSON のまま |
-| 自動テスト | 196 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
+| 自動テスト | 221 件。`mvn test` で実行(Testcontainers で PostgreSQL を自動起動。「今日」は 2026-10-15 に固定) |
 | CI | PR の作成・更新時と `master` へのマージ後に、自動テストと Docker での動作確認を実行 |
 
 ### 割り当てのルール
@@ -259,8 +265,32 @@ java/
 - 一意制約: `(user_id, task_id)` … 同じ人に同じタスクは 1 回だけ
 - インデックス: `task_id`(タスク削除時の連鎖削除を速くするため)
 
+### `task_checklist_items`(タスクのサブ項目)— V11
+
+| カラム | 型 | NULL | 初期値 | 説明 |
+|---|---|---|---|---|
+| `id` | `BIGSERIAL` | 不可 | 自動採番 | 主キー |
+| `task_id` | `BIGINT` | 不可 | | `tasks.id` への外部キー(`ON DELETE CASCADE`) |
+| `label` | `VARCHAR(200)` | 不可 | | 項目名(例: 「Teams をインストール」) |
+| `sort_order` | `INTEGER` | 不可 | | 表示順(追加すると末尾) |
+| `created_at` / `updated_at` | `TIMESTAMPTZ` | 不可 | `now()` | 作成・更新日時 |
+
+### `assignment_checks`(サブ項目のチェック)— V11
+
+| カラム | 型 | NULL | 初期値 | 説明 |
+|---|---|---|---|---|
+| `id` | `BIGSERIAL` | 不可 | 自動採番 | 主キー |
+| `assignment_id` | `BIGINT` | 不可 | | `task_assignments.id` への外部キー(`ON DELETE CASCADE`) |
+| `item_id` | `BIGINT` | 不可 | | `task_checklist_items.id` への外部キー(`ON DELETE CASCADE`) |
+| `checked_at` | `TIMESTAMPTZ` | 不可 | | チェックした時刻 |
+
+- 一意制約: `(assignment_id, item_id)` … 行があれば「チェック済み」。外すと行を消す
+
 ```
 users 1 ──── * task_assignments * ──── 1 tasks
+                    1                       1
+                    │                       │
+                    * assignment_checks * ── 1 task_checklist_items
 ```
 
 ### 初期データ(V2・V4・V9。それぞれ 1 回だけ投入。V9 は既存の DB にも次の起動時に追加される)
@@ -348,6 +378,8 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 | `Role`(enum) | — | `ADMIN`(管理者), `MEMBER`(新入社員) |
 | `TaskAssignment` | `task_assignments` | `user`(多対一), `task`(多対一), `status`, `dueDate`, `completedAt` / `changeStatus()`(完了日時の記録・消去), `isOverdue()`(期限切れ判定) |
 | `AssignmentStatus`(enum) | — | `NOT_STARTED`(未着手), `IN_PROGRESS`(対応中), `DONE`(完了) |
+| `TaskChecklistItem` | `task_checklist_items` | `task`(多対一), `label`, `sortOrder` |
+| `AssignmentCheck` | `assignment_checks` | `assignment`(多対一), `item`(多対一), `checkedAt` |
 
 ---
 
@@ -376,6 +408,7 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 | `GET` | `/` | ダッシュボード(新入社員は `/me` へ転送) |
 | `GET` | `/me` | マイページ(自分のタスク) |
 | `POST` | `/me/assignments/{aid}/status` | 自分のタスクの状態を変更(他人の割り当ては 404) |
+| `POST` | `/me/assignments/{aid}/checklist/{itemId}` | 自分のタスクのサブ項目をチェック(`checked=true`)/ 外す(`false`)。全部チェックで完了 |
 | `GET` | `/join/{token}` | 専用URL。有効ならログインして `/me` へ。無効なら「このリンクは使えません」(404) |
 | `GET` | `/me/password` | パスワード変更画面(専用URLで入った新入社員は 404) |
 | `POST` | `/me/password` | パスワードを変更(現在のパスワード・新しいパスワード・確認用) |
@@ -384,6 +417,7 @@ API:   クライアント → TaskController → TaskOrderService / TaskReposito
 | `GET` / `POST` | `/tasks/{id}/edit` / `/tasks/{id}` | タスク編集 |
 | `POST` | `/tasks/{id}/delete` | タスク削除(割り当ても削除) |
 | `POST` | `/tasks/{id}/move-up` / `/tasks/{id}/move-down` | 表示順を 1 つ上 / 下へ(先頭・末尾では何もしない) |
+| `POST` | `/tasks/{id}/checklist` / `/tasks/{id}/checklist/{itemId}/delete` | サブ項目の追加 / 削除(タスクの編集画面から) |
 | `GET` | `/users` | ユーザー一覧(進捗付き)。`?department=開発部&status=OVERDUE` で絞り込み(`status` は `INCOMPLETE` / `OVERDUE` / `COMPLETED` / `UNASSIGNED`。それ以外の値は 400) |
 | `GET` / `POST` | `/users/new` / `/users` | ユーザー登録 → 詳細画面へ |
 | `GET` | `/users/{id}` | ユーザー詳細(割り当て・進捗) |

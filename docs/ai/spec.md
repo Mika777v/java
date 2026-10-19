@@ -21,12 +21,14 @@
 | FR-03 | 無効タスクは割り当て不可 | `AssignmentService.assign`, `findAssignableTasks` | `UserAssignmentPageTest.assignShowsErrorForInactiveTask` |
 | FR-04 | タスク削除で割り当ても削除 | DB の `ON DELETE CASCADE`(V3) | `UserAssignmentPageTest.deletingTaskAlsoRemovesItsAssignments` |
 | FR-05 | 説明の URL をリンクに(他はエスケープ) | `main/web/LinkText`(`@links`)、テンプレートの `th:utext` | `test/web/LinkTextTest`, `TaskPageControllerTest.addressInDescriptionIsShownAsLinkAndHtmlIsNot`, `SecurityTest.myPageShowsAddressesInTaskDescriptionAsLinks` |
+| FR-06 | タスクのサブ項目(チェックボックス)の追加・削除。割り当て済みの人にも反映 | `controller/TaskPageController`(`/tasks/{id}/checklist`), `service/ChecklistService`, `entity/TaskChecklistItem`, V11 | `test/controller/ChecklistTest`(`addingSubItem*`, `deletingSubItem*`, `subItemsAppearForEveryone*`) |
 | FR-10 | ユーザーの CRUD、メール重複不可(大文字小文字無視) | `main/controller/UserPageController`, `main/form/UserForm` | `test/controller/UserPageControllerTest` |
 | FR-11 | ユーザー削除で割り当ても削除 | DB の `ON DELETE CASCADE` | `UserPageControllerTest.deleteRemovesUserAndTheirAssignments` |
 | FR-12 | 自分の削除・自分の降格は不可 | `UserPageController`(`isSelf`) | `SecurityTest.administratorCannotDeleteThemselves`, `administratorCannotTakeAwayOwnAdministratorRole` |
 | FR-20 | 1 件 / まとめて割り当て(期限つき) | `AssignmentService.assign`, `assignAllActive` | `UserAssignmentPageTest.assign*` |
 | FR-21 | 同じタスクの重複割り当て不可 | UNIQUE(user_id, task_id) + `existsByUserIdAndTaskId` | `UserAssignmentPageTest.assignShowsErrorWhenAlreadyAssigned` |
 | FR-22 | 状態変更と完了日時の記録・消去 | `TaskAssignment.changeStatus` | `test/entity/TaskAssignmentTest`, `UserAssignmentPageTest.changingStatus*` |
+| FR-26 | 新入社員がサブ項目をチェック。1 つでも → 対応中、全部 → 完了(外すと対応中)。管理者はユーザー詳細でチェック状況を見る | `MyPageController.checkItem`, `ChecklistService.setChecked` / `statusAfterCheck`, `fragments/checklist.html`, `entity/AssignmentCheck` | `ChecklistTest`(`checking*`, `userDetailShowsChecks*`), `test/service/ChecklistStatusTest` |
 | FR-23 | 期限切れ判定(日本時間の今日) | `TaskAssignment.isOverdue`, `config/TimeConfig`(`Clock`) | `TaskAssignmentTest.overdue*`, `UserPageControllerTest.listCanBeFilteredByOverdue` |
 | FR-24 | ユーザー一覧の進捗表示と絞り込み | `UserPageController.listUsers`, `service/UserProgress`, `service/ProgressFilter`, `TaskAssignmentRepository.countProgressByUser` | `UserPageControllerTest.list*`, `test/service/UserProgressTest` |
 | FR-25 | ダッシュボード | `main/service/DashboardService`, `Dashboard` | `test/controller/DashboardTest` |
@@ -103,6 +105,7 @@
 | リダイレクトはパスだけ | Codespaces のプロキシで localhost に飛ぶ不具合(#24) | #24 |
 | ドキュメントだけの PR はテストをスキップ扱い | 必須チェックを満たしたまま待ち時間をなくす。パスフィルタだとチェックが始まらずマージ不可になった | #26 |
 | テストのサンプルデータは `SampleData` に集約 | サンプルデータ変更時の修正箇所を減らす(#28 で 18 件直した反省) | #29 |
+| 1 つのタスクに複数の作業があるときは、親子タスクではなくサブ項目(チェックボックス)で持つ | 期限・状態はタスクに 1 つでよく、進捗の数え方を変えずに済む。親子タスク(F2)は優先度低で保留 | (第31版) |
 | コードレビューの指摘のうち、再現できたものを修正(セッション・メールの大文字小文字・二度押し・API の active・Flyway の baseline・Docker・Actions の権限・最初の管理者のパスワードの長さ) | すべて先にテストか実際の起動で再現してから直した | #31 |
 | タスクの削除で割り当ても消える(`ON DELETE CASCADE`)は変えない | FR-04 の要件どおり。履歴を残したいなら「無効」にする運用。変えるならオーナーと相談 | #31 |
 
@@ -145,6 +148,17 @@
 - `true` の間は `PasswordChangeRequiredInterceptor` が `/me/password` 以外を変更画面へリダイレクト(`/api/**` は 403)
 
 **タスク(`tasks.active`)**: 有効 ⇄ 無効(編集画面)。無効は新しく割り当て不可(既存の割り当ては残す)。削除で割り当ても CASCADE。
+
+**サブ項目のチェックと割り当ての状態(`ChecklistService.statusAfterCheck(現在, チェック数, 項目数)`)**
+
+| チェック後の数 | 新しい状態 |
+|---|---|
+| 項目数 > 0 かつ チェック数 = 項目数 | `DONE`(`completedAt` を記録) |
+| チェック数 > 0、または今が `DONE` | `IN_PROGRESS`(`DONE` から戻すと `completedAt` を消す) |
+| それ以外(チェック 0 で `DONE` 以外) | 今のまま(手で選んだ状態を保つ) |
+
+- 状態が変わるのは、チェックを付け外ししたときだけ。サブ項目の追加・削除では、割り当て済みの人の状態は変えない(完了の記録を勝手に消さないため)
+- 手で状態を選んでも、チェックは変えない
 
 ## 7. このファイルの更新ルール
 
