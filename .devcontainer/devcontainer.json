@@ -22,6 +22,10 @@
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
 
+  // Always list port 8080 in the Ports tab. The app runs on the host network inside the codespace,
+  // so the port is not always detected automatically and had to be added by hand.
+  "forwardPorts": [8080],
+
   "portsAttributes": {
     "8080": {
       "label": "Onboarding app",

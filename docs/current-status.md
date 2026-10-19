@@ -1,6 +1,6 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-19(第27版)
+- 調査日: 2026-10-19(第28版)
 - 対象: PR #30 までの内容(`master` の最新)に、Claude Code のスキルとコードレビューの指摘の修正を加えた状態。Codespaces での動作確認(13 章)まで完了
 - デフォルトブランチは `main` から `master` に変更されています
 - Codespaces での動作確認手順: [codespaces-check.md](codespaces-check.md)
@@ -37,7 +37,8 @@
 | #31 | **Claude Code のスキル**を追加(`.claude/skills/`: 現状調査とドキュメント管理 `project-memory-manager`、設計レビュー `spring-boot-architect`、機能追加 `feature-builder`、コード整理 `review-and-refactor`)。`docs/ai/backlog.md` にロードマップ(推奨順)と技術的負債の表を追加。新しいコードは Controller → Service → Repository の順に呼ぶ決まりにした(既存の直接呼び出しは技術的負債として記録) |
 | #31 | **コードレビューの指摘を修正**(すべて先に再現を確認): 削除された・役割を変えられた管理者のログイン中の画面を、次の操作でログアウトさせる / メールアドレスの大文字小文字だけ違う重複を DB でも拒否(V10)/ 「割り当て」の二度押しで 500 エラーにしない / API の `PUT` で `active` を省略しても今の値のまま、`POST` は `Location` を返す / Flyway の baseline を既定でしない / SQL のログを既定で出さない(`SPRING_JPA_SHOW_SQL=true` で表示)/ DB のポートを localhost だけに / アプリのコンテナを root 以外で実行、ヘルスチェック付き / GitHub Actions の権限を読み取りだけに / 最初の管理者のパスワードを 8〜72 文字でチェック |
 | #32 | **Codespaces の土台を軽くした**: `universal:2`(多くの言語入り、10 GB 以上)から `devcontainers/java:1-21-bookworm`(約 2 GB)+ Maven・Docker の追加部品へ。Codespace の準備が終わらず開けなくなったため |
-| (第27版) | **Codespaces がリカバリーモードになる不具合を修正**: Java 21 のイメージに入っている Yarn の取得元の署名が確認できず、Docker の追加部品のインストールが失敗していた。`.devcontainer/Dockerfile` でその取得元を削除 |
+| #33 | **Codespaces がリカバリーモードになる不具合を修正**: Java 21 のイメージに入っている Yarn の取得元の署名が確認できず、Docker の追加部品のインストールが失敗していた。`.devcontainer/Dockerfile` でその取得元を削除 |
+| (第28版) | Codespaces でポート 8080 を最初から「ポート」タブに出す(`forwardPorts`)。手で追加しなくてよくなった |
 | #29 | **テストの整理**: サンプルデータの件数・id・並び順をテスト用の `SampleData` にまとめた。サンプルデータを変えても、直すのはほぼこのファイルだけ |
 | #28 | **タスクの説明欄の URL をリンクに**: `http://` / `https://` で始まる URL を新しいタブで開けるリンクとして表示(SSO のログイン画面への案内など)。確認用のサンプルタスク「Google を開く」を追加 |
 | #27 | **Java の教科書**(`docs/java-guide.md`)を追加。このレポートにフロントエンド(画面)の状況を追記(5 章) |
