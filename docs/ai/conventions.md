@@ -9,7 +9,7 @@
 | クラス名・メソッド名・変数名・コメント・Javadoc | 英語 |
 | 画面の文言、flash メッセージ、検証メッセージ、例外 `AssignmentException` のメッセージ | 日本語 |
 | テストメソッド名 | 英語の文章(`createShowsErrorWhenTitleIsBlank`) |
-| コミットメッセージ・PR タイトル | 英語(命令形。例: `Add login with administrator and new employee roles`) |
+| コミットメッセージ・PR タイトル | 英語(`種類: 命令形`。例: `feat: Add login with administrator and new employee roles`。種類は `CLAUDE.md` のコミット規約) |
 | PR 本文、`docs/` のドキュメント、ユーザーへの説明 | 日本語(専門用語は少なめに) |
 
 ## Java
@@ -72,14 +72,16 @@
 | 画面・URL の追加 | `reusable-docker-smoke.yml` のスモークテスト(必要なら)、`docs/current-status.md`、`docs/ai/architecture.md` |
 | テーブル変更 | 新しい `V*.sql`、Entity、`docs/ai/database.md`、`docs/current-status.md` の表 |
 | 環境変数の追加 | `application.yml`、`docker-compose.yml`、CI(`reusable-docker-smoke.yml`)、`.devcontainer/start-app.sh`、README |
-| 機能の完了・追加 | `docs/ai/backlog.md` |
+| 機能の完了・追加 | `docs/ai/backlog.md`、`docs/TASKS.md` |
+| すべてのタスク | `DEVLOG.md`(作業ログ)、`SESSION_SUMMARY.md`(引き継ぎ) |
 | 機能・権限・業務ルールの追加や変更 | `docs/ai/spec.md`(要件・実装・テストの対応表)、`docs/requirements.md`、`docs/design.md`、`docs/design-diagrams.md`(状態・画面・メッセージ・入力チェックが変わったとき) |
 | 画面・操作の追加や変更 | `docs/codespaces-check.md` のチェックリスト |
 | `docs/java-guide.md` に引用しているコードの変更 | `docs/java-guide.md` の該当箇所 |
 
 ## Git / PR
 
-- ブランチ: 作業用ブランチで作業(`master` には直接 push しない)。マージはオーナーが GitHub 上で行う
+- ブランチ: 作業用ブランチで作業(`master` には直接 push しない)。完了したら PR まで作る。マージはオーナーが GitHub 上で行う
+- 進め方(タスク実行フロー・確認が必要な作業・自律実行ルール・コミット規約)は `CLAUDE.md` の「AI 開発運用ルール」に従う
 - マージ済みの PR のブランチを再利用するときは、最新の `master` から作り直す
 - 1 つの PR は 1 つのテーマ。関係ない整形・リファクタリングを混ぜない
 - PR 本文(日本語): 「何を変えたか」「なぜ」「確認方法(Codespaces での手順)」「テスト結果」

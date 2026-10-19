@@ -1,6 +1,6 @@
 # リポジトリ現状レポート
 
-- 調査日: 2026-10-19(第29版)
+- 調査日: 2026-10-19(第30版)
 - 対象: PR #30 までの内容(`master` の最新)に、Claude Code のスキルとコードレビューの指摘の修正を加えた状態。Codespaces での動作確認(13 章)まで完了
 - デフォルトブランチは `main` から `master` に変更されています
 - Codespaces での動作確認手順: [codespaces-check.md](codespaces-check.md)
@@ -39,7 +39,8 @@
 | #32 | **Codespaces の土台を軽くした**: `universal:2`(多くの言語入り、10 GB 以上)から `devcontainers/java:1-21-bookworm`(約 2 GB)+ Maven・Docker の追加部品へ。Codespace の準備が終わらず開けなくなったため |
 | #33 | **Codespaces がリカバリーモードになる不具合を修正**: Java 21 のイメージに入っている Yarn の取得元の署名が確認できず、Docker の追加部品のインストールが失敗していた。`.devcontainer/Dockerfile` でその取得元を削除 |
 | #34 | Codespaces でポート 8080 を最初から「ポート」タブに出す(`forwardPorts`)。手で追加しなくてよくなった |
-| (第29版) | Codespaces での動作確認(2026-10-19)を 13 章に追記: コードレビューの修正(#31)と Codespaces の土台の変更(#32〜#34)の後も問題なし |
+| #35 | Codespaces での動作確認(2026-10-19)を 13 章に追記: コードレビューの修正(#31)と Codespaces の土台の変更(#32〜#34)の後も問題なし |
+| (第30版) | **AI 開発運用ルール**を `CLAUDE.md` に導入(完了後は PR まで作る、事前確認は DB・API 互換性・認証などに限定、コミット規約 `feat:` など)。作業ログ `DEVLOG.md`、引き継ぎ `SESSION_SUMMARY.md`、タスク一覧 `docs/TASKS.md` を追加 |
 | #29 | **テストの整理**: サンプルデータの件数・id・並び順をテスト用の `SampleData` にまとめた。サンプルデータを変えても、直すのはほぼこのファイルだけ |
 | #28 | **タスクの説明欄の URL をリンクに**: `http://` / `https://` で始まる URL を新しいタブで開けるリンクとして表示(SSO のログイン画面への案内など)。確認用のサンプルタスク「Google を開く」を追加 |
 | #27 | **Java の教科書**(`docs/java-guide.md`)を追加。このレポートにフロントエンド(画面)の状況を追記(5 章) |
@@ -66,7 +67,8 @@ README に書かれた MVP の 4 機能はすべて画面から使えるよう�
 ```
 java/
 ├── README.md
-├── CLAUDE.md                               … Claude Code が自動で読む入口(docs/ai/ への案内)
+├── CLAUDE.md                               … Claude Code が自動で読む入口(AI 開発運用ルールと docs/ai/ への案内)
+├── DEVLOG.md / SESSION_SUMMARY.md          … 作業ログ / 次のセッションへの引き継ぎ
 ├── .claude/skills/                         … Claude Code のスキル(現状調査・設計レビュー・機能追加・リファクタリング)
 ├── .github/copilot-instructions.md         … GitHub Copilot が自動で読む入口
 ├── .github/workflows/
@@ -77,6 +79,7 @@ java/
 │   ├── Dockerfile                          … Codespaces の土台(Java 21 のイメージから、使えない Yarn の取得元を削除)
 │   └── start-app.sh                        … DB とアプリを起動(DB・管理者のパスワードは初回に自動生成して .env に保存)
 ├── docs/
+│   ├── TASKS.md                            … 今のタスクの一覧
 │   ├── current-status.md                   … このレポート
 │   ├── codespaces-check.md                 … Codespaces での動作確認手順(チェックリスト)
 │   ├── java-guide.md                       … このリポジトリのコードで学ぶ Java の教科書

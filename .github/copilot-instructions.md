@@ -32,5 +32,10 @@ Java 21 / Spring Boot 3.3 / Thymeleaf / Spring Security / Spring Data JPA / Post
 
 ## 変更の進め方
 
-- 修正は最小限。頼まれていないリファクタリングや整形はしない
-- `master` に直接変更しない。作業ブランチで変更して PR を作る
+運用ルールの正本はリポジトリ直下の `CLAUDE.md`(「AI 開発運用ルール」)です。要点:
+
+- 修正はタスクの範囲だけ。関係ない整形やリファクタリングを混ぜない
+- `master` に直接変更しない。作業ブランチで変更して PR を作る(マージはオーナー)
+- DB スキーマ・API 互換性・認証認可・ライブラリの大幅変更・インフラ構成・データ削除・仕様変更は、先にオーナーに確認する
+- コミットメッセージは `feat:` / `fix:` / `refactor:` / `test:` / `docs:` / `ci:` + 英語の命令形
+- 作業ログ `DEVLOG.md` と引き継ぎ `SESSION_SUMMARY.md`、タスク一覧 `docs/TASKS.md` を更新する
