@@ -1,6 +1,6 @@
 ---
 name: feature-builder
-description: オンボーディング進捗管理システム(Spring Boot + PostgreSQL + Flyway + Thymeleaf)に新しい機能を実装する。要件分析 → タスク分解 → 方針の確認 → Flyway・Entity・Repository・Service・Controller(画面 / API)・Thymeleaf・テストの追加 → ドキュメントと README の更新 → 変更内容の要約、までを行う。「〇〇機能を追加して」「〇〇できるようにして」と頼まれたときに使う。
+description: オンボーディング進捗管理システム(Spring Boot + PostgreSQL + Flyway + Thymeleaf)に新しい機能を実装する。要件分析 → タスク分解 → (DB 変更などのときだけ方針の確認)→ Flyway・Entity・Repository・Service・Controller(画面 / API)・Thymeleaf・テストの追加 → ドキュメント・README・DEVLOG・SESSION_SUMMARY の更新 → PR 作成 → 変更内容の要約、までを行う。「〇〇機能を追加して」「〇〇できるようにして」と頼まれたときに使う。
 ---
 
 # feature-builder — 新機能の実装
@@ -10,11 +10,13 @@ description: オンボーディング進捗管理システム(Spring Boot + Post
 - 構成: Spring Boot 3.3 + PostgreSQL 15 + Flyway + Thymeleaf。新しいコードは **Controller → Service → Repository** の向きで書く
   (既存の Controller には Repository を直接呼ぶ箇所があるが、新しいコードでは真似しない)
 - `docs/ai/conventions.md`(書き方)と `docs/ai/spec.md` の **壊してはいけないルール(INV)** を守る
-- **大きな変更は、実装の前に「原因・方針」を短く説明して、オーナーの了承をもらう**
-  (テーブル追加・変更、新しい画面、権限の変更、既存の動きが変わるもの、ファイルを 5 個以上変えるもの)
-- 修正は最小限。頼まれていない整理はしない(見つけたら最後の要約に「気づいたこと」として書くだけ)
+- 進め方は `CLAUDE.md` の「AI 開発運用ルール」(タスク実行フロー・自律実行ルール)に従う
+- **事前確認が必要な作業だけ、実装の前に「原因・方針」を短く説明してオーナーの了承をもらう**:
+  DB スキーマ変更(新しいマイグレーション)、API 互換性を壊す変更、認証・認可の変更、ライブラリの大幅変更、
+  インフラ構成の変更、データ削除処理、仕様変更(要件・INV の変更)。それ以外の軽微な設計判断は自分で決め、理由を残す
+- 修正はタスクの範囲だけ。頼まれていない整理はしない(見つけたら最後の要約に「気づいたこと」として書くだけ)
 - パスワード・認証情報をコード・テスト・ドキュメント・ログに書かない
-- `master` に直接 push しない。PR はオーナーが「PRを作って」と言ってから作る
+- `master` に直接 push しない。完了したら PR まで作る(マージはオーナー)
 - 説明は日本語で、専門用語を使いすぎない
 
 ## 手順
@@ -39,10 +41,11 @@ description: オンボーディング進捗管理システム(Spring Boot + Post
 | 対象外 | 今回やらないこと |
 | 確認したいこと | オーナーへの質問 |
 
-### 2. タスクに分解して、方針の了承をもらう
+### 2. タスクに分解する(事前確認が必要な作業なら、ここで了承をもらう)
 
 [implementation-guide.md](implementation-guide.md) の順番(下の層から)でチェックリストを作る。
-大きな変更なら、ここで要件の表とチェックリストを見せて了承をもらう。
+事前確認が必要な作業(DB 変更など)を含むなら、ここで要件の表とチェックリストを見せて了承をもらう。
+含まないなら、そのまま実装に進む。
 
 ```
 - [ ] Flyway: V{次の番号}__xxx.sql
@@ -86,10 +89,12 @@ mvn -B test                       # 全テスト(Docker が必要)。テンプ�
 | テーブル | `docs/ai/database.md`、`docs/current-status.md` 4 章、`docs/design-diagrams.md` 5・7 章 |
 | 環境変数 | `application.yml`、`docker-compose.yml`、`reusable-docker-smoke.yml`、`.devcontainer/start-app.sh` |
 | 使い方が変わる | `onboarding-progress-system/README.md`(英語)の該当箇所 |
-| 完了 | `docs/ai/backlog.md`(ロードマップから「完了済み」へ) |
+| 完了 | `docs/ai/backlog.md`(ロードマップから「完了済み」へ)、`docs/TASKS.md` |
+| すべて | `DEVLOG.md`(作業ログを上に追記)、`SESSION_SUMMARY.md`(引き継ぎを書き換え) |
 
-### 6. コミット・push して、要約する
+### 6. コミット・push・PR 作成をして、要約する
 
-- コミットメッセージは英語の命令形(例: `Add due date reminders to the dashboard`)
-- 作業ブランチに push する(PR はオーナーの指示を待つ)
+- コミットメッセージは `feat:` + 英語の命令形(例: `feat: Add due date reminders to the dashboard`)
+- 作業ブランチに push し、PR を作る(本文は日本語: 何を変えたか / なぜ / 確認方法 / テスト結果)
+- PR の CI(`test`・`call-reusable / run-smoke`)を確認し、失敗したら直して push する
 - **最後に必ず [summary-template.md](summary-template.md) の形で変更内容を要約する**

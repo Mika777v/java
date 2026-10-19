@@ -13,7 +13,7 @@ description: オンボーディング進捗管理システムの現状を調べ�
 - 構成: Spring Boot 3.3 + PostgreSQL 15 + Flyway + Thymeleaf(詳細は `docs/ai/project-context.md`)
 - 情報の優先順位: **`docs/ai/` > `docs/current-status.md` > そのほかの `docs/`**。ただし最終的な正解はコード。
   ドキュメントとコードが食い違ったら、コードを確かめてドキュメントを直す(コードは勝手に直さない)
-- `master` に直接 push しない。作業ブランチで変更し、オーナーが「PRを作って」と言ったら PR を作る
+- `master` に直接 push しない。作業ブランチで変更し、PR まで作る(マージはオーナー。`CLAUDE.md` の「AI 開発運用ルール」)
 - パスワード・認証情報をドキュメントに書かない(`.env` の中身やログに出たパスワードも)
 - 説明は日本語で、専門用語を使いすぎない
 
@@ -37,6 +37,8 @@ description: オンボーディング進捗管理システムの現状を調べ�
 | `docs/ai/architecture.md` | クラス一覧・URL 一覧・セキュリティ |
 | `docs/ai/database.md` | マイグレーション一覧・テーブル定義・サンプルデータ |
 | `docs/ai/backlog.md` | ロードマップ(未実装)・既知の課題・技術的負債・完了済み |
+| `docs/TASKS.md` | 今のタスクの一覧(進行中・次にやる・判断待ち・最近の完了) |
+| `SESSION_SUMMARY.md`・`DEVLOG.md` | 前のセッションからの引き継ぎ、作業の経緯 |
 | `docs/current-status.md` | 人向けの現状レポート(版数・変更履歴・各章) |
 
 どの情報がどのファイルのどの章にあるかは [doc-map.md](doc-map.md) にまとめています。
@@ -74,7 +76,9 @@ survey.sh の「Technical debt signals」と、必要なら `spring-boot-archite
 - `docs/ai/*.md`: 該当する表だけ。`backlog.md` は「最終更新」の日付も
 - 機能の説明が変わったら `docs/requirements.md` / `docs/design.md` / `docs/design-diagrams.md` も
 - ドキュメントだけの変更なら CI の `test` / `run-smoke` はスキップ扱いになる(テストは不要)
-- 変更したら、作業ブランチにコミットして push する(コミットメッセージは英語の命令形)
+- `docs/TASKS.md` の「次にやる」も、5 の推奨順に合わせる
+- `DEVLOG.md`・`SESSION_SUMMARY.md` を更新する
+- 変更したら、作業ブランチにコミット(`docs:` + 英語の命令形)して push し、PR を作る
 
 ## 報告の形
 

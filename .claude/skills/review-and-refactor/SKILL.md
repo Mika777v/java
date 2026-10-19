@@ -1,6 +1,6 @@
 ---
 name: review-and-refactor
-description: オンボーディング進捗管理システム(Spring Boot + PostgreSQL + Flyway + Thymeleaf)のコード品質を上げる。重複コードの検出、Service 層の導入提案、命名の改善、パフォーマンス改善、Spring Boot のベストプラクティスの適用を、動きを変えずに行い、各修正の理由を説明する。「リファクタリングして」「コードを整理して」「重複を減らして」「このクラスを見直して」と頼まれたときに使う。
+description: オンボーディング進捗管理システム(Spring Boot + PostgreSQL + Flyway + Thymeleaf)のコード品質を上げる。重複コードの検出、Service 層の導入、命名の改善、パフォーマンス改善、Spring Boot のベストプラクティスの適用を、動きを変えずに行い、各修正の理由を説明して PR まで作る。「リファクタリングして」「コードを整理して」「重複を減らして」「このクラスを見直して」と頼まれたときに使う。
 ---
 
 # review-and-refactor — コード品質の改善
@@ -12,10 +12,10 @@ description: オンボーディング進捗管理システム(Spring Boot + Post
 - 構成: Spring Boot 3.3 + PostgreSQL 15 + Flyway + Thymeleaf。目指すレイヤーは Controller → Service → Repository → DB
 - `docs/ai/conventions.md`(書き方)と `docs/ai/spec.md` の **壊してはいけないルール(INV)** と **設計判断の記録(6 章)** を先に読む。
   設計判断で決まったことは「改善」として変えない
-- **このリポジトリのルール「修正は最小限・関係ないリファクタリングはしない」があるので、頼まれた範囲だけを直す。**
-  範囲外で見つけたものは、提案として報告するだけ
-- **先に提案して、オーナーの了承をもらってから直す。** 特に、ファイルを 5 個以上変えるもの、クラスを分ける・作るもの、
-  画面の HTML 構造が変わるもの、URL・JSON の形が変わりうるもの
+- 進め方は `CLAUDE.md` の「AI 開発運用ルール」に従う。**リファクタリングは確認不要の作業** なので、頼まれた範囲は自分で直して PR まで作る
+- **タスクの範囲だけを直す。** 範囲外で見つけたものは、`docs/TASKS.md` / `docs/ai/backlog.md` に候補として記録するだけ
+- 範囲が決まっていない依頼(「全体を整理して」など)は、候補の一覧を出して、どれから直すかを確認する
+- URL・JSON の形・DB が変わる場合は、リファクタリングではなく「事前確認が必要な作業」になるので、先に了承をもらう
 - 1 つの PR は 1 つのテーマ(例: 「TaskService の導入」だけ)。整形だけの変更(並べ替え・空白)を混ぜない
 - URL、画面の文言、JSON の項目名、DB は変えない(変えるなら、それは機能変更なので別の相談)
 - 説明は日本語で、専門用語を使いすぎない
@@ -39,7 +39,7 @@ python3 .claude/skills/review-and-refactor/scripts/find-duplicates.py 5     # �
 - テンプレート先頭の `<head>` の数行(Thymeleaf の部品化で得られるものが小さい)
 - `@PrePersist` / `@PreUpdate`(共通の親クラスにする案はあるが、効果は小さい。提案するなら「低」)
 
-### 3. 提案する(まだ直さない)
+### 3. 候補を整理する(範囲が決まっていない依頼では、ここで一覧を見せて確認する)
 
 [refactoring-catalog.md](refactoring-catalog.md) に、このリポジトリで実際にある候補と、直し方・理由・確かめ方をまとめています。
 
@@ -49,7 +49,7 @@ python3 .claude/skills/review-and-refactor/scripts/find-duplicates.py 5     # �
 
 種類: 重複 / Service 層 / 命名 / パフォーマンス / ベストプラクティス。優先度は「次の機能追加の邪魔になるか」で決める。
 
-### 4. 了承されたものを直す
+### 4. 直す
 
 1. **先にテストで今の動きを押さえる。** 直す箇所にテストがなければ、今の動きのままで通るテストを先に足す
 2. 小さく 1 つずつ直し、そのたびに関係するテストを流す(`mvn -B test -Dtest=TaskPageControllerTest` など)
@@ -58,7 +58,8 @@ python3 .claude/skills/review-and-refactor/scripts/find-duplicates.py 5     # �
 5. `layer-check.sh` を流し直して、候補が減った(増えていない)ことを確かめる
 6. 直した結果、ドキュメントの記述(クラス一覧など)が変わったら `docs/ai/architecture.md` などを更新する
    (`docs/java-guide.md` に引用しているコードを変えたら、そこも直す)
-7. 英語の命令形でコミットし、作業ブランチに push する(PR はオーナーの指示を待つ)
+7. `DEVLOG.md`・`SESSION_SUMMARY.md`・`docs/TASKS.md` を更新する
+8. `refactor:` + 英語の命令形でコミットし、作業ブランチに push して PR を作る(CI の結果も確認する)
 
 ### 5. 理由を説明する
 
