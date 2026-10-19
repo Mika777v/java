@@ -1,6 +1,6 @@
 # バックログ(AI 向け)
 
-最終更新: 2026-10-19(Codespaces でポート 8080 を最初から転送)。
+最終更新: 2026-10-19(Codespaces での動作確認を記録)。
 完了したら行を「完了済み」へ移し、`docs/current-status.md` も更新してください。
 このファイルが **ロードマップ** を兼ねます。更新の手順は `.claude/skills/project-memory-manager/SKILL.md`。
 
@@ -96,4 +96,4 @@
 | コードレビューの指摘の修正(削除・役割変更されたユーザーのログアウト、メールの大文字小文字の重複を DB でも拒否、二度押しで 500 にしない、API の PUT で `active` を省略しても今の値のまま・201 に Location、Flyway の baseline を既定 false、SQL のログを既定で出さない、DB ポートを localhost だけに、Docker を root 以外で実行・HEALTHCHECK、Actions の権限を読み取りだけに、最初の管理者のパスワードの長さチェック) | #31 |
 | Codespaces の土台を `universal:2` から `devcontainers/java:1-21-bookworm` + Maven・Docker に変更(準備が終わらず開けなくなったため) | #32 |
 | Codespaces のリカバリーモードを修正(Java 21 のイメージの Yarn の取得元を削除する `.devcontainer/Dockerfile`) | #33 |
-| Codespaces でポート 8080 を最初から転送(`forwardPorts`) | (第28版) |
+| Codespaces でポート 8080 を最初から転送(`forwardPorts`) | #34 |
