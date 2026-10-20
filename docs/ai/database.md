@@ -18,11 +18,12 @@
 | `V8__add_password_change_required_to_users.sql` | `users.password_change_required` 追加(初回ログイン時のパスワード変更) |
 | `V9__insert_sample_link_task.sql` | サンプルタスク「Google を開く(リンクの確認用)」を一覧の最後に追加(誰にも割り当てない) |
 | `V10__make_user_email_unique_ignoring_case.sql` | `users` に `lower(email)` の一意インデックス `uk_users_email_lower`(大文字小文字だけ違うメールアドレスを DB でも拒否) |
+| `V11__create_task_checklists.sql` | `task_checklist_items`(タスクのサブ項目)、`assignment_checks`(割り当てごとのチェック)作成 |
 
 ### マイグレーションのルール
 
 - **適用済みのファイルは絶対に書き換えない。** Flyway のチェックサムが合わなくなり、既存環境で起動に失敗する。
-  変更は必ず新しい番号のファイル(次は `V11__...sql`)で行う
+  変更は必ず新しい番号のファイル(次は `V12__...sql`)で行う
 - ファイル名は `V<番号>__<英語の説明(スネークケース)>.sql`
 - 列を追加したら、対応する Entity(`entity/`)の項目も追加する
 - 値の候補が決まっている列は `CHECK` 制約を付け、Java 側は `@Enumerated(EnumType.STRING)` の enum にする
@@ -72,6 +73,26 @@
 | `created_at`, `updated_at` | TIMESTAMPTZ | NOT NULL | |
 | | | UNIQUE (`user_id`, `task_id`) | 同じタスクを同じ人に 2 回割り当てない |
 
+### `task_checklist_items`(タスクのサブ項目。全員共通)— V11
+
+| 列 | 型 | 制約 | 説明 |
+|---|---|---|---|
+| `id` | BIGSERIAL | PK | |
+| `task_id` | BIGINT | NOT NULL, FK → tasks ON DELETE CASCADE(索引あり) | |
+| `label` | VARCHAR(200) | NOT NULL | 項目名(例: 「Teams をインストール」) |
+| `sort_order` | INTEGER | NOT NULL | 表示順。追加すると末尾(最大値 + 10) |
+| `created_at`, `updated_at` | TIMESTAMPTZ | NOT NULL | |
+
+### `assignment_checks`(割り当てごとのチェック)— V11
+
+| 列 | 型 | 制約 | 説明 |
+|---|---|---|---|
+| `id` | BIGSERIAL | PK | |
+| `assignment_id` | BIGINT | NOT NULL, FK → task_assignments ON DELETE CASCADE | |
+| `item_id` | BIGINT | NOT NULL, FK → task_checklist_items ON DELETE CASCADE(索引あり) | |
+| `checked_at` | TIMESTAMPTZ | NOT NULL | チェックした時刻 |
+| | | UNIQUE (`assignment_id`, `item_id`) | 行があれば「チェック済み」。外すと行を消す |
+
 ## 業務ルール(DB とコードの対応)
 
 | ルール | 実装場所 |
@@ -81,6 +102,9 @@
 | `DONE` にすると `completed_at` を記録、戻すと消す | `TaskAssignment.changeStatus(status, now)` |
 | 無効タスク・割り当て済みタスクは割り当てられない | `AssignmentService.assign` |
 | ユーザー・タスクを削除すると割り当ても消える | DB の `ON DELETE CASCADE` |
+| サブ項目はタスクのもの。追加・削除はすでに割り当てた人にも反映(削除するとチェックも消える) | `ChecklistService.addItem` / `deleteItem`、DB の `ON DELETE CASCADE` |
+| サブ項目を 1 つでもチェック → 対応中、全部チェック → 完了(完了から外すと対応中) | `ChecklistService.setChecked` / `statusAfterCheck` |
+| 同じ項目を 2 回チェックしても 1 行だけ(二度押し対策) | `AssignmentCheckRepository.check`(`ON CONFLICT DO NOTHING`) |
 | 管理者は進捗の集計・絞り込み・ダッシュボードの人数に含めない | `UserPageController`, `DashboardService` |
 
 ## サンプルデータ(V2・V4・V9)

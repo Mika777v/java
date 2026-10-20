@@ -170,6 +170,8 @@ The database schema is managed by Flyway (`src/main/resources/db/migration`).
 | `tasks` | Onboarding tasks shared by everyone (the template list) |
 | `users` | New employees / mid-career hires and administrators (role, password hash, personal link hash and expiry) |
 | `task_assignments` | Which task is assigned to which user, its status (未着手 / 対応中 / 完了), due date and completion time |
+| `task_checklist_items` | Sub-items of a task (e.g. "Install Teams"), shared by everyone the task is assigned to |
+| `assignment_checks` | Which sub-items each user has checked (all checked: the task becomes 完了 automatically) |
 
 Sample data (6 tasks, 3 users and their assignments) is inserted on the first start.
 Deleting a user or a task also deletes its assignments.

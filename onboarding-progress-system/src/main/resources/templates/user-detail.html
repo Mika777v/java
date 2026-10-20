@@ -109,6 +109,7 @@
         <td>
             <div th:text="${a.task.title}">PCのセットアップ</div>
             <div class="muted small" th:utext="${@links.linkify(a.task.description)}">説明</div>
+            <div th:replace="~{fragments/checklist :: checklist(${checklists.get(a.id)}, null)}"></div>
         </td>
         <td>
             <form class="inline-form"

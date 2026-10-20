@@ -12,6 +12,7 @@ import com.example.onboarding.security.TemporaryPasswords;
 import com.example.onboarding.service.AccessLinkService;
 import com.example.onboarding.service.AssignmentException;
 import com.example.onboarding.service.AssignmentService;
+import com.example.onboarding.service.ChecklistService;
 import com.example.onboarding.service.ProgressFilter;
 import com.example.onboarding.service.UserProgress;
 import jakarta.validation.Valid;
@@ -48,6 +49,7 @@ public class UserPageController {
     private final AccessLinkService accessLinkService;
     private final LoginSettings loginSettings;
     private final TemporaryPasswords temporaryPasswords;
+    private final ChecklistService checklistService;
     private final String baseUrl;
 
     public UserPageController(UserRepository userRepository,
@@ -56,6 +58,7 @@ public class UserPageController {
                               AccessLinkService accessLinkService,
                               LoginSettings loginSettings,
                               TemporaryPasswords temporaryPasswords,
+                              ChecklistService checklistService,
                               @Value("${app.base-url:}") String baseUrl) {
         this.userRepository = userRepository;
         this.assignmentService = assignmentService;
@@ -63,6 +66,7 @@ public class UserPageController {
         this.accessLinkService = accessLinkService;
         this.loginSettings = loginSettings;
         this.temporaryPasswords = temporaryPasswords;
+        this.checklistService = checklistService;
         this.baseUrl = baseUrl;
     }
 
@@ -217,6 +221,7 @@ public class UserPageController {
 
         model.addAttribute("user", user);
         model.addAttribute("assignments", assignments);
+        model.addAttribute("checklists", checklistService.checklistsOf(assignments));
         model.addAttribute("progress", assignmentService.summarize(assignments));
         model.addAttribute("assignableTasks", assignmentService.findAssignableTasks(id));
         model.addAttribute("statuses", AssignmentStatus.values());

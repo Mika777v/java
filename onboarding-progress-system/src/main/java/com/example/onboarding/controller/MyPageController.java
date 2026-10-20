@@ -8,6 +8,7 @@ import com.example.onboarding.repository.UserRepository;
 import com.example.onboarding.security.AppUserDetails;
 import com.example.onboarding.security.LoginSettings;
 import com.example.onboarding.service.AssignmentService;
+import com.example.onboarding.service.ChecklistService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -36,15 +37,18 @@ public class MyPageController {
     private final AssignmentService assignmentService;
     private final PasswordEncoder passwordEncoder;
     private final LoginSettings loginSettings;
+    private final ChecklistService checklistService;
 
     public MyPageController(UserRepository userRepository,
                             AssignmentService assignmentService,
                             PasswordEncoder passwordEncoder,
-                            LoginSettings loginSettings) {
+                            LoginSettings loginSettings,
+                            ChecklistService checklistService) {
         this.userRepository = userRepository;
         this.assignmentService = assignmentService;
         this.passwordEncoder = passwordEncoder;
         this.loginSettings = loginSettings;
+        this.checklistService = checklistService;
     }
 
     @GetMapping("/me")
@@ -54,9 +58,32 @@ public class MyPageController {
 
         model.addAttribute("user", user);
         model.addAttribute("assignments", assignments);
+        model.addAttribute("checklists", checklistService.checklistsOf(assignments));
         model.addAttribute("progress", assignmentService.summarize(assignments));
         model.addAttribute("statuses", AssignmentStatus.values());
         return "my-page";
+    }
+
+    /** Checks (checked=true) or unchecks (checked=false) a sub-item of the user's own assignment. */
+    @PostMapping("/me/assignments/{assignmentId}/checklist/{itemId}")
+    public String checkItem(@AuthenticationPrincipal AppUserDetails me,
+                            @PathVariable Long assignmentId,
+                            @PathVariable Long itemId,
+                            @RequestParam boolean checked,
+                            RedirectAttributes redirectAttributes) {
+        User user = currentUser(me);
+        TaskAssignment assignment = assignmentService.findAssignment(user.getId(), assignmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment not found"));
+        ChecklistService.CheckResult result = checklistService.setChecked(assignment, itemId, checked)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Checklist item not found"));
+
+        String label = "「" + result.item().getLabel() + "」";
+        String message = checked ? label + "にチェックしました。" : label + "のチェックを外しました。";
+        if (checked && result.newStatus() == AssignmentStatus.DONE) {
+            message += "すべて終わったので「" + assignment.getTask().getTitle() + "」を完了にしました。";
+        }
+        redirectAttributes.addFlashAttribute("message", message);
+        return "redirect:/me";
     }
 
     @PostMapping("/me/assignments/{assignmentId}/status")

@@ -11,6 +11,8 @@
 
 <h1 th:text="${taskId == null} ? 'タスク登録' : 'タスク編集'">タスク登録</h1>
 
+<div th:replace="~{fragments/nav :: messages}"></div>
+
 <form th:action="${taskId == null} ? @{/tasks} : @{/tasks/{id}(id=${taskId})}"
       th:object="${taskForm}" method="post">
 
@@ -35,5 +37,32 @@
     <button type="submit" class="button" th:text="${taskId == null} ? '登録する' : '更新する'">登録する</button>
     <a class="button button-secondary" th:href="@{/tasks}">一覧に戻る</a>
 </form>
+
+<p th:if="${taskId == null}" class="muted small">サブ項目(チェックボックス)は、登録した後の編集画面で追加できます。</p>
+
+<th:block th:if="${taskId != null}">
+    <h2>サブ項目(チェックボックス)</h2>
+    <p class="muted small">
+        1 つのタスクの中の細かい作業です(例: 「スマホにアプリを入れる」→ Teams、SSO ログインアプリ)。
+        新入社員がマイページで 1 つずつチェックし、全部チェックするとタスクが自動で「完了」になります。
+        追加・削除は、すでに割り当てた人にも反映されます。
+    </p>
+
+    <p th:if="${#lists.isEmpty(checklistItems)}">サブ項目はありません。</p>
+    <ul class="checklist-items" th:unless="${#lists.isEmpty(checklistItems)}">
+        <li th:each="item : ${checklistItems}">
+            <span th:text="${item.label}">Teams</span>
+            <form class="inline-form" th:action="@{/tasks/{id}/checklist/{itemId}/delete(id=${taskId},itemId=${item.id})}" method="post"
+                  onsubmit="return confirm('このサブ項目を削除しますか?\nチェックの記録も削除されます。');">
+                <button type="submit" class="button button-danger button-small">削除</button>
+            </form>
+        </li>
+    </ul>
+
+    <form class="inline-form checklist-add" th:action="@{/tasks/{id}/checklist(id=${taskId})}" th:object="${checklistItemForm}" method="post">
+        <input type="text" th:field="*{label}" maxlength="200" aria-label="サブ項目の名前" placeholder="例: Teams をインストール">
+        <button type="submit" class="button button-secondary">サブ項目を追加</button>
+    </form>
+</th:block>
 </body>
 </html>

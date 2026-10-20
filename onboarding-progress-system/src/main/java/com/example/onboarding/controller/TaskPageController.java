@@ -1,8 +1,11 @@
 package com.example.onboarding.controller;
 
 import com.example.onboarding.entity.Task;
+import com.example.onboarding.entity.TaskChecklistItem;
+import com.example.onboarding.form.ChecklistItemForm;
 import com.example.onboarding.form.TaskForm;
 import com.example.onboarding.repository.TaskRepository;
+import com.example.onboarding.service.ChecklistService;
 import com.example.onboarding.service.TaskOrderService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -21,10 +24,14 @@ public class TaskPageController {
 
     private final TaskRepository taskRepository;
     private final TaskOrderService taskOrderService;
+    private final ChecklistService checklistService;
 
-    public TaskPageController(TaskRepository taskRepository, TaskOrderService taskOrderService) {
+    public TaskPageController(TaskRepository taskRepository,
+                              TaskOrderService taskOrderService,
+                              ChecklistService checklistService) {
         this.taskRepository = taskRepository;
         this.taskOrderService = taskOrderService;
+        this.checklistService = checklistService;
     }
 
     @GetMapping("/tasks")
@@ -61,6 +68,7 @@ public class TaskPageController {
         Task task = findTask(id);
         model.addAttribute("taskId", id);
         model.addAttribute("taskForm", TaskForm.from(task));
+        addChecklist(model, id);
         return "task-form";
     }
 
@@ -73,6 +81,7 @@ public class TaskPageController {
         Task task = findTask(id);
         if (bindingResult.hasErrors()) {
             model.addAttribute("taskId", id);
+            addChecklist(model, id);
             return "task-form";
         }
 
@@ -90,6 +99,41 @@ public class TaskPageController {
 
         redirectAttributes.addFlashAttribute("message", "タスクを削除しました。");
         return "redirect:/tasks";
+    }
+
+    // --- sub-items (checklist) ---
+
+    @PostMapping("/tasks/{id}/checklist")
+    public String addChecklistItem(@PathVariable Long id,
+                                   @Valid @ModelAttribute ChecklistItemForm form,
+                                   BindingResult bindingResult,
+                                   RedirectAttributes redirectAttributes) {
+        Task task = findTask(id);
+        if (bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("error", bindingResult.getAllErrors().get(0).getDefaultMessage());
+            return "redirect:/tasks/" + id + "/edit";
+        }
+        TaskChecklistItem item = checklistService.addItem(task, form.normalizedLabel());
+
+        redirectAttributes.addFlashAttribute("message", "サブ項目「" + item.getLabel() + "」を追加しました。");
+        return "redirect:/tasks/" + id + "/edit";
+    }
+
+    @PostMapping("/tasks/{id}/checklist/{itemId}/delete")
+    public String deleteChecklistItem(@PathVariable Long id,
+                                      @PathVariable Long itemId,
+                                      RedirectAttributes redirectAttributes) {
+        findTask(id);
+        TaskChecklistItem item = checklistService.deleteItem(id, itemId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Checklist item not found"));
+
+        redirectAttributes.addFlashAttribute("message", "サブ項目「" + item.getLabel() + "」を削除しました。");
+        return "redirect:/tasks/" + id + "/edit";
+    }
+
+    private void addChecklist(Model model, Long taskId) {
+        model.addAttribute("checklistItems", checklistService.findItems(taskId));
+        model.addAttribute("checklistItemForm", new ChecklistItemForm());
     }
 
     @PostMapping("/tasks/{id}/move-up")
