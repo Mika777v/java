@@ -1,6 +1,6 @@
 # ROADMAP — チケット管理システムへの移行(6 か月)
 
-- 版: 0.1(2026-10-20、案。オーナーの確認待ち)
+- 版: 0.2(2026-10-20、オーナーの回答を反映。PRD 10 章)
 - 関連: [PRODUCT_VISION.md](PRODUCT_VISION.md) / [PRD_TICKET_SYSTEM.md](PRD_TICKET_SYSTEM.md) /
   [TASKS_TICKET_SYSTEM.md](TASKS_TICKET_SYSTEM.md) / [FEATURE_TOGGLE_STRATEGY.md](FEATURE_TOGGLE_STRATEGY.md)
 - 前提: 開発はオーナー(確認・マージ)+ AI(実装・PR 作成)。1 つの PR は小さく、各 PR で CI が緑
@@ -70,7 +70,7 @@ TaskAssignment: status = NOT_STARTED | IN_PROGRESS | DONE, dueDate, completedAt
 |---|---|---|---|
 | D2・D6 | ユーザーの業務ルールが Controller にある(`UserPageController` 約 400 行、`MyPageController`) | Phase7(ロール追加)で同じルールを二重に書くことになる | Phase0 で `UserService` |
 | D1 | タスクの登録・更新・削除が画面と API の 2 か所 | テンプレートとして使うとき、ルールが分かれる | Phase0 で `TaskService` |
-| — | `Role.MEMBER` が「新入社員 + 専用URL」の意味を兼ねている | Phase7 でロールを増やすと、ログイン方法の判定が崩れる | Phase7(事前確認) |
+| — | `Role.MEMBER` が「新入社員 + 専用URL」の意味を兼ねている | Phase7 でロールを増やすときに、ログイン方法の判定を広げる必要がある | Phase7(Q5: 分けずに「MEMBER 以外はパスワード」で広げる) |
 | D8 | `open-in-view` が有効 | 新しい画面で知らないうちに N+1 が増える | Phase1 の前に(新画面は最初から関連を明示的に読む) |
 | D5 | API が Entity をそのまま返す | チケットの API で同じ作りを真似すると、項目追加で外に漏れる | チケットの API は最初から DTO(Phase5) |
 | D3 | `UserPageController` が大きすぎる | Phase7 の変更がぶつかりやすい | Phase0 後半 |
@@ -123,7 +123,7 @@ com.example.onboarding
 
 | リスク | 内容 | 対策 |
 |---|---|---|
-| ロールとログイン方法の混同 | `MEMBER` = 専用URL の前提がコードの複数箇所にある(`AppUserDetailsService`・`AccessLinkService`・`LoginSettings`) | Phase7 の前に設計を決めて了承をもらう。権限のテストを先に足す |
+| ロールとログイン方法の混同 | `MEMBER` = 専用URL の前提がコードの複数箇所にある(`AppUserDetailsService`・`AccessLinkService`・`LoginSettings`) | Q5 の回答で分けないことに決定。「専用URLは MEMBER だけ、ほかはパスワード」を MANAGER・VIEWER に広げる。変更前に今のログインの動きを押さえるテストを足す |
 | 権限チェックの抜け | 画面が増えると「見えてはいけないチケット」が見える危険 | 権限はクエリの条件で確認する(NFT-11)。ロール × 画面のテストを表で用意する |
 | Toggle の放置 | Toggle が増えて分岐が読みにくくなる | 撤去 Issue を同時に作る。公開後 2 か月で技術的負債に載せる |
 | 二重管理の期間が長引く | オンボーディング(旧)とチケット(新)の両方にデータがある | Phase10 の期限を決める。テンプレートからの起票(Phase2)で早めに新側へ寄せる |
@@ -252,7 +252,7 @@ gantt
 
 ### Phase7 権限管理(3 週・`extended-roles`・**事前確認あり**)
 
-- やること: ロールとログイン方法の分離(PRD 2.3)、`users.role` に MANAGER・VIEWER、`project_members`、権限表(PRD 2.2)をクエリ条件で実装、ロール × 画面のテスト
+- やること: `users.role` に MANAGER・VIEWER(ログインはパスワード。PRD 2.3、Q5 の回答どおりロールとログイン方法は分けない)、`project_members`、権限表(PRD 2.2)をクエリ条件で実装、ロール × 画面のテスト
 - Toggle OFF のとき: 2 ロール(ADMIN / MEMBER)の今の動き。MANAGER は MEMBER、VIEWER は見るだけとして扱う
 - 終わりの条件: 4 ロールそれぞれで、見える・変えられる範囲がテストで確かめられている
 

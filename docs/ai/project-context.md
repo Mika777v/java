@@ -44,7 +44,7 @@
 ├─ docs/
 │   ├─ TASKS.md                    … 今のタスクの一覧(進行中・次にやる・判断待ち)
 │   ├─ user-guide.md               … 利用ガイド(管理者・新入社員の使い方、できること / できないこと)
-│   ├─ PRODUCT_VISION.md ほか 4 つ … チケット管理への移行計画(PRD・ROADMAP・TASKS・FEATURE_TOGGLE_STRATEGY。案、オーナー確認待ち)
+│   ├─ PRODUCT_VISION.md ほか 5 つ … チケット管理への移行計画(PRD・ROADMAP・TASKS・GITHUB_ISSUES・FEATURE_TOGGLE_STRATEGY。Q3 以外は回答済み)
 │   ├─ current-status.md           … 人間向けの現状レポート(機能・画面・URL の一覧)
 │   ├─ codespaces-check.md         … Codespaces での動作確認手順
 │   ├─ java-guide.md               … オーナー向けの Java 教科書

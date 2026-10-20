@@ -1,6 +1,6 @@
 # TASKS — チケット管理システムへの移行(Epic / Story / Task)
 
-- 版: 0.1(2026-10-20、案。オーナーの確認待ち)
+- 版: 0.2(2026-10-20、オーナーの回答を反映。GitHub Issues の形は [GITHUB_ISSUES_TICKET_SYSTEM.md](GITHUB_ISSUES_TICKET_SYSTEM.md))
 - 関連: [ROADMAP_TICKET_SYSTEM.md](ROADMAP_TICKET_SYSTEM.md) / [PRD_TICKET_SYSTEM.md](PRD_TICKET_SYSTEM.md) /
   [FEATURE_TOGGLE_STRATEGY.md](FEATURE_TOGGLE_STRATEGY.md)
 - 進行中のタスクは今までどおり [TASKS.md](TASKS.md) で管理し、このファイルは「移行計画の Issue の一覧」として使う
@@ -12,7 +12,7 @@
 |---|---|
 | ID | `E`=Epic、`S`=Story(GitHub Issue 1 件)、`T`=Task(Issue の中のチェック項目) |
 | 規模 | S = 半日〜1 日、M = 2〜3 日、L = 4〜5 日(L は分けられないか見直す) |
-| 確認 | ⚠ = 運用ルールの「事前確認が必要な作業」(DB・認証・データ削除・仕様変更)。実装前にオーナーの了承をもらう |
+| 確認 | ⚠ = 運用ルールの「事前確認が必要な作業」で、まだ了承がないもの。✅ = 了承済み(括弧内は PRD 10 章の質問番号) |
 | Toggle | その Story の機能を守る Feature Toggle |
 
 ---
@@ -63,7 +63,7 @@
 
 | ID | Story / Task | 規模 | 確認 | 依存 |
 |---|---|---|---|---|
-| **S1.1** | **`tickets` テーブルと Entity を作る** | M | ⚠ DB | S0.1 |
+| **S1.1** | **`tickets` テーブルと Entity を作る** | M | ✅ DB(Q2) | S0.1 |
 | T1.1.1 | V12: `tickets`(id, number, title, description, status, assignee_id, reporter_id, due_date, completed_at, origin_task_id, origin_assignment_id, deleted_at, created_at, updated_at)、索引 | | | |
 | T1.1.2 | `Ticket`・`TicketStatus`(TODO / IN_PROGRESS / DONE、`getLabel()`)、`changeStatus`・`isOverdue`(今の規則を写す) | | | |
 | T1.1.3 | `AssignmentStatus` → `TicketStatus` の対応表(1 か所)と単体テスト | | | |
@@ -76,13 +76,13 @@
 | T1.3.1 | `TicketController`(`@RequiresFeature(TICKET_SYSTEM)`)と `TicketForm`(タイトル必須・200 文字) | | | |
 | T1.3.2 | `templates/tickets/list.html`・`form.html`(表は部品で作る) | | | |
 | T1.3.3 | テスト: 正常系・入力エラー・404・新入社員は 403・Toggle OFF で 404 | | | |
-| **S1.4** | **チケット詳細・削除・ステータス変更** | M | ⚠ 削除の仕様 | S1.3 |
+| **S1.4** | **チケット詳細・削除・ステータス変更** | M | ⚠ 削除の仕様(Q3 未回答) | S1.3 |
 | T1.4.1 | 詳細画面(説明はリンク表示)、削除(論理削除、確認ダイアログ)、ステータス変更 | | | |
 | T1.4.2 | テスト一式 | | | |
 | **S1.5** | **メニューと Toggle の画面表示** | S | | S1.3 |
 | T1.5.1 | `fragments/nav.html` に「チケット」(`${@features.on('ticket-system')}` のときだけ) | | | |
 | T1.5.2 | Toggle OFF で今の画面と HTML が変わらないことのテスト | | | |
-| **S1.6** | **再起動なしの ON/OFF(`feature_flags` と `/admin/features`)** | M | ⚠ DB | S0.1 |
+| **S1.6** | **再起動なしの ON/OFF(`feature_flags` と `/admin/features`)** | M | ✅ DB(Q2・Q4) | S0.1 |
 | T1.6.1 | `feature_flags`(name, enabled, updated_by, updated_at)と、DB → 設定の順で読む処理 | | | |
 | T1.6.2 | 管理画面(ADMIN のみ。親子関係の表示、切り替えの確認ダイアログ)、テスト | | | |
 | **S1.7** | **CI のスモークテストに Toggle ON の確認を足す** | S | | S1.3 |
@@ -95,7 +95,7 @@
 
 | ID | Story / Task | 規模 | 確認 | 依存 |
 |---|---|---|---|---|
-| **S2.1** | **`projects` テーブルと既定のプロジェクト `GEN`** | M | ⚠ DB | S1.1 |
+| **S2.1** | **`projects` テーブルと既定のプロジェクト `GEN`** | M | ✅ DB(Q2) | S1.1 |
 | T2.1.1 | V13: `projects`(key UK, name, description, next_number, archived)、`GEN` を作成、`tickets.project_id`(既存は `GEN`)、(project_id, number) の一意制約 | | | |
 | T2.1.2 | `Project`・`ProjectRepository`・`ProjectService` | | | |
 | **S2.2** | **チケット番号 `KEY-n` の採番** | M | | S2.1 |
@@ -116,7 +116,7 @@
 
 | ID | Story / Task | 規模 | 確認 | 依存 |
 |---|---|---|---|---|
-| **S3.1** | **REVIEW・CLOSED を追加** | M | ⚠ DB(CHECK の変更) | S1.2 |
+| **S3.1** | **REVIEW・CLOSED を追加** | M | ✅ DB(Q2) | S1.2 |
 | T3.1.1 | 新しいマイグレーションで `tickets.status` の CHECK を広げる、`TicketStatus` に追加 | | | |
 | T3.1.2 | 完了日時: DONE で記録、CLOSED は記録を保つ、それ以外に戻すと消す。期限切れは DONE・CLOSED を除く | | | |
 | **S3.2** | **状態の移り方の決まり** | M | ⚠ 仕様 | S3.1 |
@@ -129,7 +129,7 @@
 
 | ID | Story / Task | 規模 | 確認 | 依存 |
 |---|---|---|---|---|
-| **S4.1** | **`ticket_comments` と Service** | M | ⚠ DB | S1.2 |
+| **S4.1** | **`ticket_comments` と Service** | M | ✅ DB(Q2) | S1.2 |
 | T4.1.1 | テーブル、`Comment`、`CommentService`(本文必須・2000 文字、論理削除) | | | |
 | **S4.2** | **詳細画面のコメント欄** | M | | S4.1 |
 | T4.2.1 | 一覧(古い順・投稿者・日時・編集済み)、投稿フォーム、リンク表示(`@links`) | | | |
@@ -142,7 +142,7 @@
 |---|---|---|---|---|
 | **S5.1** | **検索条件と Service** | M | | S2.4 |
 | T5.1.1 | 担当者・ステータス(複数)・プロジェクト・キーワード・期限切れのみ。条件は URL に(`ProgressFilter` の方式) | | | |
-| **S5.2** | **ページ分けと索引** | M | ⚠ DB(索引) | S5.1 |
+| **S5.2** | **ページ分けと索引** | M | ✅ DB(Q2) | S5.1 |
 | T5.2.1 | 1 ページ 50 件、索引(status・assignee_id・project_id・due_date)、1,000 件での速さの確認 | | | |
 | **S5.3** | **検索画面** | M | | S5.1 |
 | T5.3.1 | 一覧の上に検索フォーム、件数表示、条件のクリア | | | |
@@ -153,7 +153,7 @@
 
 | ID | Story / Task | 規模 | 確認 | 依存 |
 |---|---|---|---|---|
-| **S6.1** | **`notifications` テーブルと Service** | M | ⚠ DB | S1.2 |
+| **S6.1** | **`notifications` テーブルと Service** | M | ✅ DB(Q2) | S1.2 |
 | T6.1.1 | テーブル、`NotificationService`(作成・未読数・既読) | | | |
 | **S6.2** | **出来事から通知を作る** | M | | S6.1・S4.1 |
 | T6.2.1 | 担当者になった・担当のチケットにコメント(Spring のイベントで「出来事」と「送り方」を分ける) | | | |
@@ -166,14 +166,14 @@
 
 | ID | Story / Task | 規模 | 確認 | 依存 |
 |---|---|---|---|---|
-| **S7.1** | **ロールとログイン方法を分ける設計** | M | ⚠ 認証 | S0.3 |
-| T7.1.1 | 設計メモ(どのクラスのどの判定を変えるか)をオーナーに確認 → `spec.md` の INV-11 などを更新 | | | |
-| T7.1.2 | 変更前に、今のログインの動きを押さえるテストを足す | | | |
-| **S7.2** | **MANAGER・VIEWER の追加** | M | ⚠ DB・認証 | S7.1 |
+| **S7.1** | **MANAGER・VIEWER のログイン規則(パスワード)** | M | ✅ Q5 で了承 | S0.3 |
+| T7.1.1 | 変更前に、今のログインの動き(ADMIN はパスワード、MEMBER は専用URL)を押さえるテストを足す | | | |
+| T7.1.2 | 「専用URLは MEMBER だけ、ほかはパスワード」を MANAGER・VIEWER に広げる(`AppUserDetailsService`・`AccessLinkService`)。`spec.md` の INV-11 を更新 | | | |
+| **S7.2** | **MANAGER・VIEWER の追加** | M | ✅ DB(Q2)・認証(Q5) | S7.1 |
 | T7.2.1 | `users.role` の CHECK を広げる、`Role` に追加、ユーザー画面の選択肢(Toggle ON のときだけ) | | | |
-| **S7.3** | **プロジェクトのメンバー** | M | ⚠ DB | S2.1 |
+| **S7.3** | **プロジェクトのメンバー** | M | ✅ DB(Q2) | S2.1 |
 | T7.3.1 | `project_members`、プロジェクト画面でメンバーの追加・削除 | | | |
-| **S7.4** | **権限表をクエリ条件で実装** | L | ⚠ 認可 | S7.2・S7.3 |
+| **S7.4** | **権限表をクエリ条件で実装** | L | ✅ 認可(Q5) | S7.2・S7.3 |
 | T7.4.1 | 見えるチケット(参加プロジェクト)、更新・削除・コメントの可否(PRD 2.2) | | | |
 | T7.4.2 | ロール × 画面の表でテスト(4 ロール × 主要操作)、Toggle OFF 時は弱いほうに倒すテスト | | | |
 | **S7.5** | **新入社員をオンボーディングのプロジェクトのメンバーにする** | S | | S7.3・S2.5 |
@@ -198,18 +198,18 @@
 | T9.1.1 | プロジェクトごとにステータスの列、カードに番号・タイトル・担当者・期限 | | | |
 | **S9.2** | **カードの移動** | M | | S9.1 |
 | T9.2.1 | 「→」ボタンで隣の列へ(状態の移り方の決まりに従う)、権限チェック | | | |
-| **S9.3** | **(任意)ドラッグ操作** | M | ⚠ JavaScript の追加 | S9.2 |
+| **S9.3** | **(任意)ドラッグ操作** | M | ✅ JavaScript(Q7) | S9.2 |
 | T9.3.1 | 少量の JavaScript でドラッグ。JS が動かなくてもボタンで使える | | | |
 
 ## E10 全面移行と Toggle の撤去(Phase10)
 
 | ID | Story / Task | 規模 | 確認 | 依存 |
 |---|---|---|---|---|
-| **S10.1** | **オンボーディングのデータをチケットへ写す** | L | ⚠ データ移行 | Phase9 まで |
+| **S10.1** | **オンボーディングのデータをチケットへ写す** | L | ✅ 方針(Q6)/ ⚠ 実行日と手順 | Phase9 まで |
 | T10.1.1 | 手順書(バックアップ・実行・件数の突き合わせ・戻し方)をオーナーに確認 | | | |
 | T10.1.2 | マイグレーション 1 本: `task_assignments` → `tickets`(プロジェクト `ONB`、`origin_assignment_id` で二重防止)、チェックも写す | | | |
 | T10.1.3 | 本番に近いデータでのリハーサル(Codespaces) | | | |
-| **S10.2** | **旧画面の退役(`onboarding-legacy` を OFF)** | M | ⚠ 仕様 | S10.1 |
+| **S10.2** | **旧画面の退役(`onboarding-legacy` を OFF)** | M | ✅ 方針(Q6) | S10.1 |
 | T10.2.1 | 旧 URL から新画面への案内、OFF にして 2 週間の確認 | | | |
 | **S10.3** | **Toggle の撤去(1 Toggle = 1 PR)** | M × 7 | | 各 Toggle が既定 ON で 2 週間安定 |
 | T10.3.1 | `ticket-system` / `project-management` / `comments` / `notifications` / `extended-roles` / `ticket-dashboard` / `kanban-board` の分岐・設定・環境変数・OFF 側のテストを消す | | | |
@@ -230,11 +230,11 @@
 | 2 | S0.2 | `TaskService` を導入する | M | 不要 | テンプレートからの起票(Phase2)で使う。技術的負債 D1 の解消 |
 | 3 | S0.3 | `UserService` を導入する | L | 不要 | 担当者・起票者・権限(Phase7)で何度も使う。D2・D6 の解消 |
 | 4 | S0.6 | `open-in-view` の方針を新画面のルールにする | S | 不要 | チケット画面を作る前に決めておくと、後から直す必要がない |
-| 5 | S1.1 | `tickets` テーブルと Entity | M | ⚠ DB | チケット管理の中心。テーブル追加の了承をもらって着手 |
+| 5 | S1.1 | `tickets` テーブルと Entity | M | ✅(Q2) | チケット管理の中心 |
 | 6 | S1.2 | `TicketService` と `TicketRepository` | M | 不要 | 画面より先に規則(完了日時・期限切れ)をテストで固める |
 | 7 | S1.3 | チケット一覧・登録・編集の画面 | L | 不要 | ここで初めて Toggle ON で「使える」状態になる |
 | 8 | S1.5 | メニューと Toggle の画面表示 | S | 不要 | OFF のとき今と同じ見た目であることを保証する |
-| 9 | S1.4 | チケット詳細・削除・ステータス変更 | M | ⚠ 削除の仕様 | Phase1 の残り。論理削除の了承をもらって着手 |
-| 10 | S1.6 | 再起動なしの ON/OFF | M | ⚠ DB | 公開前に「すぐ戻せる」状態を作っておく |
+| 9 | S1.4 | チケット詳細・削除・ステータス変更 | M | ⚠ Q3 未回答 | Phase1 の残り。論理削除の了承をもらって着手 |
+| 10 | S1.6 | 再起動なしの ON/OFF | M | ✅(Q2・Q4) | 公開前に「すぐ戻せる」状態を作っておく |
 
 S0.4(Controller の分割)・S0.5(表の部品化)・S1.7(CI)・S1.8(ドキュメント)は、上の 10 件の間に並行して進めます。
