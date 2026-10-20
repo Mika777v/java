@@ -159,6 +159,12 @@ mvn test
 - `APP_BASE_URL` (e.g. `https://onboarding.example.com`) sets the address shown in personal links;
   when empty, the address the administrator's browser used is shown.
 - An administrator cannot remove their own administrator role or delete themselves.
+- **Feature toggles** (for the move to ticket management, `docs/FEATURE_TOGGLE_STRATEGY.md`):
+  `FEATURE_TICKET_SYSTEM`, `FEATURE_PROJECT_MANAGEMENT`, `FEATURE_COMMENTS`, `FEATURE_NOTIFICATIONS`,
+  `FEATURE_EXTENDED_ROLES`, `FEATURE_TICKET_DASHBOARD`, `FEATURE_KANBAN_BOARD` (all `false` by default) and
+  `FEATURE_ONBOARDING_LEGACY` (`true`). Set `true` / `false` and restart; in a codespace, add the line to
+  `onboarding-progress-system/.env` and run `bash .devcontainer/start-app.sh`. Pages of a feature that is off answer 404.
+  No page uses them yet.
 - Forms are protected against CSRF. The REST API uses HTTP Basic and is for administrators only.
 
 ## Database

@@ -33,7 +33,7 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | パッケージ | クラス | 役割 |
 |---|---|---|
 | (ルート) | `OnboardingProgressSystemApplication` | 起動クラス |
-| `config` | `WebConfig` | `RemovedUserLogoutInterceptor`(先)と `PasswordChangeRequiredInterceptor` を登録(除外: `/login`, `/join/**`, `/css/**`, `/error`。後者は `/me/password` も) |
+| `config` | `WebConfig` | `RemovedUserLogoutInterceptor`(先)と `PasswordChangeRequiredInterceptor` を登録(除外: `/login`, `/join/**`, `/css/**`, `/error`。後者は `/me/password` も)。最後に `FeatureToggleInterceptor`(除外なし) |
 | | `TimeConfig` | `Clock` Bean(`app.time-zone`)。「今日」は必ずこの `Clock` から取る |
 | `controller` | `DashboardController` | `GET /`。新入社員は `/me` へリダイレクト |
 | | `LoginController` | `GET /login` |
@@ -46,6 +46,9 @@ curl ────▶ controller/TaskController(REST, /api/tasks)
 | | `TaskChecklistItem`, `AssignmentCheck` | タスクのサブ項目と、割り当てごとのチェック(V11) |
 | | `AssignmentStatus` | `NOT_STARTED`(未着手)/ `IN_PROGRESS`(対応中)/ `DONE`(完了)。`getLabel()` が日本語 |
 | | `Role` | `ADMIN`(管理者)/ `MEMBER`(新入社員) |
+| `feature` | `Feature` | Feature Toggle の一覧(enum。キー・親・既定値)。設定名は `features.<キー>.enabled`(環境変数 `FEATURE_<キー>`)。`ticket-system` の子は親が OFF なら OFF |
+| | `FeatureFlags` | `@Component("features")`。起動時に設定を読み、`isEnabled(Feature)` で答える。テンプレートでは `${@features.on('ticket-system')}`(知らないキーはエラー) |
+| | `RequiresFeature`, `FeatureToggleInterceptor` | Controller のクラスかメソッドに `@RequiresFeature(Feature.X)` を付けると、OFF の間は 404(メソッドの指定が優先)。まだ使っている Controller はない(S0.1 は仕組みだけ) |
 | `form` | `ChecklistItemForm` | サブ項目の追加フォーム(名前は必須・200 文字まで) |
 | | `TaskForm`, `UserForm` | 画面の入力値と検証。`UserForm` はパスワード(空欄 = 変更しない)を持つ |
 | | `PasswordChangeForm` | 自分のパスワード変更の入力値。DB が必要なチェック(現在のパスワード)は Controller で行う |

@@ -6,19 +6,20 @@
 
 ## 今の状態
 
-- `master` は PR #40(チケット管理への移行計画)まで反映済み。自動テスト 221 件、`master` の CI は緑
+- `master` は PR #41(GitHub Issues 一覧)まで反映済み
+- S0.1(Feature Toggle の仕組み)を実装し PR 作成済み(マージ待ち)。自動テスト 236 件
 - 移行計画への回答: Q1・Q2・Q4・Q6・Q7 は OK、Q5 は「今のまま + 4 ロールは Toggle」、Q3 は論理削除。PRD 10 章の質問はすべて回答済み
-- GitHub Issues 一覧 `docs/GITHUB_ISSUES_TICKET_SYSTEM.md` と Issue のひな形を作成(PR 作成済み、マージ待ち)
 
 ## 直前の作業
 
-- 回答を PRD・ROADMAP・TASKS_TICKET_SYSTEM(いずれも v0.2)に反映
-- Epic 11・Story 50・Task 78 を GitHub Issues と Projects(Backlog / Ready / In Progress / Review / Done)の形に整理
+- S0.1: `feature` パッケージ(`Feature`・`FeatureFlags`・`@RequiresFeature`・`FeatureToggleInterceptor`)と `FEATURE_*` の設定。まだ使う画面はない
+- Q3(論理削除)の記録を入れ直した(#41 のマージ後に push したため master に入っていなかった)
 
 ## 次の一手
 
 - オーナーの了承があれば、GitHub 上に Issue(Epic・Story)・ラベル・マイルストーンを作る(Projects のボードと項目はオーナーが画面で作る)
-- 実装は S0.1(Feature Toggle の仕組み)から。次に S0.2(`TaskService`)
+- 次の実装は S0.2(`TaskService`)、S0.3(`UserService`)
+- S1.1(`tickets` テーブル)からは画面に `@RequiresFeature(Feature.TICKET_SYSTEM)` を付けて作る
 
 ## 未解決・オーナーの判断待ち
 

@@ -15,7 +15,19 @@ PR #29 以前の経緯は `docs/current-status.md` の「これまでの主な�
 
 ---
 
-## 2026-10-20 docs: 移行計画への回答の反映と GitHub Issues 一覧
+## 2026-10-20 feat: Feature Toggle の仕組み(S0.1)
+
+- 移行計画の最初の Issue。新しいパッケージ `feature`: `Feature`(Toggle 8 つの一覧・親・既定値)、`FeatureFlags`(`@Component("features")`)、`@RequiresFeature` + `FeatureToggleInterceptor`(OFF なら 404)
+- 設定: `application.yml` の `features.*.enabled`、`docker-compose.yml` の `FEATURE_*`(`onboarding-legacy` だけ既定 ON、ほかは OFF)。README・`architecture.md`・`conventions.md`(Toggle の使い方)・`spec.md`(INV-15、設計判断)・`project-context.md` を更新
+- 判断:
+  - `FeatureProperties` は作らず、`FeatureFlags` が `Environment` から読む(Toggle の一覧を `Feature` 1 か所にまとめ、二重管理を避ける)。計画書の T0.1.1 も直した
+  - 知らないキー(`on('ticket-sytem')` のような打ち間違い)はエラーにする(黙って OFF にすると気づけない)。`true` / `false` 以外の値は起動時にエラー
+  - `.devcontainer/start-app.sh` と CI は変えない(`.env` に `FEATURE_...=true` を書けば docker compose が読む。既定のままなら設定不要)
+  - まだ `@RequiresFeature` を付けた画面はない。テストではテスト専用の Controller で確かめた
+- PR #41 のマージ後に push した Q3(論理削除)の記録が master に入っていなかったため、このブランチに入れ直した
+- テスト: 236 件すべて成功(15 件追加: `FeatureFlagsTest` 7、`FeatureToggleInterceptorTest` 3、`FeatureToggleTest` 5)。Interceptor の登録を外すと `FeatureToggleTest` が失敗することも確認。`docker compose config` で `FEATURE_*` が渡ることを確認
+
+## 2026-10-20 docs: 移行計画への回答の反映と GitHub Issues 一覧(PR #41)
 
 - オーナーの回答(PRD 10 章): Q1・Q2・Q4・Q6・Q7 は OK、Q5 は「今のまま(ロールとログイン方法を分けない)、4 ロールは Toggle で切り替え」。Q3 は説明のあと「論理削除で」と回答(削除したチケットは画面から消えるが DB に残り、元に戻せる)
 - 反映: `PRD_TICKET_SYSTEM.md`(v0.2、回答欄と 2.3 章)、`ROADMAP_TICKET_SYSTEM.md`(v0.2、Phase7)、`TASKS_TICKET_SYSTEM.md`(v0.2、✅ 了承済み / ⚠ 未了承の印、S7.1 の名前)

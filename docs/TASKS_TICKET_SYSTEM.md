@@ -40,7 +40,7 @@
 | ID | Story / Task | 規模 | 確認 | 依存 |
 |---|---|---|---|---|
 | **S0.1** | **Feature Toggle の仕組みを入れる** | M | | — |
-| T0.1.1 | `Feature` enum(名前・親)と `FeatureProperties`(`features.*.enabled`)を作る | | | |
+| T0.1.1 | `Feature` enum(名前・親・既定値)を作る。設定 `features.*.enabled` は `Environment` から読む(`FeatureProperties` は作らないことにした) | | | |
 | T0.1.2 | `FeatureFlags`(`@Component("features")`、親が OFF なら子も OFF)と単体テスト | | | |
 | T0.1.3 | `@RequiresFeature` + `FeatureToggleInterceptor`(OFF なら 404)を `WebConfig` に登録、テスト | | | |
 | T0.1.4 | `application.yml`・`docker-compose.yml`・`.devcontainer/start-app.sh`・README に `FEATURE_*` を追加(すべて既定 OFF) | | | |

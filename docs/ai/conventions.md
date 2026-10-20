@@ -36,6 +36,14 @@
 - スタイルは `static/css/app.css` に追記する(インライン style は進捗バーの幅など値が変わるものだけ)
 - JavaScript は使っていない。追加する場合は事前にオーナーに相談
 
+## Feature Toggle(チケット管理への移行。`docs/FEATURE_TOGGLE_STRATEGY.md`)
+
+- チケット管理の新しい画面・機能は、必ず Toggle の後ろに作る。Toggle を足すときは `Feature` に 1 行、`application.yml` の `features:`、`docker-compose.yml` の `FEATURE_*` を一緒に足す(既定は OFF)
+- Controller には `@RequiresFeature(Feature.X)` を付ける(OFF なら 404)。メニュー・ボタンは `th:if="${@features.on('キー')}"` で出し分ける
+- コードで判定するときは `FeatureFlags.isEnabled(Feature.X)`。キーの文字列を Java のコードに直接書かない
+- テストは ON と OFF の両方を書く(OFF で 404・今の画面が変わらないこと、ON で使えること)。設定は `@SpringBootTest(properties = "features.<キー>.enabled=true")`
+- OFF にしてもデータは消さない
+
 ## セキュリティ
 
 - 新しい画面は既定で管理者専用。新入社員にも見せるなら `/me/**` の下に作るか `SecurityConfig` を変更し、テストを追加する

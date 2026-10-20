@@ -52,7 +52,7 @@ features:
 | 部品 | 役割 | 手本にする既存コード |
 |---|---|---|
 | `Feature`(enum) | Toggle の名前の一覧。文字列の打ち間違いを防ぐ。親子関係(例: `KANBAN_BOARD` は `TICKET_SYSTEM` が前提)も持つ | `AssignmentStatus` |
-| `FeatureProperties`(`@ConfigurationProperties("features")`) | 設定ファイル・環境変数の値 | `application.yml` の `app.*` |
+| (設定の読み込み) | 設定ファイル・環境変数の値。`FeatureFlags` が起動時に `Environment` から読む(S0.1 で `FeatureProperties` は作らないことにした。一覧を `Feature` 1 か所にまとめるため) | `application.yml` の `app.*` |
 | `FeatureFlags`(`@Component("features")`) | 「今 ON か」を答える。DB の記録 → 設定の順に見る。親が OFF なら子も OFF | `LoginSettings`(`@Component("loginSettings")`) |
 | `@RequiresFeature(Feature.X)` + `FeatureToggleInterceptor` | Controller に付けると、OFF のときに 404 を返す | `PasswordChangeRequiredInterceptor` + `WebConfig` |
 | テンプレートの `th:if="${@features.on('ticket-system')}"` | メニュー・ボタンを出し分ける | `${@loginSettings.linkMode}` |

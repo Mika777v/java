@@ -62,3 +62,25 @@ app:
   # Address of the app as seen from the browser, used to show personal links
   # (e.g. https://example.com). When empty, the address of the current request is used.
   base-url: ${APP_BASE_URL:}
+
+# Feature toggles for the move to ticket management (docs/FEATURE_TOGGLE_STRATEGY.md).
+# Switch with environment variables (FEATURE_TICKET_SYSTEM=true etc.) and restart.
+# A feature under ticket-system stays off while ticket-system is off.
+features:
+  ticket-system:
+    enabled: ${FEATURE_TICKET_SYSTEM:false}
+  project-management:
+    enabled: ${FEATURE_PROJECT_MANAGEMENT:false}
+  comments:
+    enabled: ${FEATURE_COMMENTS:false}
+  notifications:
+    enabled: ${FEATURE_NOTIFICATIONS:false}
+  extended-roles:
+    enabled: ${FEATURE_EXTENDED_ROLES:false}
+  ticket-dashboard:
+    enabled: ${FEATURE_TICKET_DASHBOARD:false}
+  kanban-board:
+    enabled: ${FEATURE_KANBAN_BOARD:false}
+  # The current onboarding screens (turned off only when they are retired)
+  onboarding-legacy:
+    enabled: ${FEATURE_ONBOARDING_LEGACY:true}

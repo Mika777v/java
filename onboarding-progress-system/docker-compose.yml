@@ -35,6 +35,15 @@ services:
       APP_MEMBER_LOGIN: ${APP_MEMBER_LOGIN:-link}
       # Address shown in personal links (empty: the address the browser used)
       APP_BASE_URL: ${APP_BASE_URL:-}
+      # Feature toggles for ticket management (true/false; docs/FEATURE_TOGGLE_STRATEGY.md)
+      FEATURE_TICKET_SYSTEM: ${FEATURE_TICKET_SYSTEM:-false}
+      FEATURE_PROJECT_MANAGEMENT: ${FEATURE_PROJECT_MANAGEMENT:-false}
+      FEATURE_COMMENTS: ${FEATURE_COMMENTS:-false}
+      FEATURE_NOTIFICATIONS: ${FEATURE_NOTIFICATIONS:-false}
+      FEATURE_EXTENDED_ROLES: ${FEATURE_EXTENDED_ROLES:-false}
+      FEATURE_TICKET_DASHBOARD: ${FEATURE_TICKET_DASHBOARD:-false}
+      FEATURE_KANBAN_BOARD: ${FEATURE_KANBAN_BOARD:-false}
+      FEATURE_ONBOARDING_LEGACY: ${FEATURE_ONBOARDING_LEGACY:-true}
     depends_on:
       db:
         condition: service_healthy
