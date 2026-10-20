@@ -15,6 +15,14 @@ PR #29 以前の経緯は `docs/current-status.md` の「これまでの主な�
 
 ---
 
+## 2026-10-20 docs: 利用ガイドの追加
+
+- オーナーの依頼: アプリが完成に近いので、使い方・できること / できないことをまとめる
+- `docs/user-guide.md` を追加(使い始める前に、管理者の使い方、新入社員の使い方、できること / できないこと、運用のヒント、よくある質問)
+- 書いた内容はコードと照らし合わせて確認(期限が近い = 7 日以内、セッション 30 分、削除の確認画面、パスワードの長さ、専用URLの期限 60 日など)
+- リンクを追加: `docs/current-status.md`(第33版)、`docs/requirements.md`、`docs/ai/project-context.md`、`CLAUDE.md`。`docs/ai/conventions.md` に「画面・操作を変えたら user-guide.md も更新」を追加
+- 判断: #39(確認結果の記録)がまだマージ前だったため、同じブランチに追加して 1 つの PR にした(どちらもドキュメントだけ)
+
 ## 2026-10-20 docs: タスクのサブ項目(F1)の Codespaces での確認を記録
 
 - オーナーが Codespaces で `docs/codespaces-check.md` の 6b〜6d を含めて確認し、すべて問題なし(#38 マージ後)

@@ -19,6 +19,7 @@
 | 次に何をやるか、既知の課題、技術的負債 | `docs/ai/backlog.md`(ロードマップ)、`docs/TASKS.md`(今のタスク) |
 | これまでの作業の経緯 | `DEVLOG.md` |
 | 人間向けの画面説明・現状の詳細 | `docs/current-status.md` |
+| 利用者向けの使い方・できること / できないこと | `docs/user-guide.md` |
 
 ## スキル(`.claude/skills/`)
 

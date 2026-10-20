@@ -43,6 +43,7 @@
 │   └─ reusable-docker-smoke.yml           … Docker で起動して curl で画面・API を確認
 ├─ docs/
 │   ├─ TASKS.md                    … 今のタスクの一覧(進行中・次にやる・判断待ち)
+│   ├─ user-guide.md               … 利用ガイド(管理者・新入社員の使い方、できること / できないこと)
 │   ├─ current-status.md           … 人間向けの現状レポート(機能・画面・URL の一覧)
 │   ├─ codespaces-check.md         … Codespaces での動作確認手順
 │   ├─ java-guide.md               … オーナー向けの Java 教科書
