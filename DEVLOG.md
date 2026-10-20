@@ -17,12 +17,12 @@ PR #29 以前の経緯は `docs/current-status.md` の「これまでの主な�
 
 ## 2026-10-20 docs: 移行計画への回答の反映と GitHub Issues 一覧
 
-- オーナーの回答(PRD 10 章): Q1・Q2・Q4・Q6・Q7 は OK、Q5 は「今のまま(ロールとログイン方法を分けない)、4 ロールは Toggle で切り替え」、Q3(論理削除)は未回答
+- オーナーの回答(PRD 10 章): Q1・Q2・Q4・Q6・Q7 は OK、Q5 は「今のまま(ロールとログイン方法を分けない)、4 ロールは Toggle で切り替え」。Q3 は説明のあと「論理削除で」と回答(削除したチケットは画面から消えるが DB に残り、元に戻せる)
 - 反映: `PRD_TICKET_SYSTEM.md`(v0.2、回答欄と 2.3 章)、`ROADMAP_TICKET_SYSTEM.md`(v0.2、Phase7)、`TASKS_TICKET_SYSTEM.md`(v0.2、✅ 了承済み / ⚠ 未了承の印、S7.1 の名前)
 - 追加: `docs/GITHUB_ISSUES_TICKET_SYSTEM.md`(Epic 11・Story 50・Task 78 の Issue 一覧、GitHub Projects の Backlog / Ready / In Progress / Review / Done の運用、ラベル・項目・マイルストーン・ビュー・自動化)、`.github/ISSUE_TEMPLATE/`(Epic / Story / Task)
 - 判断:
   - Task は Issue にせず Story 本文のチェックリストにする(1 Story = 1 PR。Issue が 130 件を超えると管理が重いため)。単独で PR にする Task だけ sub-issue に格上げ
-  - 初期の Ready は依存も事前確認もない S0.1・S0.2・S0.3・S0.5・S0.6。⚠ が残る S1.4・S3.2・S10.1・S10.4 は `needs-approval`
+  - 初期の Ready は依存も事前確認もない S0.1・S0.2・S0.3・S0.5・S0.6。⚠ が残る S3.2・S10.1・S10.4 は `needs-approval`(S1.4 は Q3 の回答で `approved`)
   - Issue 一覧の 3 章以降は `TASKS_TICKET_SYSTEM.md` から機械的に作り、件数(Epic 11 / Story 50 / Task 78)が一致することを確認
 - GitHub 上の Issue・Project はまだ作っていない(オーナーの了承後に作る)
 - コード・DB の変更はなし

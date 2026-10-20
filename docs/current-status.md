@@ -47,7 +47,7 @@
 | (第32版) | Codespaces での動作確認(2026-10-20)を 13 章に追記: タスクのサブ項目(#38)の確認項目 6b〜6d を含めて問題なし |
 | (第33版) | **利用ガイド** `docs/user-guide.md` を追加(管理者・新入社員の使い方、できること / できないこと、運用のヒント、よくある質問) |
 | (第34版) | **チケット管理への移行計画**(案)を追加: `docs/PRODUCT_VISION.md`・`PRD_TICKET_SYSTEM.md`・`ROADMAP_TICKET_SYSTEM.md`・`TASKS_TICKET_SYSTEM.md`・`FEATURE_TOGGLE_STRATEGY.md`。作り直さず、Feature Toggle で段階的に移行する 6 か月の計画 |
-| (第35版) | 移行計画への回答(Q1〜Q7、Q3 は未回答)を反映。**GitHub Issues 一覧** `docs/GITHUB_ISSUES_TICKET_SYSTEM.md`(Epic / Story / Task と GitHub Projects の運用)と Issue のひな形 `.github/ISSUE_TEMPLATE/` を追加 |
+| (第35版) | 移行計画への回答(Q1〜Q7。チケットの削除は論理削除)を反映。**GitHub Issues 一覧** `docs/GITHUB_ISSUES_TICKET_SYSTEM.md`(Epic / Story / Task と GitHub Projects の運用)と Issue のひな形 `.github/ISSUE_TEMPLATE/` を追加 |
 | #29 | **テストの整理**: サンプルデータの件数・id・並び順をテスト用の `SampleData` にまとめた。サンプルデータを変えても、直すのはほぼこのファイルだけ |
 | #28 | **タスクの説明欄の URL をリンクに**: `http://` / `https://` で始まる URL を新しいタブで開けるリンクとして表示(SSO のログイン画面への案内など)。確認用のサンプルタスク「Google を開く」を追加 |
 | #27 | **Java の教科書**(`docs/java-guide.md`)を追加。このレポートにフロントエンド(画面)の状況を追記(5 章) |

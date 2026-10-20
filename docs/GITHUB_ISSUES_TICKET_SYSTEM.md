@@ -100,9 +100,9 @@ Ready・In Progress・Review への移動は手で行います(AI が作業の�
 
 ## 2. 今の状況(2026-10-20)
 
-- PRD 10 章の回答: Q1・Q2・Q4・Q6・Q7 は OK、Q5 は「ロールとログイン方法を分けない(今のまま)、4 ロールは Toggle で切り替え」、**Q3(論理削除)は未回答**
+- PRD 10 章の回答: Q1・Q2・Q3(論理削除)・Q4・Q6・Q7 は OK、Q5 は「ロールとログイン方法を分けない(今のまま)、4 ロールは Toggle で切り替え」
 - 初期の Ready: S0.1、S0.2、S0.3、S0.5、S0.6(依存がなく、事前確認も不要)
-- 確認待ち(`needs-approval`): S1.4(削除の仕様(Q3 未回答))、S3.2(仕様)、S10.1(実行日と手順)、S10.4(データ削除)
+- 確認待ち(`needs-approval`): S3.2(仕様)、S10.1(実行日と手順)、S10.4(データ削除)
 
 ---
 
@@ -139,7 +139,7 @@ Ready・In Progress・Review への移動は手で行います(AI が作業の�
 | `[S1.1] `tickets` テーブルと Entity を作る` | E1 | `type:story` `phase:1` `area:db` `toggle:ticket-system` `approved` | M | S0.1 | Backlog | V12 が既存の DB に適用でき、旧画面に影響がない。`Ticket` の単体テスト(完了日時・期限切れ)が通る |
 | `[S1.2] `TicketService` と `TicketRepository`` | E1 | `type:story` `phase:1` `area:domain` `toggle:ticket-system` | M | S1.1 | Backlog | 登録・更新・論理削除・ステータス変更・一覧のテストが通る。一覧は関連を 1 回で読む |
 | `[S1.3] チケット一覧・登録・編集の画面` | E1 | `type:story` `phase:1` `area:ui` `toggle:ticket-system` | L | S1.2 | Backlog | Toggle ON で一覧・登録・編集ができる。入力エラー・404・新入社員 403・Toggle OFF 404 のテストが通る |
-| `[S1.4] チケット詳細・削除・ステータス変更` | E1 | `type:story` `phase:1` `area:ui` `toggle:ticket-system` `needs-approval` | M | S1.3 | Backlog | 詳細・削除・ステータス変更ができる。削除したチケットは一覧・詳細に出ない(削除の方法は Q3 の回答に合わせる) |
+| `[S1.4] チケット詳細・削除・ステータス変更` | E1 | `type:story` `phase:1` `area:ui` `toggle:ticket-system` `approved` | M | S1.3 | Backlog | 詳細・削除・ステータス変更ができる。論理削除したチケットは一覧・詳細に出ないが、DB には残る |
 | `[S1.5] メニューと Toggle の画面表示` | E1 | `type:story` `phase:1` `area:ui` `toggle:ticket-system` | S | S1.3 | Backlog | Toggle OFF で今の画面とメニューが変わらない(テストで確認) |
 | `[S1.6] 再起動なしの ON/OFF(`feature_flags` と `/admin/features`)` | E1 | `type:story` `phase:1` `area:db` `toggle:ticket-system` `approved` | M | S0.1 | Backlog | `/admin/features` で切り替えると、再起動なしで次の画面から反映。ADMIN 以外は開けない |
 | `[S1.7] CI のスモークテストに Toggle ON の確認を足す` | E1 | `type:story` `phase:1` `area:ci` `toggle:ticket-system` | S | S1.3 | Backlog | CI のスモークテストで Toggle ON のチケット登録・表示が通る。今の確認はそのまま |
@@ -413,7 +413,7 @@ S1.2
 ```
 
 </details>
-<details><summary><b>[S1.4] チケット詳細・削除・ステータス変更</b>(Size M・依存 S1.3・確認 ⚠ 削除の仕様(Q3 未回答))</summary>
+<details><summary><b>[S1.4] チケット詳細・削除・ステータス変更</b>(Size M・依存 S1.3・確認 ✅ 論理削除(Q3))</summary>
 
 ```markdown
 ## 目的
@@ -424,7 +424,7 @@ S1.2
 - [ ] T1.4.2 テスト一式
 
 ## 完了の条件
-- 詳細・削除・ステータス変更ができる。削除したチケットは一覧・詳細に出ない(削除の方法は Q3 の回答に合わせる)
+- 詳細・削除・ステータス変更ができる。論理削除したチケットは一覧・詳細に出ないが、DB には残る
 - `mvn -B test` が通り、CI(`test`・`call-reusable / run-smoke`)が緑
 - `DEVLOG.md`・`SESSION_SUMMARY.md`・`docs/TASKS.md` を更新
 
