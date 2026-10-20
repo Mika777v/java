@@ -102,7 +102,7 @@ Ready・In Progress・Review への移動は手で行います(AI が作業の�
 
 - PRD 10 章の回答: Q1・Q2・Q3(論理削除)・Q4・Q6・Q7 は OK、Q5 は「ロールとログイン方法を分けない(今のまま)、4 ロールは Toggle で切り替え」
 - 初期の Ready: S0.1、S0.2、S0.3、S0.5、S0.6(依存がなく、事前確認も不要)
-- 確認待ち(`needs-approval`): S3.2(仕様)、S10.1(実行日と手順)、S10.4(データ削除)
+- 確認待ち(`needs-approval`): なし(S3.2・S10.1・S10.4 も 2026-10-20 に了承。S10.4 はオーナーの指示で着手)
 
 ---
 
@@ -151,7 +151,7 @@ Ready・In Progress・Review への移動は手で行います(AI が作業の�
 | `[S2.5] テンプレートから一括起票` | E2 | `type:story` `phase:2` `area:domain` `toggle:project-management` | L | S2.4・S0.2 | Backlog | 有効なひな形から、選んだ人のチケットがまとめて作られる。二度押しで二重にならない |
 | `[S2.6] 表示名「タスク」→「オンボーディングのひな形」` | E2 | `type:story` `phase:2` `area:ui` `toggle:project-management` | S | S2.5 | Backlog | 旧画面の表示名が変わり、URL・クラス名は変わらない |
 | `[S3.1] REVIEW・CLOSED を追加` | E3 | `type:story` `phase:3` `area:db` `toggle:ticket-system` `approved` | M | S1.2 | Backlog | REVIEW・CLOSED を選べる。完了日時の規則のテストが通る |
-| `[S3.2] 状態の移り方の決まり` | E3 | `type:story` `phase:3` `area:domain` `toggle:ticket-system` `needs-approval` | M | S3.1 | Backlog | 移れない組み合わせはエラー。`design-diagrams.md` に状態遷移図 |
+| `[S3.2] 状態の移り方の決まり` | E3 | `type:story` `phase:3` `area:domain` `toggle:ticket-system` `approved` | M | S3.1 | Backlog | 移れない組み合わせはエラー。`design-diagrams.md` に状態遷移図 |
 | `[S3.3] ステータスの見た目と MVP の確認` | E3 | `type:story` `phase:3` `area:ui` `toggle:ticket-system` | S | S3.2 | Backlog | 色分け済み。オーナーが Codespaces で MVP を確認 |
 | `[S4.1] `ticket_comments` と Service` | E4 | `type:story` `phase:4` `area:db` `toggle:comments` `approved` | M | S1.2 | Backlog | コメントの保存・論理削除のテストが通る |
 | `[S4.2] 詳細画面のコメント欄` | E4 | `type:story` `phase:4` `area:ui` `toggle:comments` | M | S4.1 | Backlog | 詳細画面でコメントの一覧と投稿ができ、URL はリンク、そのほかはエスケープ |
@@ -175,10 +175,10 @@ Ready・In Progress・Review への移動は手で行います(AI が作業の�
 | `[S9.1] ボード画面(ボタン版)` | E9 | `type:story` `phase:9` `area:ui` `toggle:kanban-board` | M | S3.2・S2.4 | Backlog | プロジェクトのボードにステータスの列とカード |
 | `[S9.2] カードの移動` | E9 | `type:story` `phase:9` `area:ui` `toggle:kanban-board` | M | S9.1 | Backlog | ボタンで隣の列へ動かせる。移れない組み合わせ・権限のないカードは動かない |
 | `[S9.3] (任意)ドラッグ操作` | E9 | `type:story` `phase:9` `area:ui` `toggle:kanban-board` `approved` | M | S9.2 | Backlog | ドラッグで動かせる。JavaScript なしでもボタンで使える |
-| `[S10.1] オンボーディングのデータをチケットへ写す` | E10 | `type:story` `phase:10` `area:db` `toggle:onboarding-legacy` `needs-approval` | L | Phase9 まで | Backlog | リハーサルで件数が一致。本番実行後も一致し、二重に写っていない |
+| `[S10.1] オンボーディングのデータをチケットへ写す` | E10 | `type:story` `phase:10` `area:db` `toggle:onboarding-legacy` `approved` | L | Phase9 まで | Backlog | リハーサルで件数が一致。本番実行後も一致し、二重に写っていない |
 | `[S10.2] 旧画面の退役(`onboarding-legacy` を OFF)` | E10 | `type:story` `phase:10` `area:ui` `toggle:onboarding-legacy` `approved` | M | S10.1 | Backlog | 旧 URL から新画面へ案内。OFF にして 2 週間問題なし |
 | `[S10.3] Toggle の撤去(1 Toggle = 1 PR)` | E10 | `type:story` `phase:10` `area:config` `toggle:onboarding-legacy` | M × 7 | 各 Toggle が既定 ON で 2 週間安定 | Backlog | Toggle 1 つにつき 1 PR で、分岐・設定・環境変数・OFF 側のテストが消えている |
-| `[S10.4] 旧コードの削除` | E10 | `type:story` `phase:10` `area:refactor` `toggle:onboarding-legacy` `needs-approval` | L | S10.2 | Backlog | 旧 Controller・画面・テストが消え、全テストが通る。古いテーブルの扱いが記録されている |
+| `[S10.4] 旧コードの削除` | E10 | `type:story` `phase:10` `area:refactor` `toggle:onboarding-legacy` `approved` | L | S10.2 | Backlog | 旧 Controller・画面・テストが消え、全テストが通る。古いテーブルの扱いが記録されている |
 | `[S10.5] ドキュメントの総仕上げ` | E10 | `type:story` `phase:10` `area:docs` `toggle:onboarding-legacy` | M | S10.4 | Backlog | 人向け・AI 向けのドキュメントがチケット管理の内容になっている |
 
 ---
@@ -704,14 +704,14 @@ S1.2
 ```
 
 </details>
-<details><summary><b>[S3.2] 状態の移り方の決まり</b>(Size M・依存 S3.1・確認 ⚠ 仕様)</summary>
+<details><summary><b>[S3.2] 状態の移り方の決まり</b>(Size M・依存 S3.1・確認 ✅ 仕様(オーナー了承))</summary>
 
 ```markdown
 ## 目的
 状態の移り方の決まり(親: E3 ステータス管理の強化)
 
 ## やること
-- [ ] T3.2.1 移れる組み合わせの表(例: CLOSED → TODO は「再オープン」だけ)を `TicketStatus` に持たせ、テスト
+- [ ] T3.2.1 移れる組み合わせの表を `TicketStatus` に持たせ、テスト。決まり: TODO・IN_PROGRESS・REVIEW・DONE の間は自由に移れる。どの状態からも CLOSED にできる。CLOSED から出るのは「再オープン」(→ TODO)だけ
 - [ ] T3.2.2 `design-diagrams.md` に状態遷移図を追加
 
 ## 完了の条件
@@ -1280,14 +1280,14 @@ S9.2
 
 ### [E10] 全面移行と Toggle の撤去(Phase10・Toggle: `onboarding-legacy`)
 
-<details><summary><b>[S10.1] オンボーディングのデータをチケットへ写す</b>(Size L・依存 Phase9 まで・確認 ✅ 方針(Q6)/ ⚠ 実行日と手順)</summary>
+<details><summary><b>[S10.1] オンボーディングのデータをチケットへ写す</b>(Size L・依存 Phase9 まで・確認 ✅ 方針(Q6)・実行日はいつでもよい)</summary>
 
 ```markdown
 ## 目的
 オンボーディングのデータをチケットへ写す(親: E10 全面移行と Toggle の撤去)
 
 ## やること
-- [ ] T10.1.1 手順書(バックアップ・実行・件数の突き合わせ・戻し方)をオーナーに確認
+- [ ] T10.1.1 手順書(バックアップ・実行・件数の突き合わせ・戻し方)を書く。実運用前なので実行日はいつでもよい(オーナー了承)
 - [ ] T10.1.2 マイグレーション 1 本: `task_assignments` → `tickets`(プロジェクト `ONB`、`origin_assignment_id` で二重防止)、チェックも写す
 - [ ] T10.1.3 本番に近いデータでのリハーサル(Codespaces)
 
@@ -1351,14 +1351,14 @@ Toggle の撤去(1 Toggle = 1 PR)(親: E10 全面移行と Toggle の撤去)
 ```
 
 </details>
-<details><summary><b>[S10.4] 旧コードの削除</b>(Size L・依存 S10.2・確認 ⚠ データ削除)</summary>
+<details><summary><b>[S10.4] 旧コードの削除</b>(Size L・依存 S10.2・確認 ✅ 移行後、オーナーの指示で削除)</summary>
 
 ```markdown
 ## 目的
 旧コードの削除(親: E10 全面移行と Toggle の撤去)
 
 ## やること
-- [ ] T10.4.1 旧 Controller・画面・テスト、`onboarding-legacy` を削除。古いテーブルは残すか消すかオーナーと決める(消す場合はバックアップ後)
+- [ ] T10.4.1 旧 Controller・画面・テスト、`onboarding-legacy` を削除。古いテーブルも含め、移行後に問題がないことを確かめてから、オーナーの指示で着手する(バックアップ後)
 
 ## 完了の条件
 - 旧 Controller・画面・テストが消え、全テストが通る。古いテーブルの扱いが記録されている

@@ -25,6 +25,12 @@ PR #29 以前の経緯は `docs/current-status.md` の「これまでの主な�
   - `.devcontainer/start-app.sh` と CI は変えない(`.env` に `FEATURE_...=true` を書けば docker compose が読む。既定のままなら設定不要)
   - まだ `@RequiresFeature` を付けた画面はない。テストではテスト専用の Controller で確かめた
 - PR #41 のマージ後に push した Q3(論理削除)の記録が master に入っていなかったため、このブランチに入れ直した
+- 計画に残っていた確認 3 つへの回答も記録(`TASKS_TICKET_SYSTEM.md`・`GITHUB_ISSUES_TICKET_SYSTEM.md`・`PRD_TICKET_SYSTEM.md`):
+  - S3.2 状態の移り方: 例のとおり。TODO・IN_PROGRESS・REVIEW・DONE の間は自由、どこからでも CLOSED、CLOSED から出るのは再オープン(→ TODO)だけ
+  - S10.1 データの移し替え: まだ実運用していないので、実行日はいつでもよい
+  - S10.4 旧コードの削除: 移行して問題がなければ、オーナーが削除の指示を出す(それまで着手しない)
+  - これでラベル `needs-approval` の Story はなくなった
+  - この記録は #42 のマージ後に push したため、別の PR にした
 - テスト: 236 件すべて成功(15 件追加: `FeatureFlagsTest` 7、`FeatureToggleInterceptorTest` 3、`FeatureToggleTest` 5)。Interceptor の登録を外すと `FeatureToggleTest` が失敗することも確認。`docker compose config` で `FEATURE_*` が渡ることを確認
 
 ## 2026-10-20 docs: 移行計画への回答の反映と GitHub Issues 一覧(PR #41)

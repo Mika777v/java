@@ -119,8 +119,8 @@
 | **S3.1** | **REVIEW・CLOSED を追加** | M | ✅ DB(Q2) | S1.2 |
 | T3.1.1 | 新しいマイグレーションで `tickets.status` の CHECK を広げる、`TicketStatus` に追加 | | | |
 | T3.1.2 | 完了日時: DONE で記録、CLOSED は記録を保つ、それ以外に戻すと消す。期限切れは DONE・CLOSED を除く | | | |
-| **S3.2** | **状態の移り方の決まり** | M | ⚠ 仕様 | S3.1 |
-| T3.2.1 | 移れる組み合わせの表(例: CLOSED → TODO は「再オープン」だけ)を `TicketStatus` に持たせ、テスト | | | |
+| **S3.2** | **状態の移り方の決まり** | M | ✅ 仕様(オーナー了承) | S3.1 |
+| T3.2.1 | 移れる組み合わせの表を `TicketStatus` に持たせ、テスト。決まり: TODO・IN_PROGRESS・REVIEW・DONE の間は自由に移れる。どの状態からも CLOSED にできる。CLOSED から出るのは「再オープン」(→ TODO)だけ | | | |
 | T3.2.2 | `design-diagrams.md` に状態遷移図を追加 | | | |
 | **S3.3** | **ステータスの見た目と MVP の確認** | S | | S3.2 |
 | T3.3.1 | 色分け(`app.css`)、`codespaces-check.md` に MVP の確認項目、公開 PR | | | |
@@ -205,16 +205,16 @@
 
 | ID | Story / Task | 規模 | 確認 | 依存 |
 |---|---|---|---|---|
-| **S10.1** | **オンボーディングのデータをチケットへ写す** | L | ✅ 方針(Q6)/ ⚠ 実行日と手順 | Phase9 まで |
-| T10.1.1 | 手順書(バックアップ・実行・件数の突き合わせ・戻し方)をオーナーに確認 | | | |
+| **S10.1** | **オンボーディングのデータをチケットへ写す** | L | ✅ 方針(Q6)・実行日はいつでもよい(まだ実運用していない) | Phase9 まで |
+| T10.1.1 | 手順書(バックアップ・実行・件数の突き合わせ・戻し方)を書く。実運用前なので実行日はいつでもよい(オーナー了承) | | | |
 | T10.1.2 | マイグレーション 1 本: `task_assignments` → `tickets`(プロジェクト `ONB`、`origin_assignment_id` で二重防止)、チェックも写す | | | |
 | T10.1.3 | 本番に近いデータでのリハーサル(Codespaces) | | | |
 | **S10.2** | **旧画面の退役(`onboarding-legacy` を OFF)** | M | ✅ 方針(Q6) | S10.1 |
 | T10.2.1 | 旧 URL から新画面への案内、OFF にして 2 週間の確認 | | | |
 | **S10.3** | **Toggle の撤去(1 Toggle = 1 PR)** | M × 7 | | 各 Toggle が既定 ON で 2 週間安定 |
 | T10.3.1 | `ticket-system` / `project-management` / `comments` / `notifications` / `extended-roles` / `ticket-dashboard` / `kanban-board` の分岐・設定・環境変数・OFF 側のテストを消す | | | |
-| **S10.4** | **旧コードの削除** | L | ⚠ データ削除 | S10.2 |
-| T10.4.1 | 旧 Controller・画面・テスト、`onboarding-legacy` を削除。古いテーブルは残すか消すかオーナーと決める(消す場合はバックアップ後) | | | |
+| **S10.4** | **旧コードの削除** | L | ✅ 移行して問題がなければ、オーナーの指示で削除 | S10.2 |
+| T10.4.1 | 旧 Controller・画面・テスト、`onboarding-legacy` を削除。古いテーブルも含め、移行後に問題がないことを確かめてから、オーナーの指示で着手する(バックアップ後) | | | |
 | **S10.5** | **ドキュメントの総仕上げ** | M | | S10.4 |
 | T10.5.1 | `requirements.md`・`design.md`・`user-guide.md`・`current-status.md`・`docs/ai/*` をチケット管理の内容に更新 | | | |
 
