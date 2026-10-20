@@ -15,7 +15,12 @@ PR #29 以前の経緯は `docs/current-status.md` の「これまでの主な�
 
 ---
 
-## 2026-10-19 feat: タスクのサブ項目(チェックボックス、F1)
+## 2026-10-20 docs: タスクのサブ項目(F1)の Codespaces での確認を記録
+
+- オーナーが Codespaces で `docs/codespaces-check.md` の 6b〜6d を含めて確認し、すべて問題なし(#38 マージ後)
+- 更新: `docs/current-status.md`(第32版、13 章に結果)、`docs/TASKS.md`(F1 を完了へ)、`docs/ai/backlog.md`
+
+## 2026-10-19 feat: タスクのサブ項目(チェックボックス、F1)(PR #38)
 
 - オーナーの回答: 3 つの質問はすべて「おすすめどおり」(全部チェックで自動完了・管理者画面にも表示・割り当て後の増減も反映)。テーブル追加の了承を兼ねる
 - 追加: V11(`task_checklist_items`・`assignment_checks`)、Entity 2 つ、Repository 2 つ、`ChecklistService` / `Checklist`、`ChecklistItemForm`、`fragments/checklist.html`
