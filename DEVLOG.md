@@ -15,7 +15,21 @@ PR #29 以前の経緯は `docs/current-status.md` の「これまでの主な�
 
 ---
 
-## 2026-10-20 docs: 利用ガイドの追加
+## 2026-10-20 docs: チケット管理への移行計画(案)
+
+- オーナーの依頼: オンボーディング管理を、作り直さずに Jira / Backlog 風のチケット管理へ段階的に発展させる計画。Feature Toggle で移行中も今の機能を使えるようにする
+- 追加: `docs/PRODUCT_VISION.md`、`docs/PRD_TICKET_SYSTEM.md`、`docs/ROADMAP_TICKET_SYSTEM.md`、`docs/TASKS_TICKET_SYSTEM.md`、`docs/FEATURE_TOGGLE_STRATEGY.md`
+- 分析: クラス・テーブル・画面・権限・API を調べ、`TaskAssignment` がチケット、`Task` がテンプレートに近いと評価。結論は「新しいドメイン(チケット・プロジェクト)を横に足し、共通部分を使い回し、最後にオンボーディングを載せ替える」
+- 判断:
+  - Toggle は `features.<名前>.enabled`(既定 OFF)。OFF の画面は 404。今ある `LoginSettings` と同じ書き方にする
+  - 再起動なしの切り替えは Phase1 で `feature_flags` テーブルを足して実現(DB 変更なので実装前に確認)
+  - DB は「足す → 移す → 片付ける」。片付け(古いテーブルの削除)は任意で、行うならオーナーの了承とバックアップが必要
+  - ルートパッケージ名・プロジェクト名は変えない(影響が大きく、得られるものが小さい)
+  - Phase7 の前に、ロール(MEMBER)とログイン方法(専用URL)を分ける設計の確認が必要
+- 6 か月で Phase0〜10。MVP は Phase1〜3(約 10 週)。Issue は Epic 11・Story 50
+- コード・DB の変更はなし(計画だけ)
+
+## 2026-10-20 docs: 利用ガイドの追加(PR #39)
 
 - オーナーの依頼: アプリが完成に近いので、使い方・できること / できないことをまとめる
 - `docs/user-guide.md` を追加(使い始める前に、管理者の使い方、新入社員の使い方、できること / できないこと、運用のヒント、よくある質問)
