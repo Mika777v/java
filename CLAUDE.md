@@ -20,7 +20,7 @@
 | これまでの作業の経緯 | `DEVLOG.md` |
 | 人間向けの画面説明・現状の詳細 | `docs/current-status.md` |
 | 利用者向けの使い方・できること / できないこと | `docs/user-guide.md` |
-| チケット管理への移行(ビジョン・PRD・ロードマップ・Issue・Feature Toggle) | `docs/PRODUCT_VISION.md`、`docs/PRD_TICKET_SYSTEM.md`、`docs/ROADMAP_TICKET_SYSTEM.md`、`docs/TASKS_TICKET_SYSTEM.md`、`docs/FEATURE_TOGGLE_STRATEGY.md` |
+| チケット管理への移行(ビジョン・PRD・ロードマップ・Issue・Feature Toggle) | `docs/PRODUCT_VISION.md`、`docs/PRD_TICKET_SYSTEM.md`、`docs/ROADMAP_TICKET_SYSTEM.md`、`docs/TASKS_TICKET_SYSTEM.md`、`docs/GITHUB_ISSUES_TICKET_SYSTEM.md`(Issue 一覧・Projects の運用)、`docs/FEATURE_TOGGLE_STRATEGY.md` |
 
 ## スキル(`.claude/skills/`)
 
