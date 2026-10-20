@@ -2,21 +2,20 @@
 
 次のセッションへの引き継ぎです。セッションの終わりに書き換えます(運用ルールは `CLAUDE.md`)。
 
-最終更新: 2026-10-19
+最終更新: 2026-10-20
 
 ## 今の状態
 
-- `master` は PR #37 まで反映済み。アプリは Codespaces で正常に動作(オーナー確認済み、2026-10-19)
-- 自動テスト 221 件(F1 の PR を含む)。`master` の CI(`test`・`call-reusable / run-smoke`)は緑
+- `master` は PR #38 まで反映済み(タスクのサブ項目 F1 を含む)。Codespaces で確認済み、問題なし(オーナー、2026-10-20)
+- 自動テスト 221 件。`master` の CI(`test`・`call-reusable / run-smoke`)は緑
 - AI 開発運用ルールは `CLAUDE.md` に導入済み(#36)。「タスク実行フロー」に従い、完了後は PR 作成まで行う
 
 ## 直前の作業
 
-- F1: タスクのサブ項目(チェックボックス)を実装。V11 でテーブル 2 つを追加。PR を作成済み、オーナーのマージと Codespaces での確認待ち(`docs/codespaces-check.md` の 6b〜6d)
+- 利用ガイド `docs/user-guide.md` を追加し、F1 の Codespaces 確認結果も記録(どちらもドキュメントだけ。PR #39)
 
 ## 次の一手
 
-- F1 の PR の CI を確認し、マージ後に Codespaces で確認してもらう
 - `docs/TASKS.md` の「次にやる」の 1 番: `TaskService` の導入(確認不要のリファクタリング)
 
 ## 未解決・オーナーの判断待ち

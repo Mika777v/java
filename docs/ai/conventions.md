@@ -75,7 +75,7 @@
 | 機能の完了・追加 | `docs/ai/backlog.md`、`docs/TASKS.md` |
 | すべてのタスク | `DEVLOG.md`(作業ログ)、`SESSION_SUMMARY.md`(引き継ぎ) |
 | 機能・権限・業務ルールの追加や変更 | `docs/ai/spec.md`(要件・実装・テストの対応表)、`docs/requirements.md`、`docs/design.md`、`docs/design-diagrams.md`(状態・画面・メッセージ・入力チェックが変わったとき) |
-| 画面・操作の追加や変更 | `docs/codespaces-check.md` のチェックリスト |
+| 画面・操作の追加や変更 | `docs/codespaces-check.md` のチェックリスト、`docs/user-guide.md`(使い方・できること / できないこと) |
 | `docs/java-guide.md` に引用しているコードの変更 | `docs/java-guide.md` の該当箇所 |
 
 ## Git / PR
