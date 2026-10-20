@@ -1,5 +1,6 @@
 package com.example.onboarding.config;
 
+import com.example.onboarding.feature.FeatureToggleInterceptor;
 import com.example.onboarding.web.PasswordChangeRequiredInterceptor;
 import com.example.onboarding.web.RemovedUserLogoutInterceptor;
 import org.springframework.context.annotation.Configuration;
@@ -11,11 +12,14 @@ public class WebConfig implements WebMvcConfigurer {
 
     private final RemovedUserLogoutInterceptor removedUserLogoutInterceptor;
     private final PasswordChangeRequiredInterceptor passwordChangeRequiredInterceptor;
+    private final FeatureToggleInterceptor featureToggleInterceptor;
 
     public WebConfig(RemovedUserLogoutInterceptor removedUserLogoutInterceptor,
-                     PasswordChangeRequiredInterceptor passwordChangeRequiredInterceptor) {
+                     PasswordChangeRequiredInterceptor passwordChangeRequiredInterceptor,
+                     FeatureToggleInterceptor featureToggleInterceptor) {
         this.removedUserLogoutInterceptor = removedUserLogoutInterceptor;
         this.passwordChangeRequiredInterceptor = passwordChangeRequiredInterceptor;
+        this.featureToggleInterceptor = featureToggleInterceptor;
     }
 
     @Override
@@ -26,5 +30,7 @@ public class WebConfig implements WebMvcConfigurer {
         // Pages that must stay open while a password change is required
         registry.addInterceptor(passwordChangeRequiredInterceptor)
                 .excludePathPatterns("/me/password", "/login", "/join/**", "/css/**", "/error", "/favicon.ico");
+        // Pages of features that are switched off answer 404
+        registry.addInterceptor(featureToggleInterceptor);
     }
 }

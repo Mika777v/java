@@ -44,7 +44,7 @@
 ├─ docs/
 │   ├─ TASKS.md                    … 今のタスクの一覧(進行中・次にやる・判断待ち)
 │   ├─ user-guide.md               … 利用ガイド(管理者・新入社員の使い方、できること / できないこと)
-│   ├─ PRODUCT_VISION.md ほか 5 つ … チケット管理への移行計画(PRD・ROADMAP・TASKS・GITHUB_ISSUES・FEATURE_TOGGLE_STRATEGY。Q3 以外は回答済み)
+│   ├─ PRODUCT_VISION.md ほか 5 つ … チケット管理への移行計画(PRD・ROADMAP・TASKS・GITHUB_ISSUES・FEATURE_TOGGLE_STRATEGY。質問はすべて回答済み)
 │   ├─ current-status.md           … 人間向けの現状レポート(機能・画面・URL の一覧)
 │   ├─ codespaces-check.md         … Codespaces での動作確認手順
 │   ├─ java-guide.md               … オーナー向けの Java 教科書
@@ -105,6 +105,7 @@ Codespaces では `.devcontainer/start-app.sh` が自動で起動し、`.env`(gi
 | `APP_ACCESS_LINK_VALID_DAYS` | 任意 | 専用URLの有効日数(既定 60) |
 | `APP_BASE_URL` | 任意 | 専用URLに表示するアプリのアドレス。空なら管理者のブラウザが使ったアドレス。Codespaces では start-app.sh が自動設定 |
 | `APP_TIME_ZONE` | 任意 | 「今日」や完了日時の表示に使うタイムゾーン(既定 `Asia/Tokyo`) |
+| `FEATURE_*` | 任意 | チケット管理の Feature Toggle(`FEATURE_TICKET_SYSTEM` など 8 つ、`true` / `false`)。`FEATURE_ONBOARDING_LEGACY` だけ既定 `true`、ほかは `false`。変えたら再起動。一覧は `docs/FEATURE_TOGGLE_STRATEGY.md` |
 | `SPRING_DATASOURCE_URL` | 任意 | 既定 `jdbc:postgresql://localhost:5432/onboarding_db` |
 | `SPRING_JPA_SHOW_SQL` | 任意 | `true` で実行した SQL をログに出す(既定 `false`。学習・調査用) |
 | `SPRING_FLYWAY_BASELINE_ON_MIGRATE` | 任意 | 既定 `false`。Flyway の履歴がない既存 DB に途中から導入するときだけ一時的に `true` |

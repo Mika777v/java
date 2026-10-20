@@ -66,6 +66,7 @@
 | INV-12 | CI の必須チェック名 `test` / `call-reusable / run-smoke` を変えない。呼び出し元の job に `if` を付けない | NFR-07。ルールセットが名前で判定 |
 | INV-13 | 削除されたユーザー・役割が変わったユーザーのセッションは、次の操作で無効にする(`RemovedUserLogoutInterceptor`) | セッションにはログイン時の役割が残る。`RemovedAdministratorSessionTest` |
 | INV-14 | 「確認してから保存」する重複チェックには、DB の一意制約も必ず付け、違反(`DataIntegrityViolationException`)はいつものメッセージに変える | 同時操作(二度押し)で 500 にしない。`ConcurrentRequestTest` |
+| INV-15 | チケット管理の新しい機能は Feature Toggle の後ろに作り、Toggle が既定(OFF)のままなら今の画面・動きを変えない。OFF の画面は 404 | 移行中も今のオンボーディング管理を使えるようにする(`docs/FEATURE_TOGGLE_STRATEGY.md`)。`FeatureToggleTest` |
 
 ## 4. 非機能要件(要約)
 
@@ -107,6 +108,8 @@
 | テストのサンプルデータは `SampleData` に集約 | サンプルデータ変更時の修正箇所を減らす(#28 で 18 件直した反省) | #29 |
 | 1 つのタスクに複数の作業があるときは、親子タスクではなくサブ項目(チェックボックス)で持つ | 期限・状態はタスクに 1 つでよく、進捗の数え方を変えずに済む。親子タスク(F2)は優先度低で保留 | (第31版) |
 | コードレビューの指摘のうち、再現できたものを修正(セッション・メールの大文字小文字・二度押し・API の active・Flyway の baseline・Docker・Actions の権限・最初の管理者のパスワードの長さ) | すべて先にテストか実際の起動で再現してから直した | #31 |
+| Feature Toggle は設定(環境変数)を起動時に読む方式から始める。`FeatureProperties` は作らず `Environment` から直接読む | 再起動なしの切り替え(`feature_flags` テーブル)は DB 変更なので S1.6 で別に行う。Toggle の一覧は `Feature` enum 1 か所にまとめ、設定クラスとの二重管理を避ける | S0.1 |
+| チケットの削除は論理削除(Q3) | 間違えて消しても戻せる。コメント・通知の記録も残る | S1.4 |
 | タスクの削除で割り当ても消える(`ON DELETE CASCADE`)は変えない | FR-04 の要件どおり。履歴を残したいなら「無効」にする運用。変えるならオーナーと相談 | #31 |
 
 ## 6.5 状態遷移(表形式)

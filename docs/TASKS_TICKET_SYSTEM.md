@@ -40,7 +40,7 @@
 | ID | Story / Task | 規模 | 確認 | 依存 |
 |---|---|---|---|---|
 | **S0.1** | **Feature Toggle の仕組みを入れる** | M | | — |
-| T0.1.1 | `Feature` enum(名前・親)と `FeatureProperties`(`features.*.enabled`)を作る | | | |
+| T0.1.1 | `Feature` enum(名前・親・既定値)を作る。設定 `features.*.enabled` は `Environment` から読む(`FeatureProperties` は作らないことにした) | | | |
 | T0.1.2 | `FeatureFlags`(`@Component("features")`、親が OFF なら子も OFF)と単体テスト | | | |
 | T0.1.3 | `@RequiresFeature` + `FeatureToggleInterceptor`(OFF なら 404)を `WebConfig` に登録、テスト | | | |
 | T0.1.4 | `application.yml`・`docker-compose.yml`・`.devcontainer/start-app.sh`・README に `FEATURE_*` を追加(すべて既定 OFF) | | | |
@@ -76,7 +76,7 @@
 | T1.3.1 | `TicketController`(`@RequiresFeature(TICKET_SYSTEM)`)と `TicketForm`(タイトル必須・200 文字) | | | |
 | T1.3.2 | `templates/tickets/list.html`・`form.html`(表は部品で作る) | | | |
 | T1.3.3 | テスト: 正常系・入力エラー・404・新入社員は 403・Toggle OFF で 404 | | | |
-| **S1.4** | **チケット詳細・削除・ステータス変更** | M | ⚠ 削除の仕様(Q3 未回答) | S1.3 |
+| **S1.4** | **チケット詳細・削除・ステータス変更** | M | ✅ 論理削除(Q3) | S1.3 |
 | T1.4.1 | 詳細画面(説明はリンク表示)、削除(論理削除、確認ダイアログ)、ステータス変更 | | | |
 | T1.4.2 | テスト一式 | | | |
 | **S1.5** | **メニューと Toggle の画面表示** | S | | S1.3 |
@@ -234,7 +234,7 @@
 | 6 | S1.2 | `TicketService` と `TicketRepository` | M | 不要 | 画面より先に規則(完了日時・期限切れ)をテストで固める |
 | 7 | S1.3 | チケット一覧・登録・編集の画面 | L | 不要 | ここで初めて Toggle ON で「使える」状態になる |
 | 8 | S1.5 | メニューと Toggle の画面表示 | S | 不要 | OFF のとき今と同じ見た目であることを保証する |
-| 9 | S1.4 | チケット詳細・削除・ステータス変更 | M | ⚠ Q3 未回答 | Phase1 の残り。論理削除の了承をもらって着手 |
+| 9 | S1.4 | チケット詳細・削除・ステータス変更 | M | ✅ Q3 | Phase1 の残り。削除は論理削除 |
 | 10 | S1.6 | 再起動なしの ON/OFF | M | ✅(Q2・Q4) | 公開前に「すぐ戻せる」状態を作っておく |
 
 S0.4(Controller の分割)・S0.5(表の部品化)・S1.7(CI)・S1.8(ドキュメント)は、上の 10 件の間に並行して進めます。

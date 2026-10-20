@@ -3,20 +3,19 @@
 今のタスクの一覧です。タスクを受けたとき・終わったときに更新します(運用ルールは `CLAUDE.md`)。
 ロードマップ・技術的負債の詳しい内容は `docs/ai/backlog.md`(D 番号・R 番号はそちらを参照)。
 
-最終更新: 2026-10-20(移行計画の回答を反映、GitHub Issues 一覧を追加)
+最終更新: 2026-10-20(S0.1 Feature Toggle の仕組み)
 
 ## 進行中
 
 | タスク | ブランチ / PR | メモ |
 |---|---|---|
-| GitHub Issues 一覧(`docs/GITHUB_ISSUES_TICKET_SYSTEM.md`)と Issue のひな形 | `claude/github-actions-docker-error-06b46h` | PR 作成後、オーナーのマージ待ち |
+| Feature Toggle の仕組み(S0.1)と Q3(論理削除)の記録 | `claude/github-actions-docker-error-06b46h` | PR 作成後、オーナーのマージ待ち |
 
 ## 次にやる(推奨順)
 
 | 順 | タスク | 種類 | 事前確認 | メモ |
 |---|---|---|---|---|
-| 1 | Feature Toggle の仕組み(S0.1) | feat | 不要 | 移行計画の最初の Issue。すべて既定 OFF なので今の動きは変わらない |
-| 1b | `TaskService` の導入(D1 / R1 = S0.2) | refactor | 不要 | 画面と API にあるタスクの登録・更新・削除を Service にまとめる。動きは変えない |
+| 1 | `TaskService` の導入(D1 / R1 = S0.2) | refactor | 不要 | 画面と API にあるタスクの登録・更新・削除を Service にまとめる。動きは変えない |
 | 2 | `UserService` の導入(D2・D6 / R2・R7) | refactor | 不要 | ユーザーの業務ルールを Controller から Service へ。動きは変えない |
 | 3 | `UserPageController` の分割(D3 / R3) | refactor | 不要 | URL は変えない。2 の後 |
 | 4 | 割り当ての表を Thymeleaf の部品にする(D4 / R4) | refactor | 不要 | |
@@ -28,7 +27,6 @@
 
 | タスク | 確認が必要な理由 |
 |---|---|
-| 移行計画の **Q3(チケットの削除を論理削除にするか)** | 仕様・データ削除の扱い。S1.4 の前までに決める(Q1・Q2・Q4〜Q7 は回答済み) |
 | サンプルデータを本番の DB に入れない | DB の変更(マイグレーションの構成を変える) |
 | タスクを削除したときに割り当ての記録を残す | 仕様変更(FR-04)、データ削除の扱い |
 | 最初の管理者にも初回のパスワード変更を求める | 認証の変更 |
@@ -46,7 +44,8 @@
 
 | 日付 | タスク | PR |
 |---|---|---|
-| 2026-10-20 | 移行計画への回答(Q1〜Q7)の反映、GitHub Issues 一覧と Issue のひな形 | (この PR) |
+| 2026-10-20 | Feature Toggle の仕組み(S0.1。まだ使う画面はない)、Q3(論理削除)の記録 | (この PR) |
+| 2026-10-20 | 移行計画への回答(Q1〜Q7)の反映、GitHub Issues 一覧と Issue のひな形 | #41 |
 | 2026-10-20 | チケット管理への移行計画(ビジョン・PRD・ロードマップ・Issue・Feature Toggle 戦略)を作成 | #40 |
 | 2026-10-20 | 利用ガイド `docs/user-guide.md`、F1 の Codespaces 確認の記録 | #39 |
 | 2026-10-20 | タスクのサブ項目(チェックボックス、F1)。Codespaces で確認済み | #38 |
